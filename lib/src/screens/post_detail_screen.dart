@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../models/post_item.dart';
 import '../state/app_state.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import '../services/cloudinary_service.dart';
 import '../widgets/glass_card.dart';
+import 'attendance_management_screen.dart';
+import 'certificate_setup_screen.dart';
 
 class PostDetailScreen extends StatefulWidget {
   const PostDetailScreen({
@@ -116,6 +121,67 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                 ),
                               ),
                             ],
+                            if (widget.appState.session != null && post.isEvent &&
+                                (widget.appState.session!.role == 'super-admin' ||
+                                    (widget.appState.session!.clubId == post.clubId &&
+                                        ['club-secretary', 'president', 'advisor']
+                                            .contains(widget.appState.session!.role)))) ...[
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                width: double.infinity,
+                                child: FilledButton.tonal(
+                                  onPressed: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) => AttendanceManagementScreen(
+                                          event: post,
+                                          appState: widget.appState,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: const Text('Manage Attendance'),
+                                ),
+                              ),
+                              if (['club-secretary', 'president'].contains(widget.appState.session!.role) && widget.appState.session!.clubId == post.clubId) ...[
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    icon: const Icon(Icons.receipt_long_rounded),
+                                    onPressed: () => _submitBudgetDialog(post.id),
+                                    label: const Text('Submit Budget Proposal'),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    icon: const Icon(Icons.upload_file_rounded),
+                                    onPressed: () => _submitReportDialog(post.id),
+                                    label: const Text('Submit Event Report'),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    icon: const Icon(Icons.workspace_premium_rounded),
+                                    onPressed: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (context) => CertificateSetupScreen(
+                                            event: post,
+                                            appState: widget.appState,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    label: const Text('Setup Certificate'),
+                                  ),
+                                ),
+                              ],
+                            ],
                             if (_message != null) ...[
                               const SizedBox(height: 12),
                               Text(_message!),
@@ -174,6 +240,171 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+  Future<void> _submitBudgetDialog(String postId) async {
+    bool isUploading = false;
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        final navigator = Navigator.of(context);
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: const Text('Submit Budget'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Upload a screenshot or document of the budget proposal.'),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      icon: isUploading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.add_photo_alternate),
+                      label: Text(isUploading ? 'Uploading...' : 'Upload Budget File'),
+                      onPressed: isUploading
+                          ? null
+                          : () async {
+                              final picker = ImagePicker();
+                              final picked = await picker.pickImage(source: ImageSource.gallery);
+                              if (picked != null) {
+                                setStateDialog(() => isUploading = true);
+                                final url = await CloudinaryService.uploadImage(File(picked.path));
+                                setStateDialog(() => isUploading = false);
+                                
+                                if (url != null) {
+                                  if (mounted) navigator.pop();
+                                  setState(() => _submitting = true);
+                                  try {
+                                    await widget.appState.updatePost(postId, {'budgetImage': url});
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Budget submitted successfully!')),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Failed to submit budget: $e')),
+                                      );
+                                    }
+                                  } finally {
+                                    setState(() => _submitting = false);
+                                  }
+                                } else {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Failed to upload image.')),
+                                    );
+                                  }
+                                }
+                              }
+                            },
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => navigator.pop(),
+                  child: const Text('Cancel'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _submitReportDialog(String postId) async {
+    bool isUploading = false;
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        final navigator = Navigator.of(context);
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: const Text('Submit Report'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Upload the post-event report document (image format).'),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      icon: isUploading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.add_photo_alternate),
+                      label: Text(isUploading ? 'Uploading...' : 'Upload Report File'),
+                      onPressed: isUploading
+                          ? null
+                          : () async {
+                              final picker = ImagePicker();
+                              final picked = await picker.pickImage(source: ImageSource.gallery);
+                              if (picked != null) {
+                                setStateDialog(() => isUploading = true);
+                                final url = await CloudinaryService.uploadImage(File(picked.path));
+                                setStateDialog(() => isUploading = false);
+                                
+                                if (url != null) {
+                                  if (mounted) navigator.pop();
+                                  setState(() => _submitting = true);
+                                  try {
+                                    await widget.appState.submitReport(
+                                      postId,
+                                      url,
+                                      picked.name,
+                                    );
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Report submitted successfully!')),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Failed to submit report: $e')),
+                                      );
+                                    }
+                                  } finally {
+                                    setState(() => _submitting = false);
+                                  }
+                                } else {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Failed to upload image.')),
+                                    );
+                                  }
+                                }
+                              }
+                            },
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => navigator.pop(),
+                  child: const Text('Cancel'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 }
 

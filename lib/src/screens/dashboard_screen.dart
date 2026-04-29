@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/cloudinary_service.dart';
 import 'dart:io';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/club.dart';
 import '../models/post_item.dart';
@@ -9,7 +10,9 @@ import '../models/user_session.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
+import 'bulk_import_screen.dart';
 import 'club_detail_screen.dart';
+import 'dashboards/officer_dashboard_widget.dart';
 
 import 'post_detail_screen.dart';
 
@@ -232,170 +235,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   List<Widget> _officerSlivers(Club? managedClub) {
-    final appState = widget.appState;
-    final clubPosts = managedClub == null
-        ? const <PostItem>[]
-        : appState.posts
-              .where((post) => post.clubId == managedClub.id)
-              .toList();
-
-    return [
-      SliverPadding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-        sliver: SliverGrid(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1.15,
+    if (managedClub == null) {
+      return [
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text('You are not assigned to manage any club.'),
           ),
-          delegate: SliverChildListDelegate([
-            _StatBox(
-              title: 'Managed Club',
-              value: managedClub?.name ?? 'None',
-              icon: Icons.hub_outlined,
-            ),
-            _StatBox(
-              title: 'Posts',
-              value: '${clubPosts.length}',
-              icon: Icons.article_outlined,
-            ),
-            _ActionBox(
-              title: 'New Event',
-              subtitle: 'Create an event post',
-              icon: Icons.event_available_outlined,
-              onTap: managedClub == null
-                  ? null
-                  : () => _showCreatePostDialog(managedClub, isEvent: true),
-            ),
-            _ActionBox(
-              title: 'New Task',
-              subtitle: 'Assign work to members',
-              icon: Icons.playlist_add_check_rounded,
-              onTap: managedClub == null
-                  ? null
-                  : () => _showCreateTaskDialog(managedClub, clubPosts),
-            ),
-          ]),
         ),
-      ),
+      ];
+    }
+    return [
       SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
-          child: Column(
-            children: [
-              _SectionCard(
-                title: 'Quick Actions',
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: managedClub == null
-                          ? null
-                          : () => _showCreatePostDialog(
-                                managedClub,
-                                isEvent: false,
-                              ),
-                      icon: const Icon(Icons.post_add_rounded),
-                      label: const Text('Announcement'),
-                    ),
-                    FilledButton.tonalIcon(
-                      onPressed: managedClub == null
-                          ? null
-                          : _showNotificationDialog,
-                      icon: const Icon(Icons.notifications_active_outlined),
-                      label: const Text('Club Notification'),
-                    ),
-                  ],
-                ),
-              ),
-              if (managedClub != null) ...[
-                const SizedBox(height: 24),
-                _SectionCard(
-                  title: 'Active Tasks',
-                  child: FutureBuilder<List<Map<String, dynamic>>>(
-                    future: _tasksFuture,
-                    builder: (context, snapshot) {
-                      final tasks = snapshot.data ?? [];
-                      if (tasks.isEmpty && snapshot.connectionState == ConnectionState.done) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          child: Text('No active tasks.'),
-                        );
-                      }
-                      return Column(
-                        children: tasks.map((task) {
-                          final taskId = task['_id']?.toString() ?? task['id']?.toString() ?? '';
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: Text(task['title']?.toString() ?? 'Task'),
-                            subtitle: Text(task['status']?.toString() ?? 'pending'),
-                            trailing: PopupMenuButton<String>(
-                              onSelected: (val) async {
-                                if (val == 'delete') {
-                                  await appState.deleteTask(taskId);
-                                } else {
-                                  await appState.updateTask(taskId, {'status': val});
-                                }
-                                setState(() {});
-                              },
-                              itemBuilder: (ctx) => [
-                                const PopupMenuItem(value: 'pending', child: Text('Mark Pending')),
-                                const PopupMenuItem(value: 'in-progress', child: Text('Mark In Progress')),
-                                const PopupMenuItem(value: 'completed', child: Text('Mark Completed')),
-                                const PopupMenuDivider(),
-                                const PopupMenuItem(value: 'delete', child: Text('Delete Task', style: TextStyle(color: Colors.red))),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _SectionCard(
-                  title: 'Club Posts',
-                  child: clubPosts.isEmpty
-                      ? const _EmptyState(
-                          message: 'No posts found for this club yet.',
-                        )
-                      : Column(
-                          children: clubPosts.take(10).map((post) {
-                            return ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: CircleAvatar(
-                                child: Icon(
-                                  post.isEvent
-                                      ? Icons.event
-                                      : Icons.campaign_outlined,
-                                ),
-                              ),
-                              title: Text(post.title),
-                              subtitle: Text(post.type),
-                              trailing: IconButton(
-                                onPressed: () async {
-                                  await appState.deletePost(post.id);
-                                  _reloadRoleData();
-                                },
-                                icon: const Icon(Icons.delete_outline_rounded),
-                              ),
-                              onTap: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => PostDetailScreen(
-                                    appState: appState,
-                                    initialPost: post,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                ),
-              ],
-            ],
-          ),
+        child: OfficerDashboardWidget(
+          appState: widget.appState,
+          club: managedClub,
         ),
       ),
     ];
@@ -1431,9 +1285,17 @@ class _AdvisorDashboardWidgetState extends State<_AdvisorDashboardWidget>
                 title: Text(r['eventTitle']?.toString() ?? 'Report', style: const TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text('By ${r['reportSubmittedByName'] ?? 'Unknown'}${ts != null ? " · ${ts.toLocal().toString().split(' ')[0]}" : ""}'),
                 trailing: const Icon(Icons.download_rounded, color: Colors.green),
-                onTap: () {
+                onTap: () async {
                   final url = r['reportUrl']?.toString() ?? '';
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(url.isNotEmpty ? 'Opening: $url' : 'No URL')));
+                  if (url.isNotEmpty) {
+                    try {
+                      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                    } catch (e) {
+                      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not launch URL: $url')));
+                    }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No URL attached to this report.')));
+                  }
                 },
               ),
             );
@@ -1472,7 +1334,16 @@ class _AdvisorDashboardWidgetState extends State<_AdvisorDashboardWidget>
             const SizedBox(height: 10),
             Row(children: [
               OutlinedButton.icon(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Opening: ${ev.budgetImageUrl}'))),
+                onPressed: () async {
+                  final url = ev.budgetImageUrl ?? '';
+                  if (url.isNotEmpty) {
+                    try {
+                      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                    } catch (e) {
+                      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not launch URL: $url')));
+                    }
+                  }
+                },
                 icon: const Icon(Icons.visibility_rounded, size: 16),
                 label: const Text('View Budget'),
               ),
@@ -1539,6 +1410,21 @@ class _AdvisorDashboardWidgetState extends State<_AdvisorDashboardWidget>
         }
 
         return ListView(padding: const EdgeInsets.all(16), children: [
+          OutlinedButton.icon(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => BulkImportScreen(
+                    club: widget.club,
+                    appState: widget.appState,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.cloud_upload_outlined),
+            label: const Text('Bulk Import Members (CSV/Excel)'),
+          ),
+          const SizedBox(height: 16),
           section('Secretaries', 'secretary'),
           section('Presidents', 'president'),
           section('Treasurers', 'treasurer'),

@@ -202,6 +202,69 @@ class AppState extends ChangeNotifier {
     );
   }
 
+  Future<List<Map<String, dynamic>>> fetchEventRsvps(String eventId) async {
+    final response = await _apiClient.get('/posts/$eventId/rsvps') as List<dynamic>;
+    return response.cast<Map<String, dynamic>>();
+  }
+
+  Future<void> updateParticipantAttendance(
+    String eventId,
+    String rsvpId,
+    bool attended,
+  ) async {
+    await _apiClient.patch(
+      '/posts/$eventId/rsvps/$rsvpId',
+      body: {'attended': attended, 'source': 'manual'},
+    );
+  }
+
+  Future<void> saveCertificateTemplate({
+    required String eventId,
+    required String templateUrl,
+    required double x,
+    required double y,
+    required double fontSize,
+    required String color,
+  }) async {
+    await _apiClient.put(
+      '/posts/$eventId/certificate-template',
+      body: {
+        'templateUrl': templateUrl,
+        'namePosition': {
+          'x': x,
+          'y': y,
+          'fontSize': fontSize,
+          'color': color,
+        }
+      },
+    );
+  }
+
+  Future<void> updateParticipantCertificate(
+    String eventId,
+    String rsvpId,
+    String certificateUrl,
+  ) async {
+    await _apiClient.patch(
+      '/posts/$eventId/rsvps/$rsvpId/certificate',
+      body: {'certificateUrl': certificateUrl},
+    );
+  }
+
+  Future<void> submitReport(
+    String eventId,
+    String reportUrl,
+    String reportFilename,
+  ) async {
+    await _apiClient.put(
+      '/posts/$eventId/report',
+      body: {
+        'reportUrl': reportUrl,
+        'reportFilename': reportFilename,
+      },
+    );
+  }
+
   Future<List<Map<String, dynamic>>> fetchClubTasks(String clubId) async {
     final response =
         await _apiClient.get('/tasks?clubId=$clubId') as List<dynamic>;
@@ -402,6 +465,30 @@ class AppState extends ChangeNotifier {
     Map<String, dynamic> updates,
   ) async {
     await _apiClient.put('/clubs/$clubId/members/$memberId', body: updates);
+  }
+
+  Future<Map<String, dynamic>> bulkImportMembers(String clubId, String filePath) async {
+    // We need to use multipart request directly since ApiClient doesn't support it natively yet
+    final uri = Uri.parse('${_apiClient.baseUrl}/clubs/$clubId/members/bulk-import');
+    final request = http.MultipartRequest('POST', uri);
+    
+    // Add auth header
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(_tokenKey);
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+    
+    request.files.add(await http.MultipartFile.fromPath('file', filePath));
+    
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } else {
+      throw ApiException('Bulk import failed: ${response.statusCode} - ${response.body}');
+    }
   }
 
   Future<List<Map<String, dynamic>>> fetchTeacherClubs() async {
