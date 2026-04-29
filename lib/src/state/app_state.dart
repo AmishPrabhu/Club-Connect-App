@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 import '../models/club.dart';
 import '../models/notification_item.dart';
@@ -205,6 +207,52 @@ class AppState extends ChangeNotifier {
   Future<List<Map<String, dynamic>>> fetchEventRsvps(String eventId) async {
     final response = await _apiClient.get('/posts/$eventId/rsvps') as List<dynamic>;
     return response.cast<Map<String, dynamic>>();
+  }
+
+   Future<List<Map<String, dynamic>>> fetchMyRsvps() async {
+    final response = await _apiClient.get('/posts/user/rsvps') as List<dynamic>;
+    return response.cast<Map<String, dynamic>>();
+  }
+
+  Future<List<Map<String, dynamic>>> checkEventCollision(String date, String time) async {
+    final collisions = posts.where((p) => 
+      p.isEvent && 
+      p.date != null && 
+      p.time != null &&
+      "${p.date!.year}-${p.date!.month.toString().padLeft(2, '0')}-${p.date!.day.toString().padLeft(2, '0')}" == date
+    ).where((p) {
+      return p.time == time; 
+    }).toList();
+    
+    return collisions.map((p) => {
+      'title': p.title,
+      'clubName': p.clubName,
+      'time': p.time,
+    }).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> fetchUserMemberships() async {
+    if (session == null) return [];
+    final userEmail = session!.email.toLowerCase();
+    final memberships = <Map<String, dynamic>>[];
+
+    for (final club in clubs) {
+      String? role;
+      if (club.secretaryEmail?.toLowerCase() == userEmail) role = 'secretary';
+      else if (club.presidentEmail?.toLowerCase() == userEmail) role = 'president';
+      else if (club.treasurerEmail?.toLowerCase() == userEmail) role = 'treasurer';
+      else if (club.advisorEmail?.toLowerCase() == userEmail) role = 'advisor';
+
+      if (role != null) {
+        memberships.add({
+          'clubId': club.id,
+          'clubName': club.name,
+          'clubImage': club.image,
+          'role': role,
+        });
+      }
+    }
+    return memberships;
   }
 
   Future<void> updateParticipantAttendance(

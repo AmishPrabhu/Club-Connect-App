@@ -12,7 +12,8 @@ import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import 'bulk_import_screen.dart';
 import 'club_detail_screen.dart';
-import 'dashboards/officer_dashboard_widget.dart';
+ import 'dashboards/officer_dashboard_widget.dart';
+import 'dashboards/student_dashboard_widget.dart';
 
 import 'post_detail_screen.dart';
 
@@ -256,42 +257,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   List<Widget> _studentSlivers() {
-    final upcoming = widget.appState.posts
-        .where((post) => post.isUpcoming)
-        .take(8)
-        .toList();
     return [
-      SliverPadding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
-        sliver: SliverList(
-          delegate: SliverChildListDelegate([
-            _SectionCard(
-              title: 'Upcoming Events',
-              child: upcoming.isEmpty
-                  ? const _EmptyState(message: 'No upcoming events right now.')
-                  : Column(
-                      children: upcoming.map((post) {
-                        return ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: const CircleAvatar(
-                            child: Icon(Icons.event_outlined),
-                          ),
-                          title: Text(post.title),
-                          subtitle: Text(post.clubName),
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => PostDetailScreen(
-                                appState: widget.appState,
-                                initialPost: post,
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-            ),
-          ]),
-        ),
+      SliverToBoxAdapter(
+        child: StudentDashboardWidget(appState: widget.appState),
       ),
     ];
   }
@@ -494,25 +462,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('Cancel'),
             ),
-            FilledButton(
-              onPressed: () async {
-                await widget.appState.createPost(
-                  clubId: club.id,
-                  clubName: club.name,
-                  title: titleController.text.trim(),
-                  content: contentController.text.trim(),
-                  type: isEvent ? 'event' : 'announcement',
-                  status: 'published',
-                  date: isEvent ? dateController.text.trim() : null,
-                  time: isEvent ? timeController.text.trim() : null,
-                  location: isEvent ? locationController.text.trim() : null,
-                  coverImage: coverImageUrl,
-                );
-                _reloadRoleData();
-                navigator.pop();
-              },
-              child: const Text('Create'),
-            ),
+             FilledButton(
+               onPressed: () async {
+                 if (isEvent) {
+                   final collisions = await widget.appState.checkEventCollision(
+                     dateController.text.trim(),
+                     timeController.text.trim(),
+                   );
+                   if (collisions.isNotEmpty) {
+                     final proceed = await showDialog<bool>(
+                       context: context,
+                       builder: (ctx) => AlertDialog(
+                         title: const Text('Schedule Conflict'),
+                         content: Column(
+                           mainAxisSize: MainAxisSize.min,
+                           children: [
+                             const Text('The following events are already scheduled at this time:'),
+                             const SizedBox(height: 12),
+                             ...collisions.map((c) => ListTile(
+                               title: Text(c['title'] ?? ''),
+                               subtitle: Text(c['clubName'] ?? ''),
+                               contentPadding: EdgeInsets.zero,
+                             )),
+                             const SizedBox(height: 12),
+                             const Text('Do you want to proceed anyway?'),
+                           ],
+                         ),
+                         actions: [
+                           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                           FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Proceed')),
+                         ],
+                       ),
+                     );
+                     if (proceed != true) return;
+                   }
+                 }
+
+                 await widget.appState.createPost(
+                   clubId: club.id,
+                   clubName: club.name,
+                   title: titleController.text.trim(),
+                   content: contentController.text.trim(),
+                   type: isEvent ? 'event' : 'announcement',
+                   status: 'published',
+                   date: isEvent ? dateController.text.trim() : null,
+                   time: isEvent ? timeController.text.trim() : null,
+                   location: isEvent ? locationController.text.trim() : null,
+                   coverImage: coverImageUrl,
+                 );
+                 _reloadRoleData();
+                 navigator.pop();
+               },
+               child: const Text('Create'),
+             ),
           ],
         );
       },

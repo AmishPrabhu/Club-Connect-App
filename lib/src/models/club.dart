@@ -12,6 +12,11 @@ class Club {
     required this.startColor,
     required this.endColor,
     required this.upcomingEvents,
+    this.image,
+    this.secretaryEmail,
+    this.presidentEmail,
+    this.treasurerEmail,
+    this.advisorEmail,
   });
 
   final String id;
@@ -21,6 +26,11 @@ class Club {
   final int members;
   final String icon;
   final String imageAsset;
+  final String? image;
+  final String? secretaryEmail;
+  final String? presidentEmail;
+  final String? treasurerEmail;
+  final String? advisorEmail;
   final Color startColor;
   final Color endColor;
   final int upcomingEvents;
@@ -36,6 +46,11 @@ class Club {
       members: (json['members'] as num?)?.toInt() ?? 0,
       icon: _iconForCategory(category),
       imageAsset: json['image']?.toString() ?? '',
+      image: json['image']?.toString(),
+      secretaryEmail: json['secretaryEmail']?.toString(),
+      presidentEmail: json['presidentEmail']?.toString(),
+      treasurerEmail: json['treasurerEmail']?.toString(),
+      advisorEmail: json['advisorEmail']?.toString(),
       startColor: colors.$1,
       endColor: colors.$2,
       upcomingEvents: (json['upcomingEvents'] as num?)?.toInt() ?? 0,

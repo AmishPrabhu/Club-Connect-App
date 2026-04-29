@@ -6,8 +6,9 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../services/cloudinary_service.dart';
 import '../widgets/glass_card.dart';
-import 'attendance_management_screen.dart';
+ import 'attendance_management_screen.dart';
 import 'certificate_setup_screen.dart';
+import 'event_management_screen.dart';
 
 class PostDetailScreen extends StatefulWidget {
   const PostDetailScreen({
@@ -126,61 +127,24 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                     (widget.appState.session!.clubId == post.clubId &&
                                         ['club-secretary', 'president', 'advisor']
                                             .contains(widget.appState.session!.role)))) ...[
-                              const SizedBox(height: 12),
-                              SizedBox(
-                                width: double.infinity,
-                                child: FilledButton.tonal(
-                                  onPressed: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (context) => AttendanceManagementScreen(
-                                          event: post,
-                                          appState: widget.appState,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  child: const Text('Manage Attendance'),
-                                ),
-                              ),
-                              if (['club-secretary', 'president'].contains(widget.appState.session!.role) && widget.appState.session!.clubId == post.clubId) ...[
-                                const SizedBox(height: 8),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: OutlinedButton.icon(
-                                    icon: const Icon(Icons.receipt_long_rounded),
-                                    onPressed: () => _submitBudgetDialog(post.id),
-                                    label: const Text('Submit Budget Proposal'),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: OutlinedButton.icon(
-                                    icon: const Icon(Icons.upload_file_rounded),
-                                    onPressed: () => _submitReportDialog(post.id),
-                                    label: const Text('Submit Event Report'),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: OutlinedButton.icon(
-                                    icon: const Icon(Icons.workspace_premium_rounded),
-                                    onPressed: () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (context) => CertificateSetupScreen(
-                                            event: post,
-                                            appState: widget.appState,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    label: const Text('Setup Certificate'),
-                                  ),
-                                ),
-                              ],
+                               const SizedBox(height: 12),
+                               SizedBox(
+                                 width: double.infinity,
+                                 child: FilledButton.icon(
+                                   icon: const Icon(Icons.settings_suggest_rounded),
+                                   onPressed: () {
+                                     Navigator.of(context).push(
+                                       MaterialPageRoute(
+                                         builder: (context) => EventManagementScreen(
+                                           event: post,
+                                           appState: widget.appState,
+                                         ),
+                                       ),
+                                     );
+                                   },
+                                   label: const Text('Manage Event'),
+                                 ),
+                               ),
                             ],
                             if (_message != null) ...[
                               const SizedBox(height: 12),

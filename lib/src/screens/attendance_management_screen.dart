@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/post_item.dart';
-import '../state/app_state.dart';
+ import '../state/app_state.dart';
+import 'package:csv/csv.dart' as csv;
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class AttendanceManagementScreen extends StatefulWidget {
   const AttendanceManagementScreen({
@@ -80,6 +84,38 @@ class _AttendanceManagementScreenState
     }
   }
 
+  Future<void> _exportAttendance() async {
+    final header = ['Name', 'Email', 'Status', 'RSVP Date'];
+    final rows = _rsvps.map((rsvp) {
+      return [
+        rsvp['name'] ?? 'Unknown',
+        rsvp['email'] ?? '',
+        (rsvp['attended'] == true) ? 'Present' : 'Absent',
+        rsvp['rsvpedAt'] ?? '',
+      ];
+    }).toList();
+
+    String csvData = const csv.ListToCsvConverter().convert([header, ...rows]);
+
+    try {
+      final directory = await getTemporaryDirectory();
+      final path = '${directory.path}/attendance_${widget.event.id}.csv';
+      final file = File(path);
+      await file.writeAsString(csvData);
+
+      await Share.shareXFiles(
+        [XFile(path)],
+        subject: 'Attendance for ${widget.event.title}',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to export CSV: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final filteredRsvps = _rsvps.where((r) {
@@ -92,6 +128,13 @@ class _AttendanceManagementScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manage Attendance'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.download_rounded),
+            tooltip: 'Export CSV',
+            onPressed: _rsvps.isEmpty ? null : _exportAttendance,
+          ),
+        ],
       ),
       body: Column(
         children: [
