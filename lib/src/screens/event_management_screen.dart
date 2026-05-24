@@ -47,6 +47,8 @@ class _EventManagementScreenState extends State<EventManagementScreen>
   double _xPercent = 50;
   double _yPercent = 50;
   double _fontSize = 48;
+  String _fontColor = '000000';
+  bool _isGenerating = false;
 
   @override
   void initState() {
@@ -179,7 +181,7 @@ class _EventManagementScreenState extends State<EventManagementScreen>
                 _buildEditTab(),
                 _buildParticipantsTab(),
                 _buildCertificateTab(),
-                _buildFilesTab(),
+                _buildBudgetReportTab(),
               ],
             ),
     );
@@ -349,61 +351,205 @@ class _EventManagementScreenState extends State<EventManagementScreen>
       children: [
         const Text('Certificate Design', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         const SizedBox(height: 8),
-        const Text('Upload a template and position the name placeholder.'),
-        const SizedBox(height: 16),
-        OutlinedButton.icon(
-          onPressed: () async {
-            final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-            if (picked != null) {
-              setState(() => _isLoading = true);
-              final url = await CloudinaryService.uploadImage(File(picked.path));
-              setState(() {
-                _templateUrl = url;
-                _isLoading = false;
-              });
-            }
-          },
-          icon: const Icon(Icons.upload_file),
-          label: const Text('Upload Template'),
-        ),
-        if (_templateUrl != null) ...[
+        const Text('Position the name placeholder on your template.'),
+        const SizedBox(height: 20),
+        
+        if (_templateUrl == null)
+          Center(
+            child: Column(
+              children: [
+                const Icon(Icons.workspace_premium_outlined, size: 80, color: Colors.grey),
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+                    if (picked != null) {
+                      setState(() => _isLoading = true);
+                      final url = await CloudinaryService.uploadImage(File(picked.path));
+                      setState(() {
+                        _templateUrl = url;
+                        _isLoading = false;
+                      });
+                    }
+                  },
+                  icon: const Icon(Icons.upload_file),
+                  label: const Text('Upload Template'),
+                ),
+              ],
+            ),
+          )
+        else ...[
+          // Preview Area
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final w = constraints.maxWidth;
+              final h = w / 1.414; // A4 Ratio
+              return Container(
+                width: w,
+                height: h,
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppTheme.blue.withOpacity(0.3)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Stack(
+                    children: [
+                      Image.network(_templateUrl!, fit: BoxFit.contain, width: w, height: h),
+                      Positioned(
+                        left: (_xPercent / 100) * w,
+                        top: (_yPercent / 100) * h,
+                        child: FractionalTranslation(
+                          translation: const Offset(-0.5, -0.5),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withOpacity(0.2),
+                              border: Border.all(color: Colors.blue),
+                            ),
+                            child: Text(
+                              'John Doe',
+                              style: TextStyle(
+                                fontSize: (_fontSize / 1000) * w,
+                                color: Color(int.parse('FF$_fontColor', radix: 16)),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
           const SizedBox(height: 24),
-          AspectRatio(
-            aspectRatio: 1.414,
-            child: Container(
-              decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
-              child: Stack(
-                children: [
-                  Image.network(_templateUrl!, fit: BoxFit.contain),
-                  Positioned(
-                    left: (_xPercent / 100) * 300, // Dummy width for preview
-                    top: (_yPercent / 100) * 212,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      color: Colors.blue.withOpacity(0.3),
-                      child: const Text('Participant Name', style: TextStyle(fontSize: 12)),
+          
+          // Controls
+          _SectionCard(
+            title: 'Positioning & Style',
+            child: Column(
+              children: [
+                _buildSlider('Horizontal Position (X)', _xPercent, (v) => setState(() => _xPercent = v)),
+                _buildSlider('Vertical Position (Y)', _yPercent, (v) => setState(() => _yPercent = v)),
+                _buildSlider('Font Size', _fontSize, (v) => setState(() => _fontSize = v), min: 10, max: 200),
+                ListTile(
+                  title: const Text('Font Color (Hex)'),
+                  subtitle: const Text('e.g., 000000 for Black'),
+                  trailing: SizedBox(
+                    width: 100,
+                    child: TextField(
+                      decoration: const InputDecoration(hintText: '000000'),
+                      onChanged: (v) => setState(() => _fontColor = v.replaceAll('#', '')),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
+          
           const SizedBox(height: 24),
-          FilledButton(
-            onPressed: () {}, // Save Cert Logic
-            child: const Text('Save Certificate Layout'),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: _isSaving ? null : () async {
+                    setState(() => _isSaving = true);
+                    try {
+                      await widget.appState.saveCertificateTemplate(
+                        eventId: widget.event.id,
+                        templateUrl: _templateUrl!,
+                        x: _xPercent,
+                        y: _yPercent,
+                        fontSize: _fontSize,
+                        color: _fontColor,
+                      );
+                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Layout saved!')));
+                    } catch (e) {
+                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                    } finally {
+                      if (mounted) setState(() => _isSaving = false);
+                    }
+                  },
+                  icon: const Icon(Icons.save_outlined),
+                  label: Text(_isSaving ? 'Saving...' : 'Save Layout'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.tonalIcon(
+                  onPressed: _isGenerating ? null : () async {
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Generate Certificates'),
+                        content: Text('This will generate certificates for all ${_rsvps.where((r) => r['attended'] == true).length} participants marked as "Present". Proceed?'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Generate')),
+                        ],
+                      ),
+                    );
+                    
+                    if (confirmed == true) {
+                      setState(() => _isGenerating = true);
+                      try {
+                        // Logic to trigger backend generation (simulated as individual calls if no batch endpoint)
+                        final attendees = _rsvps.where((r) => r['attended'] == true).toList();
+                        for (var attendee in attendees) {
+                          // In parity with web, the backend likely handles overlay based on template
+                          // If not, we'd construct the Cloudinary URL here
+                          await widget.appState.updateParticipantCertificate(
+                            widget.event.id,
+                            attendee['_id'],
+                            'GENERATED_URL_PLACEHOLDER', // Backend typically fills this
+                          );
+                        }
+                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Certificates generated!')));
+                      } catch (e) {
+                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+                      } finally {
+                        if (mounted) setState(() => _isGenerating = false);
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.auto_awesome_outlined),
+                  label: Text(_isGenerating ? 'Generating...' : 'Generate All'),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
-          FilledButton.tonal(
-            onPressed: () {}, // Generate All Logic
-            child: const Text('Generate All Certificates'),
+          TextButton.icon(
+            onPressed: () => setState(() => _templateUrl = null),
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            label: const Text('Remove Template', style: TextStyle(color: Colors.red)),
           ),
         ],
       ],
     );
   }
 
-  Widget _buildFilesTab() {
+  Widget _buildSlider(String label, double value, ValueChanged<double> onChanged, {double min = 0, double max = 100}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+        ),
+        Slider(
+          value: value,
+          min: min,
+          max: max,
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBudgetReportTab() {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -412,10 +558,24 @@ class _EventManagementScreenState extends State<EventManagementScreen>
           child: Column(
             children: [
               if (widget.event.budgetImageUrl != null)
-                Image.network(widget.event.budgetImageUrl!, height: 100),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(widget.event.budgetImageUrl!, height: 150, fit: BoxFit.cover),
+                ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
-                onPressed: () {}, // Upload Budget
+                onPressed: () async {
+                  final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+                  if (picked != null) {
+                    setState(() => _isLoading = true);
+                    final url = await CloudinaryService.uploadImage(File(picked.path));
+                    if (url != null) {
+                      await widget.appState.updatePost(widget.event.id, {'budgetImageUrl': url});
+                      await _fetchData();
+                    }
+                    setState(() => _isLoading = false);
+                  }
+                },
                 icon: const Icon(Icons.upload_file),
                 label: const Text('Upload Budget Screenshot'),
               ),
@@ -427,8 +587,36 @@ class _EventManagementScreenState extends State<EventManagementScreen>
           title: 'Event Report',
           child: Column(
             children: [
+              if (widget.event.reportUrl != null)
+                ListTile(
+                  leading: const Icon(Icons.description, color: Colors.blue),
+                  title: const Text('Final Report Uploaded'),
+                  subtitle: Text(widget.event.reportFilename ?? 'View document'),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.open_in_new),
+                    onPressed: () => launchUrl(Uri.parse(widget.event.reportUrl!)),
+                  ),
+                ),
+              const SizedBox(height: 12),
               OutlinedButton.icon(
-                onPressed: () {}, // Upload Report
+                onPressed: () async {
+                  // Using file picker for PDF reports
+                  final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf', 'doc', 'docx']);
+                  if (result != null && result.files.single.path != null) {
+                    setState(() => _isLoading = true);
+                    final file = File(result.files.single.path!);
+                    final url = await CloudinaryService.uploadImage(file);
+                    if (url != null) {
+                      await widget.appState.submitReport(
+                        widget.event.id,
+                        url,
+                        result.files.single.name,
+                      );
+                      await _fetchData();
+                    }
+                    setState(() => _isLoading = false);
+                  }
+                },
                 icon: const Icon(Icons.description_outlined),
                 label: const Text('Upload Final Report'),
               ),

@@ -15,6 +15,8 @@ class PostItem {
     this.rsvps,
     this.budgetImageUrl,
     this.budgetVerified,
+    this.reportUrl,
+    this.reportFilename,
   });
 
   final String id;
@@ -38,6 +40,10 @@ class PostItem {
 
   /// Whether the advisor has verified the budget
   final bool? budgetVerified;
+
+  /// Report URL and Filename
+  final String? reportUrl;
+  final String? reportFilename;
 
   bool get isEvent => type == 'event';
   bool get isUpcoming =>
@@ -79,8 +85,10 @@ class PostItem {
       coverAsset: json['coverImage']?.toString(),
       attachments: attachments,
       rsvps: rsvpsCount,
-      budgetImageUrl: json['budgetImage']?.toString(),
+      budgetImageUrl: (json['budgetImage'] ?? json['budgetImageUrl'])?.toString(),
       budgetVerified: json['budgetVerified'] as bool?,
+      reportUrl: json['reportUrl']?.toString(),
+      reportFilename: json['reportFilename']?.toString(),
     );
   }
 }
