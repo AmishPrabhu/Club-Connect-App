@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -93,12 +94,17 @@ class _StudentDashboardWidgetState extends State<StudentDashboardWidget>
                 return {
                   'post': post,
                   'rsvp': rsvp,
-                  'isPast': post.date != null && post.date!.isBefore(DateTime.now()),
+                  'isPast':
+                      post.date != null && post.date!.isBefore(DateTime.now()),
                 };
               }).toList();
 
-              final upcoming = userEvents.where((e) => !(e['isPast'] as bool)).toList();
-              final past = userEvents.where((e) => e['isPast'] as bool).toList();
+              final upcoming = userEvents
+                  .where((e) => !(e['isPast'] as bool))
+                  .toList();
+              final past = userEvents
+                  .where((e) => e['isPast'] as bool)
+                  .toList();
 
               return TabBarView(
                 controller: _tabController,
@@ -122,7 +128,11 @@ class _StudentDashboardWidgetState extends State<StudentDashboardWidget>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.event_busy_outlined, size: 64, color: Colors.grey.shade300),
+              Icon(
+                Icons.event_busy_outlined,
+                size: 64,
+                color: Colors.grey.shade300,
+              ),
               const SizedBox(height: 16),
               Text(
                 emptyMsg,
@@ -179,32 +189,53 @@ class _StudentDashboardWidgetState extends State<StudentDashboardWidget>
                         ),
                       ),
                       if (certificateUrl != null && certificateUrl.isNotEmpty)
-                        const Icon(Icons.workspace_premium, color: Colors.amber, size: 20),
+                        const Icon(
+                          Icons.workspace_premium,
+                          color: Colors.amber,
+                          size: 20,
+                        ),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
                     post.title,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today_outlined, size: 14, color: Colors.grey),
+                      const Icon(
+                        Icons.calendar_today_outlined,
+                        size: 14,
+                        color: Colors.grey,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         post.date != null
                             ? '${post.date!.day}/${post.date!.month}/${post.date!.year}'
                             : 'No date',
-                        style: const TextStyle(fontSize: 13, color: Colors.grey),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey,
+                        ),
                       ),
                       const SizedBox(width: 16),
-                      const Icon(Icons.place_outlined, size: 14, color: Colors.grey),
+                      const Icon(
+                        Icons.place_outlined,
+                        size: 14,
+                        color: Colors.grey,
+                      ),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           post.location ?? 'Online',
-                          style: const TextStyle(fontSize: 13, color: Colors.grey),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -219,7 +250,10 @@ class _StudentDashboardWidgetState extends State<StudentDashboardWidget>
                         onPressed: () async {
                           final uri = Uri.parse(certificateUrl);
                           if (await canLaunchUrl(uri)) {
-                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            await launchUrl(
+                              uri,
+                              mode: LaunchMode.externalApplication,
+                            );
                           }
                         },
                         icon: const Icon(Icons.download_rounded, size: 18),

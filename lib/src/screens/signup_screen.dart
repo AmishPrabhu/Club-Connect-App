@@ -4,9 +4,10 @@ import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 
 class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key, required this.appState});
+  const SignupScreen({super.key, required this.appState, this.googleData});
 
   final AppState appState;
+  final GoogleSignupData? googleData;
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
@@ -19,8 +20,10 @@ class _SignupScreenState extends State<SignupScreen> {
   final _confirmController = TextEditingController();
   final _otpController = TextEditingController();
 
-  int _step = 0;
+  late int _step;
+  GoogleSignupData? _googleData;
   bool _submitting = false;
+  bool _googleSigningIn = false;
   String? _error;
 
   @override
@@ -34,8 +37,25 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _googleData = widget.googleData;
+    final googleData = _googleData;
+    if (googleData != null) {
+      _step = 2;
+      _nameController.text = googleData.name;
+      _emailController.text = googleData.email;
+    } else {
+      _step = 0;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final titles = ['Verify Email', 'Confirm OTP', 'Create Account'];
+    final isGoogleSignup = _googleData != null;
+    final title = isGoogleSignup
+        ? 'Complete Registration'
+        : ['Verify Email', 'Confirm OTP', 'Create Account'][_step];
 
     return Scaffold(
       appBar: AppBar(title: const Text('Create Account')),
@@ -47,10 +67,7 @@ class _SignupScreenState extends State<SignupScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  titles[_step],
-                  style: Theme.of(context).textTheme.displaySmall,
-                ),
+                Text(title, style: Theme.of(context).textTheme.displaySmall),
                 const SizedBox(height: 10),
                 Text(
                   'This is connected to the real signup and OTP routes from your backend.',
@@ -59,7 +76,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   ).textTheme.bodyLarge?.copyWith(color: AppTheme.muted),
                 ),
                 const SizedBox(height: 24),
-                if (_step == 0)
+                if (_step == 0 && !isGoogleSignup)
                   TextField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -68,7 +85,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       prefixIcon: Icon(Icons.mail_outline_rounded),
                     ),
                   ),
-                if (_step == 1)
+                if (_step == 1 && !isGoogleSignup)
                   TextField(
                     controller: _otpController,
                     keyboardType: TextInputType.number,
@@ -126,14 +143,21 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
                 ),
-                if (_step == 0) ...[
+                if (_step == 0 && !isGoogleSignup) ...[
                   const SizedBox(height: 16),
                   Row(
                     children: [
                       const Expanded(child: Divider()),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text('OR', style: TextStyle(color: AppTheme.muted, fontWeight: FontWeight.bold, fontSize: 12)),
+                        child: Text(
+                          'OR',
+                          style: TextStyle(
+                            color: AppTheme.muted,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
                       const Expanded(child: Divider()),
                     ],
@@ -143,14 +167,18 @@ class _SignupScreenState extends State<SignupScreen> {
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.g_mobiledata, size: 28),
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Google Auth requires Firebase configuration. Please configure it in app_state.dart.')),
-                        );
-                      },
-                      label: const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 14),
-                        child: Text('Sign up with Google', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
+                      onPressed: _googleSigningIn ? null : _handleGoogle,
+                      label: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        child: Text(
+                          _googleSigningIn
+                              ? 'Connecting...'
+                              : 'Sign up with Google',
+                          style: const TextStyle(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                       style: OutlinedButton.styleFrom(
                         backgroundColor: Colors.white,
@@ -194,19 +222,70 @@ class _SignupScreenState extends State<SignupScreen> {
         if (_passwordController.text != _confirmController.text) {
           throw Exception('Passwords do not match.');
         }
-        await widget.appState.signUp(
-          name: _nameController.text.trim(),
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-          otp: _otpController.text.trim(),
-        );
+        if (_googleData != null) {
+          await widget.appState.signUpWithGoogle(
+            credential: _googleData!.credential,
+            password: _passwordController.text,
+            name: _nameController.text.trim(),
+          );
+        } else {
+          await widget.appState.signUp(
+            name: _nameController.text.trim(),
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+            otp: _otpController.text.trim(),
+          );
+        }
         if (!mounted) return;
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(true);
       }
     } catch (error) {
       setState(() => _error = error.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<void> _handleGoogle() async {
+    setState(() {
+      _googleSigningIn = true;
+      _error = null;
+    });
+
+    try {
+      final result = await widget.appState.signInWithGoogle();
+      if (!mounted) return;
+
+      if (result.success) {
+        Navigator.of(context).pop(true);
+        return;
+      }
+
+      if (result.needsSignup && result.googleData != null) {
+        setState(() {
+          _googleData = result.googleData;
+          _nameController.text = result.googleData!.name;
+          _emailController.text = result.googleData!.email;
+          _step = 2;
+        });
+        return;
+      }
+
+      setState(() {
+        _error = result.error ?? 'Google sign-up failed. Please try again.';
+      });
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _error = error.toString().replaceFirst('Exception: ', '');
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _googleSigningIn = false;
+        });
+      }
     }
   }
 }

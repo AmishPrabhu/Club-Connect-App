@@ -1,4 +1,5 @@
 import 'dart:convert';
+// ignore_for_file: avoid_print
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
@@ -15,10 +16,7 @@ class CloudinaryService {
       final request = http.MultipartRequest('POST', Uri.parse(_apiUrl));
       request.fields['upload_preset'] = _uploadPreset;
       request.files.add(
-        await http.MultipartFile.fromPath(
-          'file',
-          imageFile.path,
-        ),
+        await http.MultipartFile.fromPath('file', imageFile.path),
       );
 
       final streamedResponse = await request.send();

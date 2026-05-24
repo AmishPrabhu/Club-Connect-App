@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
 import '../widgets/glass_card.dart';
+import 'announcements_screen.dart';
+import 'notification_detail_screen.dart';
+import 'post_detail_screen.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key, required this.appState});
@@ -11,6 +14,7 @@ class NotificationsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final notifications = appState.notifications;
+    final unreadCount = notifications.where((item) => !item.isRead).length;
 
     return CustomScrollView(
       slivers: [
@@ -20,14 +24,63 @@ class NotificationsScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Notifications',
-                  style: Theme.of(context).textTheme.displaySmall,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Notifications',
+                        style: Theme.of(context).textTheme.displaySmall,
+                      ),
+                    ),
+                    if (unreadCount > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F3FF),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          '$unreadCount unread',
+                          style: const TextStyle(
+                            color: Color(0xFF2563EB),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Announcements, reminders, and club activity updates in one inbox.',
                   style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    FilledButton.tonalIcon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                AnnouncementsScreen(appState: appState),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.campaign_outlined),
+                      label: const Text('Announcements'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: appState.refreshAll,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Refresh'),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -40,10 +93,35 @@ class NotificationsScreen extends StatelessWidget {
             separatorBuilder: (_, _) => const SizedBox(height: 14),
             itemBuilder: (context, index) {
               final item = notifications[index];
-              return GestureDetector(
-                onTap: item.isRead
-                    ? null
-                    : () => appState.markNotificationAsRead(item.id),
+              return InkWell(
+                borderRadius: BorderRadius.circular(24),
+                onTap: () async {
+                  if (!item.isRead) {
+                    await appState.markNotificationAsRead(item.id);
+                  }
+                  if (!context.mounted) return;
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => NotificationDetailScreen(
+                        notification: item,
+                        onNavigateToPost: (postId) {
+                          final matches = appState.posts
+                              .where((post) => post.id == postId)
+                              .toList();
+                          if (matches.isEmpty) return;
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => PostDetailScreen(
+                                appState: appState,
+                                initialPost: matches.first,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                },
                 child: GlassCard(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,6 +160,8 @@ class NotificationsScreen extends StatelessWidget {
                             const SizedBox(height: 6),
                             Text(
                               item.message,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                             const SizedBox(height: 10),

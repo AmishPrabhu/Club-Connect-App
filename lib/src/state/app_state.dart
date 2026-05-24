@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -9,12 +10,89 @@ import '../models/post_item.dart';
 import '../models/user_session.dart';
 import '../services/api_client.dart';
 
+class GoogleSignupData {
+  GoogleSignupData({
+    required this.email,
+    required this.name,
+    required this.credential,
+  });
+
+  final String email;
+  final String name;
+  final String credential;
+}
+
+class GoogleAuthResult {
+  const GoogleAuthResult._({
+    required this.success,
+    required this.needsSignup,
+    this.error,
+    this.googleData,
+  });
+
+  final bool success;
+  final bool needsSignup;
+  final String? error;
+  final GoogleSignupData? googleData;
+
+  const GoogleAuthResult.success() : this._(success: true, needsSignup: false);
+
+  const GoogleAuthResult.failure(String error)
+    : this._(success: false, needsSignup: false, error: error);
+
+  const GoogleAuthResult.cancelled()
+    : this._(
+        success: false,
+        needsSignup: false,
+        error: 'Google sign-in cancelled.',
+      );
+
+  const GoogleAuthResult.needsSignup(
+    GoogleSignupData googleData, [
+    String? error,
+  ]) : this._(
+         success: false,
+         needsSignup: true,
+         error: error,
+         googleData: googleData,
+       );
+}
+
+class SetupAdminResult {
+  const SetupAdminResult._({
+    required this.success,
+    required this.requireOtp,
+    this.message,
+  });
+
+  final bool success;
+  final bool requireOtp;
+  final String? message;
+
+  const SetupAdminResult.success() : this._(success: true, requireOtp: false);
+
+  const SetupAdminResult.requireOtp(String message)
+    : this._(success: false, requireOtp: true, message: message);
+}
+
 class AppState extends ChangeNotifier {
-  AppState({ApiClient? apiClient}) : _apiClient = apiClient ?? ApiClient();
+  AppState({ApiClient? apiClient})
+    : _apiClient = apiClient ?? ApiClient(),
+      _googleSignIn = GoogleSignIn(
+        scopes: const ['email'],
+        serverClientId: _googleServerClientId.isEmpty
+            ? null
+            : _googleServerClientId,
+      );
 
   static const _tokenKey = 'club_connect_token';
+  static const _googleServerClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+    defaultValue: '',
+  );
 
   final ApiClient _apiClient;
+  final GoogleSignIn _googleSignIn;
 
   bool isBootstrapping = true;
   bool isLoading = false;
@@ -92,14 +170,7 @@ class AppState extends ChangeNotifier {
       throw ApiException('Login failed: token missing.');
     }
 
-    _apiClient.setToken(token);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, token);
-
-    session = await _fetchCurrentUser();
-    await refreshAll();
-    notifyListeners();
-    return session!;
+    return _activateToken(token);
   }
 
   Future<void> sendOtp(String email) async {
@@ -136,14 +207,82 @@ class AppState extends ChangeNotifier {
       throw ApiException('Signup failed: token missing.');
     }
 
-    _apiClient.setToken(token);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, token);
+    return _activateToken(token);
+  }
 
-    session = await _fetchCurrentUser();
-    await refreshAll();
-    notifyListeners();
-    return session!;
+  Future<GoogleAuthResult> signInWithGoogle() async {
+    GoogleSignInAccount? account;
+    String? idToken;
+
+    try {
+      account = await _googleSignIn.signIn();
+      if (account == null) {
+        return const GoogleAuthResult.cancelled();
+      }
+
+      final auth = await account.authentication;
+      idToken = auth.idToken;
+      if (idToken == null || idToken.isEmpty) {
+        throw ApiException(
+          'Google sign-in did not return an ID token. Make sure the app is configured with a Google OAuth client.',
+        );
+      }
+
+      final response =
+          await _apiClient.post('/auth/google', body: {'credential': idToken})
+              as Map<String, dynamic>;
+      final token = response['token']?.toString();
+      if (token == null || token.isEmpty) {
+        throw ApiException('Google sign-in failed: token missing.');
+      }
+
+      await _activateToken(token);
+      return const GoogleAuthResult.success();
+    } on ApiException catch (error) {
+      final payload = error.payload;
+      if (error.statusCode == 404 && payload?['code'] == 'USER_NOT_FOUND') {
+        final googleData = payload?['googleData'];
+        final email = googleData is Map<String, dynamic>
+            ? googleData['email']?.toString() ?? account?.email ?? ''
+            : account?.email ?? '';
+        final name = googleData is Map<String, dynamic>
+            ? googleData['name']?.toString() ?? account?.displayName ?? ''
+            : account?.displayName ?? '';
+        final credential = googleData is Map<String, dynamic>
+            ? googleData['credential']?.toString() ?? idToken ?? ''
+            : idToken ?? '';
+        return GoogleAuthResult.needsSignup(
+          GoogleSignupData(email: email, name: name, credential: credential),
+          error.message,
+        );
+      }
+      return GoogleAuthResult.failure(error.message);
+    } catch (error) {
+      return GoogleAuthResult.failure(error.toString());
+    }
+  }
+
+  Future<UserSession> signUpWithGoogle({
+    required String credential,
+    required String password,
+    String? name,
+  }) async {
+    final response =
+        await _apiClient.post(
+              '/auth/google/signup',
+              body: {
+                'credential': credential,
+                'password': password,
+                if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
+              },
+            )
+            as Map<String, dynamic>;
+    final token = response['token']?.toString();
+    if (token == null || token.isEmpty) {
+      throw ApiException('Google signup failed: token missing.');
+    }
+
+    return _activateToken(token);
   }
 
   Future<void> logout() async {
@@ -151,6 +290,7 @@ class AppState extends ChangeNotifier {
     _apiClient.setToken(null);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
+    await _googleSignIn.signOut();
     await refreshAll();
   }
 
@@ -205,30 +345,37 @@ class AppState extends ChangeNotifier {
   }
 
   Future<List<Map<String, dynamic>>> fetchEventRsvps(String eventId) async {
-    final response = await _apiClient.get('/posts/$eventId/rsvps') as List<dynamic>;
+    final response =
+        await _apiClient.get('/posts/$eventId/rsvps') as List<dynamic>;
     return response.cast<Map<String, dynamic>>();
   }
 
-   Future<List<Map<String, dynamic>>> fetchMyRsvps() async {
+  Future<List<Map<String, dynamic>>> fetchMyRsvps() async {
     final response = await _apiClient.get('/posts/user/rsvps') as List<dynamic>;
     return response.cast<Map<String, dynamic>>();
   }
 
-  Future<List<Map<String, dynamic>>> checkEventCollision(String date, String time) async {
-    final collisions = posts.where((p) => 
-      p.isEvent && 
-      p.date != null && 
-      p.time != null &&
-      "${p.date!.year}-${p.date!.month.toString().padLeft(2, '0')}-${p.date!.day.toString().padLeft(2, '0')}" == date
-    ).where((p) {
-      return p.time == time; 
-    }).toList();
-    
-    return collisions.map((p) => {
-      'title': p.title,
-      'clubName': p.clubName,
-      'time': p.time,
-    }).toList();
+  Future<List<Map<String, dynamic>>> checkEventCollision(
+    String date,
+    String time,
+  ) async {
+    final collisions = posts
+        .where(
+          (p) =>
+              p.isEvent &&
+              p.date != null &&
+              p.time != null &&
+              "${p.date!.year}-${p.date!.month.toString().padLeft(2, '0')}-${p.date!.day.toString().padLeft(2, '0')}" ==
+                  date,
+        )
+        .where((p) {
+          return p.time == time;
+        })
+        .toList();
+
+    return collisions
+        .map((p) => {'title': p.title, 'clubName': p.clubName, 'time': p.time})
+        .toList();
   }
 
   Future<List<Map<String, dynamic>>> fetchUserMemberships() async {
@@ -238,10 +385,15 @@ class AppState extends ChangeNotifier {
 
     for (final club in clubs) {
       String? role;
-      if (club.secretaryEmail?.toLowerCase() == userEmail) role = 'secretary';
-      else if (club.presidentEmail?.toLowerCase() == userEmail) role = 'president';
-      else if (club.treasurerEmail?.toLowerCase() == userEmail) role = 'treasurer';
-      else if (club.advisorEmail?.toLowerCase() == userEmail) role = 'advisor';
+      if (club.secretaryEmail?.toLowerCase() == userEmail) {
+        role = 'secretary';
+      } else if (club.presidentEmail?.toLowerCase() == userEmail) {
+        role = 'president';
+      } else if (club.treasurerEmail?.toLowerCase() == userEmail) {
+        role = 'treasurer';
+      } else if (club.advisorEmail?.toLowerCase() == userEmail) {
+        role = 'advisor';
+      }
 
       if (role != null) {
         memberships.add({
@@ -278,12 +430,7 @@ class AppState extends ChangeNotifier {
       '/posts/$eventId/certificate-template',
       body: {
         'templateUrl': templateUrl,
-        'namePosition': {
-          'x': x,
-          'y': y,
-          'fontSize': fontSize,
-          'color': color,
-        }
+        'namePosition': {'x': x, 'y': y, 'fontSize': fontSize, 'color': color},
       },
     );
   }
@@ -306,10 +453,7 @@ class AppState extends ChangeNotifier {
   ) async {
     await _apiClient.put(
       '/posts/$eventId/report',
-      body: {
-        'reportUrl': reportUrl,
-        'reportFilename': reportFilename,
-      },
+      body: {'reportUrl': reportUrl, 'reportFilename': reportFilename},
     );
   }
 
@@ -369,23 +513,29 @@ class AppState extends ChangeNotifier {
     String? location,
     String? coverImage,
   }) async {
+    final body = <String, dynamic>{
+      'clubId': clubId,
+      'clubName': clubName,
+      'title': title,
+      'content': content,
+      'type': type,
+      'status': status,
+    };
+    if (date != null) {
+      body['date'] = date;
+    }
+    if (time != null) {
+      body['time'] = time;
+    }
+    if (location != null) {
+      body['location'] = location;
+    }
+    if (coverImage != null) {
+      body['coverImage'] = coverImage;
+    }
+
     final response =
-        await _apiClient.post(
-              '/posts',
-              body: {
-                'clubId': clubId,
-                'clubName': clubName,
-                'title': title,
-                'content': content,
-                'type': type,
-                'status': status,
-                if (date != null) 'date': date,
-                if (time != null) 'time': time,
-                if (location != null) 'location': location,
-                if (coverImage != null) 'coverImage': coverImage,
-              },
-            )
-            as Map<String, dynamic>;
+        await _apiClient.post('/posts', body: body) as Map<String, dynamic>;
     final created = PostItem.fromJson(response);
     posts = [created, ...posts];
     notifyListeners();
@@ -463,12 +613,10 @@ class AppState extends ChangeNotifier {
     return club;
   }
 
-  Future<Club> updateClub(
-    String clubId,
-    Map<String, dynamic> updates,
-  ) async {
-    final response = await _apiClient.put('/clubs/$clubId', body: updates)
-        as Map<String, dynamic>;
+  Future<Club> updateClub(String clubId, Map<String, dynamic> updates) async {
+    final response =
+        await _apiClient.put('/clubs/$clubId', body: updates)
+            as Map<String, dynamic>;
     final updated = Club.fromJson(response);
     clubs = clubs.map((c) => c.id == clubId ? updated : c).toList();
     notifyListeners();
@@ -515,33 +663,40 @@ class AppState extends ChangeNotifier {
     await _apiClient.put('/clubs/$clubId/members/$memberId', body: updates);
   }
 
-  Future<Map<String, dynamic>> bulkImportMembers(String clubId, String filePath) async {
+  Future<Map<String, dynamic>> bulkImportMembers(
+    String clubId,
+    String filePath,
+  ) async {
     // We need to use multipart request directly since ApiClient doesn't support it natively yet
-    final uri = Uri.parse('${_apiClient.baseUrl}/clubs/$clubId/members/bulk-import');
+    final uri = Uri.parse(
+      '${_apiClient.baseUrl}/clubs/$clubId/members/bulk-import',
+    );
     final request = http.MultipartRequest('POST', uri);
-    
+
     // Add auth header
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(_tokenKey);
     if (token != null) {
       request.headers['Authorization'] = 'Bearer $token';
     }
-    
+
     request.files.add(await http.MultipartFile.fromPath('file', filePath));
-    
+
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);
-    
+
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return jsonDecode(response.body) as Map<String, dynamic>;
     } else {
-      throw ApiException('Bulk import failed: ${response.statusCode} - ${response.body}');
+      throw ApiException(
+        'Bulk import failed: ${response.statusCode} - ${response.body}',
+      );
     }
   }
 
   Future<List<Map<String, dynamic>>> fetchTeacherClubs() async {
-    final response = await _apiClient.get('/teachers/clubs');
-    return List<Map<String, dynamic>>.from(response.data);
+    final response = await _apiClient.get('/teachers/clubs') as List<dynamic>;
+    return response.cast<Map<String, dynamic>>();
   }
 
   Future<void> addTeacherClub(String clubId) async {
@@ -553,8 +708,8 @@ class AppState extends ChangeNotifier {
   }
 
   Future<List<Map<String, dynamic>>> fetchTeacherReports() async {
-    final response = await _apiClient.get('/teachers/reports');
-    return List<Map<String, dynamic>>.from(response.data);
+    final response = await _apiClient.get('/teachers/reports') as List<dynamic>;
+    return response.cast<Map<String, dynamic>>();
   }
 
   Future<void> assignTeacher({
@@ -615,16 +770,48 @@ class AppState extends ChangeNotifier {
     await _apiClient.post('/auth/forgot-password', body: {'email': email});
   }
 
+  Future<SetupAdminResult> setupAdmin({
+    required String email,
+    required String password,
+    required String name,
+    String? otp,
+  }) async {
+    final body = <String, dynamic>{
+      'email': email,
+      'password': password,
+      'name': name,
+      if (otp != null && otp.trim().isNotEmpty) 'otp': otp.trim(),
+    };
+
+    final response =
+        await _apiClient.post('/auth/setup-admin', body: body)
+            as Map<String, dynamic>;
+
+    if (response['requireOtp'] == true) {
+      return SetupAdminResult.requireOtp(
+        response['message']?.toString() ??
+            'An existing admin was found. Please enter the OTP sent to that admin.',
+      );
+    }
+
+    final token = response['token']?.toString();
+    if (token == null || token.isEmpty) {
+      throw ApiException('Admin setup failed: token missing.');
+    }
+
+    await _activateToken(token);
+    return const SetupAdminResult.success();
+  }
+
   Future<void> resetPassword({
     required String token,
     required String email,
     required String password,
   }) async {
-    await _apiClient.post('/auth/reset-password', body: {
-      'token': token,
-      'email': email,
-      'password': password,
-    });
+    await _apiClient.post(
+      '/auth/reset-password',
+      body: {'token': token, 'email': email, 'password': password},
+    );
   }
 
   Future<void> updateProfile({
@@ -666,5 +853,15 @@ class AppState extends ChangeNotifier {
   Future<UserSession> _fetchCurrentUser() async {
     final response = await _apiClient.get('/auth/me') as Map<String, dynamic>;
     return UserSession.fromJson(response);
+  }
+
+  Future<UserSession> _activateToken(String token) async {
+    _apiClient.setToken(token);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_tokenKey, token);
+    session = await _fetchCurrentUser();
+    await refreshAll();
+    notifyListeners();
+    return session!;
   }
 }

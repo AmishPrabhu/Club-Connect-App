@@ -3,10 +3,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiException implements Exception {
-  ApiException(this.message, {this.statusCode});
+  ApiException(this.message, {this.statusCode, this.payload});
 
   final String message;
   final int? statusCode;
+  final Map<String, dynamic>? payload;
 
   @override
   String toString() => message;
@@ -101,7 +102,11 @@ class ApiClient {
           payload is Map<String, dynamic> && payload['message'] != null
           ? payload['message'].toString()
           : 'Request failed (${response.statusCode})';
-      throw ApiException(message, statusCode: response.statusCode);
+      throw ApiException(
+        message,
+        statusCode: response.statusCode,
+        payload: payload is Map<String, dynamic> ? payload : null,
+      );
     }
 
     return payload;

@@ -1,3 +1,4 @@
+// ignore_for_file: unused_element, use_build_context_synchronously
 import 'package:flutter/material.dart';
 
 import '../models/post_item.dart';
@@ -6,8 +7,6 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../services/cloudinary_service.dart';
 import '../widgets/glass_card.dart';
- import 'attendance_management_screen.dart';
-import 'certificate_setup_screen.dart';
 import 'event_management_screen.dart';
 
 class PostDetailScreen extends StatefulWidget {
@@ -122,29 +121,39 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                 ),
                               ),
                             ],
-                            if (widget.appState.session != null && post.isEvent &&
-                                (widget.appState.session!.role == 'super-admin' ||
-                                    (widget.appState.session!.clubId == post.clubId &&
-                                        ['club-secretary', 'president', 'advisor']
-                                            .contains(widget.appState.session!.role)))) ...[
-                               const SizedBox(height: 12),
-                               SizedBox(
-                                 width: double.infinity,
-                                 child: FilledButton.icon(
-                                   icon: const Icon(Icons.settings_suggest_rounded),
-                                   onPressed: () {
-                                     Navigator.of(context).push(
-                                       MaterialPageRoute(
-                                         builder: (context) => EventManagementScreen(
-                                           event: post,
-                                           appState: widget.appState,
-                                         ),
-                                       ),
-                                     );
-                                   },
-                                   label: const Text('Manage Event'),
-                                 ),
-                               ),
+                            if (widget.appState.session != null &&
+                                post.isEvent &&
+                                (widget.appState.session!.hasAdminAccess ||
+                                    widget.appState.session!.hasClubRole(
+                                      post.clubId,
+                                      const [
+                                        'club-secretary',
+                                        'president',
+                                        'advisor',
+                                        'treasurer',
+                                      ],
+                                    ))) ...[
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                width: double.infinity,
+                                child: FilledButton.icon(
+                                  icon: const Icon(
+                                    Icons.settings_suggest_rounded,
+                                  ),
+                                  onPressed: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            EventManagementScreen(
+                                              event: post,
+                                              appState: widget.appState,
+                                            ),
+                                      ),
+                                    );
+                                  },
+                                  label: const Text('Manage Event'),
+                                ),
+                              ),
                             ],
                             if (_message != null) ...[
                               const SizedBox(height: 12),
@@ -205,6 +214,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       if (mounted) setState(() => _submitting = false);
     }
   }
+
   Future<void> _submitBudgetDialog(String postId) async {
     bool isUploading = false;
     await showDialog<void>(
@@ -218,7 +228,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Upload a screenshot or document of the budget proposal.'),
+                  const Text(
+                    'Upload a screenshot or document of the budget proposal.',
+                  ),
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
@@ -230,31 +242,51 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.add_photo_alternate),
-                      label: Text(isUploading ? 'Uploading...' : 'Upload Budget File'),
+                      label: Text(
+                        isUploading ? 'Uploading...' : 'Upload Budget File',
+                      ),
                       onPressed: isUploading
                           ? null
                           : () async {
                               final picker = ImagePicker();
-                              final picked = await picker.pickImage(source: ImageSource.gallery);
+                              final picked = await picker.pickImage(
+                                source: ImageSource.gallery,
+                              );
                               if (picked != null) {
                                 setStateDialog(() => isUploading = true);
-                                final url = await CloudinaryService.uploadImage(File(picked.path));
+                                final url = await CloudinaryService.uploadImage(
+                                  File(picked.path),
+                                );
                                 setStateDialog(() => isUploading = false);
-                                
+
                                 if (url != null) {
                                   if (mounted) navigator.pop();
                                   setState(() => _submitting = true);
                                   try {
-                                    await widget.appState.updatePost(postId, {'budgetImage': url});
+                                    await widget.appState.updatePost(postId, {
+                                      'budgetImage': url,
+                                    });
                                     if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Budget submitted successfully!')),
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Budget submitted successfully!',
+                                          ),
+                                        ),
                                       );
                                     }
                                   } catch (e) {
                                     if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Failed to submit budget: $e')),
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Failed to submit budget: $e',
+                                          ),
+                                        ),
                                       );
                                     }
                                   } finally {
@@ -263,7 +295,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                 } else {
                                   if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Failed to upload image.')),
+                                      const SnackBar(
+                                        content: Text(
+                                          'Failed to upload image.',
+                                        ),
+                                      ),
                                     );
                                   }
                                 }
@@ -299,7 +335,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Upload the post-event report document (image format).'),
+                  const Text(
+                    'Upload the post-event report document (image format).',
+                  ),
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
@@ -311,17 +349,23 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.add_photo_alternate),
-                      label: Text(isUploading ? 'Uploading...' : 'Upload Report File'),
+                      label: Text(
+                        isUploading ? 'Uploading...' : 'Upload Report File',
+                      ),
                       onPressed: isUploading
                           ? null
                           : () async {
                               final picker = ImagePicker();
-                              final picked = await picker.pickImage(source: ImageSource.gallery);
+                              final picked = await picker.pickImage(
+                                source: ImageSource.gallery,
+                              );
                               if (picked != null) {
                                 setStateDialog(() => isUploading = true);
-                                final url = await CloudinaryService.uploadImage(File(picked.path));
+                                final url = await CloudinaryService.uploadImage(
+                                  File(picked.path),
+                                );
                                 setStateDialog(() => isUploading = false);
-                                
+
                                 if (url != null) {
                                   if (mounted) navigator.pop();
                                   setState(() => _submitting = true);
@@ -332,14 +376,26 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                       picked.name,
                                     );
                                     if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Report submitted successfully!')),
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Report submitted successfully!',
+                                          ),
+                                        ),
                                       );
                                     }
                                   } catch (e) {
                                     if (mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Failed to submit report: $e')),
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Failed to submit report: $e',
+                                          ),
+                                        ),
                                       );
                                     }
                                   } finally {
@@ -348,7 +404,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                 } else {
                                   if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Failed to upload image.')),
+                                      const SnackBar(
+                                        content: Text(
+                                          'Failed to upload image.',
+                                        ),
+                                      ),
                                     );
                                   }
                                 }

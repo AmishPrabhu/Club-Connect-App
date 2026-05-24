@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 
 class AppTheme {
   static const Color navy = Color(0xFF002147);
-  static const Color surface = Color(0xFFF4F7FB);
+  static const Color surface = Color(0xFFF6F4EF);
   static const Color card = Colors.white;
-  static const Color text = Color(0xFF162033);
-  static const Color muted = Color(0xFF6E7A8A);
+  static const Color text = Color(0xFF182230);
+  static const Color muted = Color(0xFF6B7280);
   static const Color cyan = Color(0xFF38BDF8);
   static const Color blue = Color(0xFF2563EB);
+  static const Color gold = Color(0xFFC8A24A);
   static const Color purple = Color(0xFF7C3AED);
 
   static ThemeData light() {
@@ -58,8 +59,8 @@ class AppTheme {
         color: card,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28),
-          side: BorderSide(color: Colors.blueGrey.withValues(alpha: 0.08)),
+          borderRadius: BorderRadius.circular(26),
+          side: BorderSide(color: Colors.blueGrey.withValues(alpha: 0.06)),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -85,6 +86,16 @@ class AppTheme {
       chipTheme: base.chipTheme.copyWith(
         side: BorderSide.none,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: Colors.white.withValues(alpha: 0.95),
+        indicatorColor: navy.withValues(alpha: 0.08),
+        labelTextStyle: WidgetStatePropertyAll(
+          base.textTheme.labelMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: text,
+          ),
+        ),
       ),
     );
   }

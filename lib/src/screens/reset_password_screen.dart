@@ -66,9 +66,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     }
 
     if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
       return;
     }
 
@@ -94,9 +94,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         setState(() {
           _isLoading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -110,19 +110,17 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFF002147)),
         titleTextStyle: const TextStyle(
-            color: Color(0xFF002147),
-            fontSize: 20,
-            fontWeight: FontWeight.bold),
+          color: Color(0xFF002147),
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
       ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Colors.blue.shade50,
-              Colors.white,
-            ],
+            colors: [Colors.blue.shade50, Colors.white],
           ),
         ),
         child: Center(
@@ -133,14 +131,19 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ? Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.check_circle,
-                            color: Colors.green, size: 64),
+                        const Icon(
+                          Icons.check_circle,
+                          color: Colors.green,
+                          size: 64,
+                        ),
                         const SizedBox(height: 16),
                         const Text(
                           'Password Reset Successful!',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                              fontSize: 24, fontWeight: FontWeight.bold),
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         const Text(
@@ -154,7 +157,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           child: FilledButton(
                             onPressed: () {
                               // Pop twice to get back to login if navigated from there
-                              Navigator.of(context).popUntil((route) => route.isFirst);
+                              Navigator.of(
+                                context,
+                              ).popUntil((route) => route.isFirst);
                             },
                             child: const Text('Go to Login'),
                           ),
@@ -167,13 +172,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       children: [
                         const Row(
                           children: [
-                            Icon(Icons.key,
-                                size: 32, color: Color(0xFF002147)),
+                            Icon(Icons.key, size: 32, color: Color(0xFF002147)),
                             SizedBox(width: 12),
                             Text(
                               'Reset Password',
                               style: TextStyle(
-                                  fontSize: 24, fontWeight: FontWeight.bold),
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),
@@ -208,12 +214,19 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Resetting password for:',
-                                    style: TextStyle(
-                                        fontSize: 12, color: Colors.grey)),
-                                Text(_emailController.text,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold)),
+                                const Text(
+                                  'Resetting password for:',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                Text(
+                                  _emailController.text,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -227,11 +240,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             prefixIcon: const Icon(Icons.lock_outline),
                             border: const OutlineInputBorder(),
                             suffixIcon: IconButton(
-                              icon: Icon(_obscurePassword
-                                  ? Icons.visibility_off
-                                  : Icons.visibility),
-                              onPressed: () => setState(() =>
-                                  _obscurePassword = !_obscurePassword),
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              ),
                             ),
                           ),
                         ),

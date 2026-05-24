@@ -1,6 +1,7 @@
+// ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
 import '../models/post_item.dart';
- import '../state/app_state.dart';
+import '../state/app_state.dart';
 import 'package:csv/csv.dart' as csv;
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -103,15 +104,14 @@ class _AttendanceManagementScreenState
       final file = File(path);
       await file.writeAsString(csvData);
 
-      await Share.shareXFiles(
-        [XFile(path)],
-        subject: 'Attendance for ${widget.event.title}',
-      );
+      await Share.shareXFiles([
+        XFile(path),
+      ], subject: 'Attendance for ${widget.event.title}');
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to export CSV: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to export CSV: $e')));
       }
     }
   }
@@ -157,67 +157,72 @@ class _AttendanceManagementScreenState
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _error != null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Failed to load RSVPs',
-                              style: TextStyle(
-                                  color: Theme.of(context).colorScheme.error),
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: _fetchRsvps,
-                              child: const Text('Retry'),
-                            ),
-                          ],
-                        ),
-                      )
-                    : filteredRsvps.isEmpty
-                        ? Center(
-                            child: Text(
-                              _searchQuery.isEmpty
-                                  ? 'No RSVPs for this event yet.'
-                                  : 'No matches found.',
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                          )
-                        : ListView.builder(
-                            itemCount: filteredRsvps.length,
-                            itemBuilder: (context, index) {
-                              final rsvp = filteredRsvps[index];
-                              final isAttended = rsvp['attended'] == true;
-                              return ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: isAttended
-                                      ? Colors.green.withOpacity(0.2)
-                                      : Theme.of(context)
-                                          .colorScheme
-                                          .surfaceContainerHighest,
-                                  child: isAttended
-                                      ? const Icon(Icons.check, color: Colors.green)
-                                      : Text(
-                                          (rsvp['name'] ?? '?')[0].toUpperCase(),
-                                          style: TextStyle(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                          ),
-                                        ),
-                                ),
-                                title: Text(rsvp['name'] ?? 'Unknown'),
-                                subtitle: Text(rsvp['email'] ?? ''),
-                                trailing: Switch(
-                                  value: isAttended,
-                                  onChanged: (_) => _toggleAttendance(
-                                      rsvp['_id'].toString(), isAttended),
-                                ),
-                                onTap: () => _toggleAttendance(
-                                    rsvp['_id'].toString(), isAttended),
-                              );
-                            },
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Failed to load RSVPs',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
                           ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _fetchRsvps,
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  )
+                : filteredRsvps.isEmpty
+                ? Center(
+                    child: Text(
+                      _searchQuery.isEmpty
+                          ? 'No RSVPs for this event yet.'
+                          : 'No matches found.',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: filteredRsvps.length,
+                    itemBuilder: (context, index) {
+                      final rsvp = filteredRsvps[index];
+                      final isAttended = rsvp['attended'] == true;
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: isAttended
+                              ? Colors.green.withOpacity(0.2)
+                              : Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerHighest,
+                          child: isAttended
+                              ? const Icon(Icons.check, color: Colors.green)
+                              : Text(
+                                  (rsvp['name'] ?? '?')[0].toUpperCase(),
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                        ),
+                        title: Text(rsvp['name'] ?? 'Unknown'),
+                        subtitle: Text(rsvp['email'] ?? ''),
+                        trailing: Switch(
+                          value: isAttended,
+                          onChanged: (_) => _toggleAttendance(
+                            rsvp['_id'].toString(),
+                            isAttended,
+                          ),
+                        ),
+                        onTap: () => _toggleAttendance(
+                          rsvp['_id'].toString(),
+                          isAttended,
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),

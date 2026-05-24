@@ -26,9 +26,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Future<void> _requestReset() async {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your email')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter your email')));
       return;
     }
 
@@ -50,9 +50,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         setState(() {
           _isLoading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -66,19 +66,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFF002147)),
         titleTextStyle: const TextStyle(
-            color: Color(0xFF002147),
-            fontSize: 20,
-            fontWeight: FontWeight.bold),
+          color: Color(0xFF002147),
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
       ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Colors.blue.shade50,
-              Colors.white,
-            ],
+            colors: [Colors.blue.shade50, Colors.white],
           ),
         ),
         child: Center(
@@ -89,13 +87,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   ? Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.check_circle,
-                            color: Colors.green, size: 64),
+                        const Icon(
+                          Icons.check_circle,
+                          color: Colors.green,
+                          size: 64,
+                        ),
                         const SizedBox(height: 16),
                         const Text(
                           'Check your email',
                           style: TextStyle(
-                              fontSize: 24, fontWeight: FontWeight.bold),
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         const Text(
@@ -119,13 +122,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       children: [
                         const Row(
                           children: [
-                            Icon(Icons.lock_reset,
-                                size: 32, color: Color(0xFF002147)),
+                            Icon(
+                              Icons.lock_reset,
+                              size: 32,
+                              color: Color(0xFF002147),
+                            ),
                             SizedBox(width: 12),
                             Text(
                               'Reset Password',
                               style: TextStyle(
-                                  fontSize: 24, fontWeight: FontWeight.bold),
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),

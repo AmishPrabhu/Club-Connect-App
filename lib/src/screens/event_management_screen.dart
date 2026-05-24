@@ -1,6 +1,8 @@
 import 'dart:io';
+// ignore_for_file: deprecated_member_use, curly_braces_in_flow_control_structures
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:csv/csv.dart' as csv;
 import 'package:path_provider/path_provider.dart';
@@ -57,14 +59,14 @@ class _EventManagementScreenState extends State<EventManagementScreen>
     _titleController = TextEditingController(text: widget.event.title);
     _contentController = TextEditingController(text: widget.event.content);
     _locationController = TextEditingController(text: widget.event.location);
-    _date = widget.event.date != null 
-      ? "${widget.event.date!.year}-${widget.event.date!.month.toString().padLeft(2, '0')}-${widget.event.date!.day.toString().padLeft(2, '0')}" 
-      : null;
+    _date = widget.event.date != null
+        ? "${widget.event.date!.year}-${widget.event.date!.month.toString().padLeft(2, '0')}-${widget.event.date!.day.toString().padLeft(2, '0')}"
+        : null;
     _time = widget.event.time;
-    
+
     // Initialize Certificate from event if possible (simulated for now)
     // In a real app, widget.event would have certificateTemplate property
-    
+
     _fetchData();
   }
 
@@ -100,15 +102,15 @@ class _EventManagementScreenState extends State<EventManagementScreen>
         'time': _time,
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Event details updated!')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Event details updated!')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to update: $e')));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -152,7 +154,9 @@ class _EventManagementScreenState extends State<EventManagementScreen>
     final file = File(path);
     await file.writeAsString(csvData);
 
-    await Share.shareXFiles([XFile(path)], subject: 'Attendance: ${widget.event.title}');
+    await Share.shareXFiles([
+      XFile(path),
+    ], subject: 'Attendance: ${widget.event.title}');
   }
 
   @override
@@ -229,9 +233,12 @@ class _EventManagementScreenState extends State<EventManagementScreen>
               (c) => c.id == widget.event.clubId,
               orElse: () => widget.appState.clubs.first,
             );
-            Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => BulkImportScreen(club: club, appState: widget.appState),
-            ));
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) =>
+                    BulkImportScreen(club: club, appState: widget.appState),
+              ),
+            );
           },
           trailing: const Icon(Icons.chevron_right),
         ),
@@ -271,7 +278,10 @@ class _EventManagementScreenState extends State<EventManagementScreen>
                     lastDate: DateTime(2100),
                   );
                   if (picked != null) {
-                    setState(() => _date = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}");
+                    setState(
+                      () => _date =
+                          "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}",
+                    );
                   }
                 },
                 icon: const Icon(Icons.calendar_today),
@@ -309,7 +319,7 @@ class _EventManagementScreenState extends State<EventManagementScreen>
     final filtered = _rsvps.where((r) {
       final q = _searchQuery.toLowerCase();
       return (r['name'] ?? '').toString().toLowerCase().contains(q) ||
-             (r['email'] ?? '').toString().toLowerCase().contains(q);
+          (r['email'] ?? '').toString().toLowerCase().contains(q);
     }).toList();
 
     return Column(
@@ -349,23 +359,34 @@ class _EventManagementScreenState extends State<EventManagementScreen>
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        const Text('Certificate Design', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        const Text(
+          'Certificate Design',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
         const SizedBox(height: 8),
         const Text('Position the name placeholder on your template.'),
         const SizedBox(height: 20),
-        
+
         if (_templateUrl == null)
           Center(
             child: Column(
               children: [
-                const Icon(Icons.workspace_premium_outlined, size: 80, color: Colors.grey),
+                const Icon(
+                  Icons.workspace_premium_outlined,
+                  size: 80,
+                  color: Colors.grey,
+                ),
                 const SizedBox(height: 16),
                 OutlinedButton.icon(
                   onPressed: () async {
-                    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+                    final picked = await ImagePicker().pickImage(
+                      source: ImageSource.gallery,
+                    );
                     if (picked != null) {
                       setState(() => _isLoading = true);
-                      final url = await CloudinaryService.uploadImage(File(picked.path));
+                      final url = await CloudinaryService.uploadImage(
+                        File(picked.path),
+                      );
                       setState(() {
                         _templateUrl = url;
                         _isLoading = false;
@@ -395,14 +416,22 @@ class _EventManagementScreenState extends State<EventManagementScreen>
                   borderRadius: BorderRadius.circular(12),
                   child: Stack(
                     children: [
-                      Image.network(_templateUrl!, fit: BoxFit.contain, width: w, height: h),
+                      Image.network(
+                        _templateUrl!,
+                        fit: BoxFit.contain,
+                        width: w,
+                        height: h,
+                      ),
                       Positioned(
                         left: (_xPercent / 100) * w,
                         top: (_yPercent / 100) * h,
                         child: FractionalTranslation(
                           translation: const Offset(-0.5, -0.5),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.blue.withOpacity(0.2),
                               border: Border.all(color: Colors.blue),
@@ -411,7 +440,9 @@ class _EventManagementScreenState extends State<EventManagementScreen>
                               'John Doe',
                               style: TextStyle(
                                 fontSize: (_fontSize / 1000) * w,
-                                color: Color(int.parse('FF$_fontColor', radix: 16)),
+                                color: Color(
+                                  int.parse('FF$_fontColor', radix: 16),
+                                ),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -425,15 +456,29 @@ class _EventManagementScreenState extends State<EventManagementScreen>
             },
           ),
           const SizedBox(height: 24),
-          
+
           // Controls
           _SectionCard(
             title: 'Positioning & Style',
             child: Column(
               children: [
-                _buildSlider('Horizontal Position (X)', _xPercent, (v) => setState(() => _xPercent = v)),
-                _buildSlider('Vertical Position (Y)', _yPercent, (v) => setState(() => _yPercent = v)),
-                _buildSlider('Font Size', _fontSize, (v) => setState(() => _fontSize = v), min: 10, max: 200),
+                _buildSlider(
+                  'Horizontal Position (X)',
+                  _xPercent,
+                  (v) => setState(() => _xPercent = v),
+                ),
+                _buildSlider(
+                  'Vertical Position (Y)',
+                  _yPercent,
+                  (v) => setState(() => _yPercent = v),
+                ),
+                _buildSlider(
+                  'Font Size',
+                  _fontSize,
+                  (v) => setState(() => _fontSize = v),
+                  min: 10,
+                  max: 200,
+                ),
                 ListTile(
                   title: const Text('Font Color (Hex)'),
                   subtitle: const Text('e.g., 000000 for Black'),
@@ -441,37 +486,46 @@ class _EventManagementScreenState extends State<EventManagementScreen>
                     width: 100,
                     child: TextField(
                       decoration: const InputDecoration(hintText: '000000'),
-                      onChanged: (v) => setState(() => _fontColor = v.replaceAll('#', '')),
+                      onChanged: (v) =>
+                          setState(() => _fontColor = v.replaceAll('#', '')),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          
+
           const SizedBox(height: 24),
           Row(
             children: [
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: _isSaving ? null : () async {
-                    setState(() => _isSaving = true);
-                    try {
-                      await widget.appState.saveCertificateTemplate(
-                        eventId: widget.event.id,
-                        templateUrl: _templateUrl!,
-                        x: _xPercent,
-                        y: _yPercent,
-                        fontSize: _fontSize,
-                        color: _fontColor,
-                      );
-                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Layout saved!')));
-                    } catch (e) {
-                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-                    } finally {
-                      if (mounted) setState(() => _isSaving = false);
-                    }
-                  },
+                  onPressed: _isSaving
+                      ? null
+                      : () async {
+                          setState(() => _isSaving = true);
+                          try {
+                            await widget.appState.saveCertificateTemplate(
+                              eventId: widget.event.id,
+                              templateUrl: _templateUrl!,
+                              x: _xPercent,
+                              y: _yPercent,
+                              fontSize: _fontSize,
+                              color: _fontColor,
+                            );
+                            if (mounted)
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Layout saved!')),
+                              );
+                          } catch (e) {
+                            if (mounted)
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error: $e')),
+                              );
+                          } finally {
+                            if (mounted) setState(() => _isSaving = false);
+                          }
+                        },
                   icon: const Icon(Icons.save_outlined),
                   label: Text(_isSaving ? 'Saving...' : 'Save Layout'),
                 ),
@@ -479,41 +533,62 @@ class _EventManagementScreenState extends State<EventManagementScreen>
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton.tonalIcon(
-                  onPressed: _isGenerating ? null : () async {
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('Generate Certificates'),
-                        content: Text('This will generate certificates for all ${_rsvps.where((r) => r['attended'] == true).length} participants marked as "Present". Proceed?'),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Generate')),
-                        ],
-                      ),
-                    );
-                    
-                    if (confirmed == true) {
-                      setState(() => _isGenerating = true);
-                      try {
-                        // Logic to trigger backend generation (simulated as individual calls if no batch endpoint)
-                        final attendees = _rsvps.where((r) => r['attended'] == true).toList();
-                        for (var attendee in attendees) {
-                          // In parity with web, the backend likely handles overlay based on template
-                          // If not, we'd construct the Cloudinary URL here
-                          await widget.appState.updateParticipantCertificate(
-                            widget.event.id,
-                            attendee['_id'],
-                            'GENERATED_URL_PLACEHOLDER', // Backend typically fills this
+                  onPressed: _isGenerating
+                      ? null
+                      : () async {
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Generate Certificates'),
+                              content: Text(
+                                'This will generate certificates for all ${_rsvps.where((r) => r['attended'] == true).length} participants marked as "Present". Proceed?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: const Text('Cancel'),
+                                ),
+                                FilledButton(
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: const Text('Generate'),
+                                ),
+                              ],
+                            ),
                           );
-                        }
-                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Certificates generated!')));
-                      } catch (e) {
-                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
-                      } finally {
-                        if (mounted) setState(() => _isGenerating = false);
-                      }
-                    }
-                  },
+
+                          if (confirmed == true) {
+                            setState(() => _isGenerating = true);
+                            try {
+                              // Logic to trigger backend generation (simulated as individual calls if no batch endpoint)
+                              final attendees = _rsvps
+                                  .where((r) => r['attended'] == true)
+                                  .toList();
+                              for (var attendee in attendees) {
+                                // In parity with web, the backend likely handles overlay based on template
+                                // If not, we'd construct the Cloudinary URL here
+                                await widget.appState.updateParticipantCertificate(
+                                  widget.event.id,
+                                  attendee['_id'],
+                                  'GENERATED_URL_PLACEHOLDER', // Backend typically fills this
+                                );
+                              }
+                              if (mounted)
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Certificates generated!'),
+                                  ),
+                                );
+                            } catch (e) {
+                              if (mounted)
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed: $e')),
+                                );
+                            } finally {
+                              if (mounted)
+                                setState(() => _isGenerating = false);
+                            }
+                          }
+                        },
                   icon: const Icon(Icons.auto_awesome_outlined),
                   label: Text(_isGenerating ? 'Generating...' : 'Generate All'),
                 ),
@@ -524,27 +599,34 @@ class _EventManagementScreenState extends State<EventManagementScreen>
           TextButton.icon(
             onPressed: () => setState(() => _templateUrl = null),
             icon: const Icon(Icons.delete_outline, color: Colors.red),
-            label: const Text('Remove Template', style: TextStyle(color: Colors.red)),
+            label: const Text(
+              'Remove Template',
+              style: TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ],
     );
   }
 
-  Widget _buildSlider(String label, double value, ValueChanged<double> onChanged, {double min = 0, double max = 100}) {
+  Widget _buildSlider(
+    String label,
+    double value,
+    ValueChanged<double> onChanged, {
+    double min = 0,
+    double max = 100,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+          ),
         ),
-        Slider(
-          value: value,
-          min: min,
-          max: max,
-          onChanged: onChanged,
-        ),
+        Slider(value: value, min: min, max: max, onChanged: onChanged),
       ],
     );
   }
@@ -560,17 +642,27 @@ class _EventManagementScreenState extends State<EventManagementScreen>
               if (widget.event.budgetImageUrl != null)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(widget.event.budgetImageUrl!, height: 150, fit: BoxFit.cover),
+                  child: Image.network(
+                    widget.event.budgetImageUrl!,
+                    height: 150,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
                 onPressed: () async {
-                  final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+                  final picked = await ImagePicker().pickImage(
+                    source: ImageSource.gallery,
+                  );
                   if (picked != null) {
                     setState(() => _isLoading = true);
-                    final url = await CloudinaryService.uploadImage(File(picked.path));
+                    final url = await CloudinaryService.uploadImage(
+                      File(picked.path),
+                    );
                     if (url != null) {
-                      await widget.appState.updatePost(widget.event.id, {'budgetImageUrl': url});
+                      await widget.appState.updatePost(widget.event.id, {
+                        'budgetImageUrl': url,
+                      });
                       await _fetchData();
                     }
                     setState(() => _isLoading = false);
@@ -591,17 +683,23 @@ class _EventManagementScreenState extends State<EventManagementScreen>
                 ListTile(
                   leading: const Icon(Icons.description, color: Colors.blue),
                   title: const Text('Final Report Uploaded'),
-                  subtitle: Text(widget.event.reportFilename ?? 'View document'),
+                  subtitle: Text(
+                    widget.event.reportFilename ?? 'View document',
+                  ),
                   trailing: IconButton(
                     icon: const Icon(Icons.open_in_new),
-                    onPressed: () => launchUrl(Uri.parse(widget.event.reportUrl!)),
+                    onPressed: () =>
+                        launchUrl(Uri.parse(widget.event.reportUrl!)),
                   ),
                 ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
                 onPressed: () async {
                   // Using file picker for PDF reports
-                  final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf', 'doc', 'docx']);
+                  final result = await FilePicker.platform.pickFiles(
+                    type: FileType.custom,
+                    allowedExtensions: ['pdf', 'doc', 'docx'],
+                  );
                   if (result != null && result.files.single.path != null) {
                     setState(() => _isLoading = true);
                     final file = File(result.files.single.path!);
@@ -629,7 +727,12 @@ class _EventManagementScreenState extends State<EventManagementScreen>
 }
 
 class _StatBox extends StatelessWidget {
-  const _StatBox({required this.title, required this.value, required this.icon, this.color});
+  const _StatBox({
+    required this.title,
+    required this.value,
+    required this.icon,
+    this.color,
+  });
   final String title;
   final String value;
   final IconData icon;
@@ -641,7 +744,10 @@ class _StatBox extends StatelessWidget {
         children: [
           Icon(icon, color: color ?? AppTheme.blue),
           const SizedBox(height: 8),
-          Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
           Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey)),
         ],
       ),
@@ -659,7 +765,10 @@ class _SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
           const SizedBox(height: 12),
           child,
         ],

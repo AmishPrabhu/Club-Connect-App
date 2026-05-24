@@ -1,12 +1,15 @@
+// ignore_for_file: use_build_context_synchronously
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../state/app_state.dart';
+import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import 'dashboard_screen.dart';
 import 'login_screen.dart';
+import 'setup_admin_screen.dart';
 import 'signup_screen.dart';
 import '../services/cloudinary_service.dart';
 
@@ -67,9 +70,9 @@ class _ProfileScreenState extends State<ProfileScreen>
               padding: EdgeInsets.zero,
               child: TabBar(
                 controller: _tabController,
-                labelColor: const Color(0xFF002147),
+                labelColor: AppTheme.navy,
                 unselectedLabelColor: Colors.grey.shade600,
-                indicatorColor: const Color(0xFF002147),
+                indicatorColor: AppTheme.navy,
                 indicatorWeight: 3,
                 tabs: const [
                   Tab(text: 'Overview', icon: Icon(Icons.person_outline)),
@@ -113,8 +116,9 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
   @override
   void initState() {
     super.initState();
-    _nameController =
-        TextEditingController(text: widget.appState.session!.name);
+    _nameController = TextEditingController(
+      text: widget.appState.session!.name,
+    );
   }
 
   @override
@@ -181,9 +185,9 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update profile: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to update profile: $e')));
       }
     }
   }
@@ -209,7 +213,8 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
                     color: Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: Colors.grey.shade300),
-                    image: session.profileImage != null &&
+                    image:
+                        session.profileImage != null &&
                             session.profileImage!.isNotEmpty
                         ? DecorationImage(
                             image: NetworkImage(session.profileImage!),
@@ -217,15 +222,17 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
                           )
                         : null,
                   ),
-                  child: session.profileImage == null ||
+                  child:
+                      session.profileImage == null ||
                           session.profileImage!.isEmpty
                       ? Center(
                           child: Text(
                             session.name.isNotEmpty ? session.name[0] : 'U',
                             style: const TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey),
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
                           ),
                         )
                       : null,
@@ -255,7 +262,7 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
                   child: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: Colors.cyan,
+                      color: AppTheme.gold,
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2),
                     ),
@@ -279,9 +286,10 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
                       const Text(
                         'NAME',
                         style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey),
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.muted,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       TextField(
@@ -300,10 +308,12 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
                             icon: const Icon(Icons.save, size: 16),
                             label: const Text('Save'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue.shade700,
+                              backgroundColor: AppTheme.navy,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -312,11 +322,11 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
                             icon: const Icon(Icons.close, size: 16),
                             label: const Text('Cancel'),
                             style: TextButton.styleFrom(
-                              foregroundColor: Colors.grey.shade700,
+                              foregroundColor: AppTheme.muted,
                             ),
                           ),
                         ],
-                      )
+                      ),
                     ],
                   )
                 : Column(
@@ -341,14 +351,17 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
                             color: Colors.grey.shade600,
                             constraints: const BoxConstraints(),
                             padding: EdgeInsets.zero,
-                          )
+                          ),
                         ],
                       ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.email,
-                              size: 14, color: Colors.cyan),
+                          const Icon(
+                            Icons.email,
+                            size: 14,
+                            color: AppTheme.gold,
+                          ),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
@@ -367,7 +380,9 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
                         spacing: 6,
                         runSpacing: 6,
                         children: [
-                          _RoleBadge(role: session.role),
+                          ...session.allRoles.map(
+                            (role) => _RoleBadge(role: role),
+                          ),
                           if (session.clubName != null &&
                               session.clubName!.isNotEmpty)
                             _ClubBadge(clubName: session.clubName!),
@@ -392,14 +407,23 @@ class _RoleBadge extends StatelessWidget {
     Color textColor;
     Color borderColor;
 
-    if (role == 'admin') {
-      bgColor = Colors.blue.shade100.withValues(alpha: 0.5);
-      textColor = Colors.blue.shade700;
-      borderColor = Colors.blue.shade200;
+    if (role == 'admin' || role == 'super-admin') {
+      bgColor = AppTheme.navy.withValues(alpha: 0.08);
+      textColor = AppTheme.navy;
+      borderColor = AppTheme.navy.withValues(alpha: 0.18);
     } else if (role == 'teacher') {
-      bgColor = Colors.green.shade100.withValues(alpha: 0.5);
-      textColor = Colors.green.shade700;
+      bgColor = Colors.green.shade100.withValues(alpha: 0.36);
+      textColor = Colors.green.shade800;
       borderColor = Colors.green.shade200;
+    } else if ([
+      'advisor',
+      'club-secretary',
+      'president',
+      'treasurer',
+    ].contains(role.toLowerCase())) {
+      bgColor = AppTheme.gold.withValues(alpha: 0.10);
+      textColor = const Color(0xFF8B6B1F);
+      borderColor = AppTheme.gold.withValues(alpha: 0.28);
     } else {
       bgColor = Colors.grey.shade100;
       textColor = Colors.grey.shade700;
@@ -463,7 +487,11 @@ class _OverviewTab extends StatelessWidget {
         children: [
           const Text(
             'Dashboard & Actions',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.navy,
+            ),
           ),
           const SizedBox(height: 16),
           GlassCard(
@@ -473,13 +501,15 @@ class _OverviewTab extends StatelessWidget {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
+                      color: AppTheme.navy.withValues(alpha: 0.06),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(Icons.dashboard, color: Colors.blue.shade700),
+                    child: const Icon(Icons.dashboard, color: AppTheme.navy),
                   ),
-                  title: const Text('Open Dashboard',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  title: const Text(
+                    'Open Dashboard',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   subtitle: const Text('Manage clubs, events, and tasks'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
@@ -495,13 +525,15 @@ class _OverviewTab extends StatelessWidget {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.red.shade50,
+                      color: const Color(0xFFFDECEC),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(Icons.logout, color: Colors.red.shade700),
+                    child: const Icon(Icons.logout, color: Color(0xFFB91C1C)),
                   ),
-                  title: const Text('Log Out',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  title: const Text(
+                    'Log Out',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   subtitle: const Text('Sign out of your account'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () async {
@@ -510,7 +542,7 @@ class _OverviewTab extends StatelessWidget {
                 ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
@@ -558,9 +590,13 @@ class _AccountSettingsTabState extends State<_AccountSettingsTab> {
                   children: [
                     Icon(Icons.lock_outline, color: Colors.blue),
                     SizedBox(width: 8),
-                    Text('Change Password',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text(
+                      'Change Password',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -596,7 +632,8 @@ class _AccountSettingsTabState extends State<_AccountSettingsTab> {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                                content: Text('Password changed successfully.')),
+                              content: Text('Password changed successfully.'),
+                            ),
                           );
                           _currentPasswordController.clear();
                           _newPasswordController.clear();
@@ -619,9 +656,10 @@ class _AccountSettingsTabState extends State<_AccountSettingsTab> {
           const Text(
             'Danger Zone',
             style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.redAccent),
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.redAccent,
+            ),
           ),
           const SizedBox(height: 16),
           GlassCard(
@@ -632,11 +670,14 @@ class _AccountSettingsTabState extends State<_AccountSettingsTab> {
                   children: [
                     Icon(Icons.warning_amber_rounded, color: Colors.red),
                     SizedBox(width: 8),
-                    Text('Delete Account',
-                        style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.red)),
+                    Text(
+                      'Delete Account',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -658,8 +699,10 @@ class _AccountSettingsTabState extends State<_AccountSettingsTab> {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                                content: Text(
-                                    'Verification code sent to your email.')),
+                              content: Text(
+                                'Verification code sent to your email.',
+                              ),
+                            ),
                           );
                         }
                       } catch (error) {
@@ -734,7 +777,9 @@ class _GuestCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'Sign in to access your dashboard, account settings, and features.',
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: AppTheme.muted),
           ),
           const SizedBox(height: 24),
           SizedBox(
@@ -758,6 +803,18 @@ class _GuestCard extends StatelessWidget {
                 ),
               ),
               child: const Text('Create Account'),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => SetupAdminScreen(appState: appState),
+                ),
+              ),
+              child: const Text('Initial admin setup'),
             ),
           ),
         ],

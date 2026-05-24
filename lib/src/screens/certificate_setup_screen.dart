@@ -1,4 +1,5 @@
 import 'dart:io';
+// ignore_for_file: deprecated_member_use, prefer_final_fields
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -83,9 +84,9 @@ class _CertificateSetupScreenState extends State<CertificateSetupScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save template: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to save template: $e')));
       }
     } finally {
       if (mounted) {
@@ -108,9 +109,7 @@ class _CertificateSetupScreenState extends State<CertificateSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Setup Certificate'),
-      ),
+      appBar: AppBar(title: const Text('Setup Certificate')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -136,9 +135,9 @@ class _CertificateSetupScreenState extends State<CertificateSetupScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.add_photo_alternate),
-                label: Text(_templateUrl != null
-                    ? 'Change Template'
-                    : 'Upload Template'),
+                label: Text(
+                  _templateUrl != null ? 'Change Template' : 'Upload Template',
+                ),
               ),
             ),
             if (_templateUrl != null) ...[
@@ -154,7 +153,7 @@ class _CertificateSetupScreenState extends State<CertificateSetupScreen> {
                 ),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    // Use AspectRatio or specific height, here we'll use a specific height 
+                    // Use AspectRatio or specific height, here we'll use a specific height
                     // and infer width to allow dragging.
                     return AspectRatio(
                       aspectRatio: 1.414, // Typical A4 landscape
@@ -166,14 +165,21 @@ class _CertificateSetupScreenState extends State<CertificateSetupScreen> {
                             fit: BoxFit.contain,
                           ),
                           Positioned(
-                            left: (_xPercent / 100) * constraints.maxWidth - 50, // rough center offset
-                            top: (_yPercent / 100) * (constraints.maxWidth / 1.414) - 20,
+                            left:
+                                (_xPercent / 100) * constraints.maxWidth -
+                                50, // rough center offset
+                            top:
+                                (_yPercent / 100) *
+                                    (constraints.maxWidth / 1.414) -
+                                20,
                             child: GestureDetector(
                               onPanUpdate: (details) =>
                                   _onPanUpdate(details, constraints),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.blue.withOpacity(0.3),
                                   border: Border.all(color: Colors.blue),
@@ -181,8 +187,10 @@ class _CertificateSetupScreenState extends State<CertificateSetupScreen> {
                                 child: Text(
                                   '[Participant Name]',
                                   style: TextStyle(
-                                    fontSize: _fontSize * 0.4, // scaled for preview
-                                    color: Colors.black, // use colorHex logic later if needed
+                                    fontSize:
+                                        _fontSize * 0.4, // scaled for preview
+                                    color: Colors
+                                        .black, // use colorHex logic later if needed
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),

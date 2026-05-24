@@ -17,7 +17,9 @@ void main() {
     await tester.pump();
 
     expect(find.text('Club Connect'), findsWidgets);
-    expect(find.text('Clubs'), findsOneWidget);
-    expect(find.text('Events'), findsOneWidget);
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Alerts'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
+    expect(find.text('Featured Clubs'), findsOneWidget);
   });
 }

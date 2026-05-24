@@ -85,7 +85,8 @@ class PostItem {
       coverAsset: json['coverImage']?.toString(),
       attachments: attachments,
       rsvps: rsvpsCount,
-      budgetImageUrl: (json['budgetImage'] ?? json['budgetImageUrl'])?.toString(),
+      budgetImageUrl: (json['budgetImage'] ?? json['budgetImageUrl'])
+          ?.toString(),
       budgetVerified: json['budgetVerified'] as bool?,
       reportUrl: json['reportUrl']?.toString(),
       reportFilename: json['reportFilename']?.toString(),

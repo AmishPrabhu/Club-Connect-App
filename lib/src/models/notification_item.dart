@@ -7,9 +7,12 @@ class NotificationItem {
     required this.title,
     required this.message,
     required this.timeAgo,
+    required this.createdAt,
     required this.isRead,
     required this.icon,
     required this.color,
+    this.relatedId,
+    this.link,
   });
 
   final String id;
@@ -17,21 +20,30 @@ class NotificationItem {
   final String title;
   final String message;
   final String timeAgo;
+  final DateTime? createdAt;
   final bool isRead;
   final IconData icon;
   final Color color;
+  final String? relatedId;
+  final String? link;
 
   factory NotificationItem.fromJson(Map<String, dynamic> json) {
     final type = json['type']?.toString() ?? 'system';
+    final createdAt = json['createdAt'] != null
+        ? DateTime.tryParse(json['createdAt'].toString())
+        : null;
     return NotificationItem(
       id: (json['id'] ?? json['_id'])?.toString() ?? '',
       type: type,
       title: json['title']?.toString() ?? 'Notification',
       message: json['message']?.toString() ?? '',
       timeAgo: _relativeTime(json['createdAt']?.toString()),
+      createdAt: createdAt,
       isRead: json['read'] == true,
       icon: _iconForType(type),
       color: _colorForType(type),
+      relatedId: json['relatedId']?.toString(),
+      link: json['link']?.toString(),
     );
   }
 
@@ -42,9 +54,12 @@ class NotificationItem {
       title: title,
       message: message,
       timeAgo: timeAgo,
+      createdAt: createdAt,
       isRead: isRead ?? this.isRead,
       icon: icon,
       color: color,
+      relatedId: relatedId,
+      link: link,
     );
   }
 

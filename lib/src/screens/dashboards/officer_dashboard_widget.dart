@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../models/club.dart';
-import '../../models/post_item.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../post_detail_screen.dart';
@@ -69,8 +68,10 @@ class _OfficerDashboardWidgetState extends State<OfficerDashboardWidget>
               ],
             ),
             const SizedBox(height: 24),
-            Text('Quick Actions',
-                style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Quick Actions',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 12,
@@ -81,7 +82,9 @@ class _OfficerDashboardWidgetState extends State<OfficerDashboardWidget>
                     // Logic to show create post dialog can be passed down or handled here
                     // Since it's complex, we might just leave a placeholder or implement a basic route
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Use the FAB to create posts/events.')),
+                      const SnackBar(
+                        content: Text('Use the FAB to create posts/events.'),
+                      ),
                     );
                   },
                   icon: const Icon(Icons.add),
@@ -114,9 +117,11 @@ class _OfficerDashboardWidgetState extends State<OfficerDashboardWidget>
           child: ListTile(
             leading: const CircleAvatar(child: Icon(Icons.event)),
             title: Text(ev.title),
-            subtitle: Text(ev.date != null
-                ? '${ev.date!.day}/${ev.date!.month}/${ev.date!.year}'
-                : 'No date'),
+            subtitle: Text(
+              ev.date != null
+                  ? '${ev.date!.day}/${ev.date!.month}/${ev.date!.year}'
+                  : 'No date',
+            ),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
@@ -157,7 +162,8 @@ class _OfficerDashboardWidgetState extends State<OfficerDashboardWidget>
                 trailing: IconButton(
                   icon: const Icon(Icons.delete_outline, color: Colors.red),
                   onPressed: () async {
-                    final id = m['_id']?.toString() ?? m['id']?.toString() ?? '';
+                    final id =
+                        m['_id']?.toString() ?? m['id']?.toString() ?? '';
                     await widget.appState.removeClubMember(widget.club.id, id);
                     _refresh();
                   },
@@ -195,8 +201,11 @@ class _OfficerDashboardWidgetState extends State<OfficerDashboardWidget>
                 trailing: IconButton(
                   icon: const Icon(Icons.check_circle_outline),
                   onPressed: () async {
-                    final id = t['_id']?.toString() ?? t['id']?.toString() ?? '';
-                    await widget.appState.updateTask(id, {'status': 'completed'});
+                    final id =
+                        t['_id']?.toString() ?? t['id']?.toString() ?? '';
+                    await widget.appState.updateTask(id, {
+                      'status': 'completed',
+                    });
                     _refresh();
                   },
                 ),
@@ -220,9 +229,14 @@ class _OfficerDashboardWidgetState extends State<OfficerDashboardWidget>
           children: [
             Icon(icon, size: 24, color: AppTheme.blue),
             const SizedBox(height: 8),
-            Text(value,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-            Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+            ),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
           ],
         ),
       ),
@@ -237,17 +251,19 @@ class _OfficerDashboardWidgetState extends State<OfficerDashboardWidget>
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-          child: Text('Officer Dashboard',
-              style: Theme.of(context).textTheme.headlineSmall),
+          child: Text(
+            'Officer Dashboard',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
           child: Text(
             'Managing: ${widget.club.name}',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.blue,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: AppTheme.blue,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         TabBar(

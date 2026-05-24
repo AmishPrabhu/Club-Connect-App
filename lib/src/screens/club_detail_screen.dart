@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use, curly_braces_in_flow_control_structures
 import 'package:flutter/material.dart';
 
 import '../models/club.dart';
@@ -38,9 +39,15 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
 
   void _showMemberDialog({Map<String, dynamic>? member}) {
     final isEditing = member != null;
-    final nameController = TextEditingController(text: member?['name']?.toString() ?? '');
-    final emailController = TextEditingController(text: member?['email']?.toString() ?? '');
-    final roleController = TextEditingController(text: member?['role']?.toString() ?? 'Member');
+    final nameController = TextEditingController(
+      text: member?['name']?.toString() ?? '',
+    );
+    final emailController = TextEditingController(
+      text: member?['email']?.toString() ?? '',
+    );
+    final roleController = TextEditingController(
+      text: member?['role']?.toString() ?? 'Member',
+    );
     String boardType = member?['boardType']?.toString() ?? 'member';
     String academicYear = member?['academicYear']?.toString() ?? 'FY';
 
@@ -59,7 +66,9 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                 ),
                 TextField(
                   controller: emailController,
-                  decoration: const InputDecoration(labelText: 'Email (@walchandsangli.ac.in)'),
+                  decoration: const InputDecoration(
+                    labelText: 'Email (@walchandsangli.ac.in)',
+                  ),
                   keyboardType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 16),
@@ -67,9 +76,18 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                   value: boardType,
                   decoration: const InputDecoration(labelText: 'Board Type'),
                   items: const [
-                    DropdownMenuItem(value: 'main', child: Text('Main Board (TY)')),
-                    DropdownMenuItem(value: 'executive', child: Text('Executive Board (SY)')),
-                    DropdownMenuItem(value: 'member', child: Text('Member Board (FY)')),
+                    DropdownMenuItem(
+                      value: 'main',
+                      child: Text('Main Board (TY)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'executive',
+                      child: Text('Executive Board (SY)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'member',
+                      child: Text('Member Board (FY)'),
+                    ),
                   ],
                   onChanged: (val) {
                     if (val != null) {
@@ -92,7 +110,10 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                     DropdownMenuItem(value: 'FY', child: Text('FY')),
                     DropdownMenuItem(value: 'SY', child: Text('SY')),
                     DropdownMenuItem(value: 'TY', child: Text('TY')),
-                    DropdownMenuItem(value: 'Final Year', child: Text('Final Year')),
+                    DropdownMenuItem(
+                      value: 'Final Year',
+                      child: Text('Final Year'),
+                    ),
                   ],
                   onChanged: (val) {
                     if (val != null) {
@@ -110,18 +131,23 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
             ),
             FilledButton(
               onPressed: () async {
-                if (nameController.text.isEmpty || emailController.text.isEmpty) return;
-                
+                if (nameController.text.isEmpty || emailController.text.isEmpty)
+                  return;
+
                 try {
                   if (isEditing) {
-                    final memberId = member['_id']?.toString() ?? member['id']?.toString() ?? '';
-                    await widget.appState.updateClubMember(widget.club.id, memberId, {
-                      'name': nameController.text,
-                      'email': emailController.text,
-                      'role': roleController.text,
-                      'boardType': boardType,
-                      'academicYear': academicYear,
-                    });
+                    final memberId =
+                        member['_id']?.toString() ??
+                        member['id']?.toString() ??
+                        '';
+                    await widget.appState
+                        .updateClubMember(widget.club.id, memberId, {
+                          'name': nameController.text,
+                          'email': emailController.text,
+                          'role': roleController.text,
+                          'boardType': boardType,
+                          'academicYear': academicYear,
+                        });
                   } else {
                     await widget.appState.addClubMember(
                       widget.club.id,
@@ -139,9 +165,9 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('Error: $e')));
                   }
                 }
               },
@@ -156,12 +182,15 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final session = widget.appState.session;
-    final isAdmin = session?.role == 'admin';
-    final isOfficer = session?.clubId == widget.club.id &&
-        (session?.role == 'president' ||
-         session?.role == 'club-secretary' ||
-         session?.role == 'advisor' ||
-         session?.role == 'treasurer');
+    final isAdmin = session?.hasAdminAccess ?? false;
+    final isOfficer =
+        session?.hasClubRole(widget.club.id, const [
+          'president',
+          'club-secretary',
+          'advisor',
+          'treasurer',
+        ]) ??
+        false;
     final canManageMembers = isAdmin || isOfficer;
 
     final clubPosts = widget.appState.posts
@@ -284,15 +313,25 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                                 IconButton(
                                   onPressed: () {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Exporting members to CSV...')),
+                                      const SnackBar(
+                                        content: Text(
+                                          'Exporting members to CSV...',
+                                        ),
+                                      ),
                                     );
                                   },
-                                  icon: const Icon(Icons.download_rounded, color: AppTheme.blue),
+                                  icon: const Icon(
+                                    Icons.download_rounded,
+                                    color: AppTheme.blue,
+                                  ),
                                   tooltip: 'Export Members',
                                 ),
                                 IconButton(
                                   onPressed: () => _showMemberDialog(),
-                                  icon: const Icon(Icons.person_add_alt_1_rounded, color: AppTheme.blue),
+                                  icon: const Icon(
+                                    Icons.person_add_alt_1_rounded,
+                                    color: AppTheme.blue,
+                                  ),
                                   tooltip: 'Add Member',
                                 ),
                               ],
@@ -318,7 +357,10 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                         GlassCard(
                           child: Column(
                             children: members.map((member) {
-                              final memberId = member['_id']?.toString() ?? member['id']?.toString() ?? '';
+                              final memberId =
+                                  member['_id']?.toString() ??
+                                  member['id']?.toString() ??
+                                  '';
                               return ListTile(
                                 contentPadding: EdgeInsets.zero,
                                 leading: CircleAvatar(
@@ -337,25 +379,63 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           IconButton(
-                                            icon: const Icon(Icons.edit_outlined, size: 20),
-                                            onPressed: () => _showMemberDialog(member: member),
+                                            icon: const Icon(
+                                              Icons.edit_outlined,
+                                              size: 20,
+                                            ),
+                                            onPressed: () => _showMemberDialog(
+                                              member: member,
+                                            ),
                                           ),
                                           IconButton(
-                                            icon: const Icon(Icons.person_remove, color: Colors.red, size: 20),
+                                            icon: const Icon(
+                                              Icons.person_remove,
+                                              color: Colors.red,
+                                              size: 20,
+                                            ),
                                             onPressed: () async {
                                               final confirm = await showDialog<bool>(
                                                 context: context,
                                                 builder: (ctx) => AlertDialog(
-                                                  title: const Text('Remove Member'),
-                                                  content: Text('Are you sure you want to remove ${member['name']}?'),
+                                                  title: const Text(
+                                                    'Remove Member',
+                                                  ),
+                                                  content: Text(
+                                                    'Are you sure you want to remove ${member['name']}?',
+                                                  ),
                                                   actions: [
-                                                    TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-                                                    FilledButton(style: FilledButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Remove')),
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.of(
+                                                            ctx,
+                                                          ).pop(false),
+                                                      child: const Text(
+                                                        'Cancel',
+                                                      ),
+                                                    ),
+                                                    FilledButton(
+                                                      style:
+                                                          FilledButton.styleFrom(
+                                                            backgroundColor:
+                                                                Colors.red,
+                                                          ),
+                                                      onPressed: () =>
+                                                          Navigator.of(
+                                                            ctx,
+                                                          ).pop(true),
+                                                      child: const Text(
+                                                        'Remove',
+                                                      ),
+                                                    ),
                                                   ],
                                                 ),
                                               );
                                               if (confirm == true) {
-                                                await widget.appState.removeClubMember(widget.club.id, memberId);
+                                                await widget.appState
+                                                    .removeClubMember(
+                                                      widget.club.id,
+                                                      memberId,
+                                                    );
                                                 _refreshMembers();
                                               }
                                             },
@@ -447,22 +527,41 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                                 ),
                                 if (canManageMembers)
                                   IconButton(
-                                    icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                                    icon: const Icon(
+                                      Icons.delete_outline,
+                                      color: Colors.red,
+                                      size: 18,
+                                    ),
                                     onPressed: () async {
                                       final confirm = await showDialog<bool>(
                                         context: context,
                                         builder: (ctx) => AlertDialog(
                                           title: const Text('Delete Post'),
-                                          content: const Text('Are you sure you want to delete this post?'),
+                                          content: const Text(
+                                            'Are you sure you want to delete this post?',
+                                          ),
                                           actions: [
-                                            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-                                            FilledButton(style: FilledButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Delete')),
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.of(ctx).pop(false),
+                                              child: const Text('Cancel'),
+                                            ),
+                                            FilledButton(
+                                              style: FilledButton.styleFrom(
+                                                backgroundColor: Colors.red,
+                                              ),
+                                              onPressed: () =>
+                                                  Navigator.of(ctx).pop(true),
+                                              child: const Text('Delete'),
+                                            ),
                                           ],
                                         ),
                                       );
                                       if (confirm == true) {
-                                        await widget.appState.deletePost(post.id);
-                                        _refreshMembers(); 
+                                        await widget.appState.deletePost(
+                                          post.id,
+                                        );
+                                        _refreshMembers();
                                       }
                                     },
                                   ),
@@ -493,11 +592,18 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                             context: context,
                             builder: (ctx) => AlertDialog(
                               title: const Text('Delete Club'),
-                              content: Text('Are you sure you want to permanently delete ${widget.club.name}?'),
+                              content: Text(
+                                'Are you sure you want to permanently delete ${widget.club.name}?',
+                              ),
                               actions: [
-                                TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+                                TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(false),
+                                  child: const Text('Cancel'),
+                                ),
                                 FilledButton(
-                                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                  ),
                                   onPressed: () => Navigator.of(ctx).pop(true),
                                   child: const Text('Delete'),
                                 ),

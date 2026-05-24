@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use, unused_field, unused_element, use_build_context_synchronously, curly_braces_in_flow_control_structures
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/cloudinary_service.dart';
@@ -12,10 +13,12 @@ import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import 'bulk_import_screen.dart';
 import 'club_detail_screen.dart';
- import 'dashboards/officer_dashboard_widget.dart';
+import 'dashboards/officer_dashboard_widget.dart';
 import 'dashboards/student_dashboard_widget.dart';
 
 import 'post_detail_screen.dart';
+
+enum _DashboardMode { admin, advisor, officer, teacher, student }
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key, required this.appState});
@@ -27,8 +30,9 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  Future<List<Map<String, dynamic>>>? _tasksFuture;
   Future<List<Map<String, dynamic>>>? _teachersFuture;
+  _DashboardMode _selectedMode = _DashboardMode.student;
+  String? _selectedManagedClubId;
 
   @override
   void initState() {
@@ -39,52 +43,129 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final session = widget.appState.session!;
+    final availableModes = _availableModes(session);
+    final currentMode = availableModes.contains(_selectedMode)
+        ? _selectedMode
+        : availableModes.first;
     final managedClub = _resolveManagedClub(session);
+    final managedChoices = _managedClubChoices(session);
+    final showClubSelector =
+        managedChoices.length > 1 &&
+        (currentMode == _DashboardMode.advisor ||
+            currentMode == _DashboardMode.officer);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard')),
+      appBar: AppBar(title: Text(_dashboardTitle(currentMode))),
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Hello, ${session.name}',
-                    style: Theme.of(context).textTheme.displaySmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'This dashboard is backed by your live Club Connect API.',
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                  const SizedBox(height: 18),
-                  if (widget.appState.error != null)
-                    Text(
-                      widget.appState.error!,
-                      style: const TextStyle(color: Color(0xFFB91C1C)),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: GlassCard(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: AppTheme.navy.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(
+                            Icons.school_outlined,
+                            color: AppTheme.navy,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Campus Dashboard',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Official controls for clubs, events, and campus roles.',
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                ],
+                    const SizedBox(height: 18),
+                    Text(
+                      'Hello, ${session.name}',
+                      style: Theme.of(context).textTheme.displaySmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'This dashboard is backed by your live Club Connect API.',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 18),
+                    if (widget.appState.error != null)
+                      Text(
+                        widget.appState.error!,
+                        style: const TextStyle(color: Color(0xFFB91C1C)),
+                      ),
+                    const SizedBox(height: 16),
+                    if (availableModes.length > 1) ...[
+                      _ModeSelector(
+                        selectedMode: currentMode,
+                        modes: availableModes,
+                        onChanged: (mode) {
+                          setState(() {
+                            _selectedMode = mode;
+                            final resolved = _resolveManagedClub(session);
+                            _selectedManagedClubId = resolved?.id;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    if (showClubSelector) ...[
+                      _ManagedClubSelector(
+                        choices: managedChoices,
+                        selectedClubId:
+                            _selectedManagedClubId ??
+                            managedClub?.id ??
+                            managedChoices.first.club.id,
+                        onChanged: (clubId) {
+                          setState(() => _selectedManagedClubId = clubId);
+                        },
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
           ),
-          if (session.role == 'admin')
-            ..._adminSlivers()
-          else if (session.role == 'advisor')
-            ..._advisorSlivers(managedClub)
-          else if (session.role == 'club-secretary' ||
-              session.role == 'president' ||
-              session.role == 'treasurer')
-            ..._officerSlivers(managedClub)
-          else if (session.role == 'teacher')
-            ..._teacherSlivers()
-          else
-            ..._studentSlivers(),
+          ..._sliversForMode(currentMode, managedClub),
         ],
       ),
     );
+  }
+
+  List<Widget> _sliversForMode(_DashboardMode mode, Club? managedClub) {
+    switch (mode) {
+      case _DashboardMode.admin:
+        return _adminSlivers();
+      case _DashboardMode.advisor:
+        return _advisorSlivers(managedClub);
+      case _DashboardMode.officer:
+        return _officerSlivers(managedClub);
+      case _DashboardMode.teacher:
+        return _teacherSlivers();
+      case _DashboardMode.student:
+        return _studentSlivers();
+    }
   }
 
   List<Widget> _adminSlivers() {
@@ -218,10 +299,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 const Icon(Icons.shield_outlined, size: 64, color: Colors.grey),
                 const SizedBox(height: 12),
-                const Text('No Club Assigned', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'No Club Assigned',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 4),
-                Text('You are not assigned as advisor to any club.',
-                    style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  'You are not assigned as advisor to any club.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               ],
             ),
           ),
@@ -265,32 +351,147 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Club? _resolveManagedClub(UserSession session) {
-    final clubs = widget.appState.clubs;
-    final byId = clubs.where((club) => club.id == session.clubId).toList();
-    if (byId.isNotEmpty) return byId.first;
-    final byName = clubs
-        .where((club) => club.name == session.clubName)
-        .toList();
-    if (byName.isNotEmpty) return byName.first;
-    return null;
+    final choices = _managedClubChoices(session);
+    if (choices.isEmpty) {
+      final clubs = widget.appState.clubs;
+      final byId = clubs.where((club) => club.id == session.clubId).toList();
+      if (byId.isNotEmpty) return byId.first;
+      final byName = clubs
+          .where((club) => club.name == session.clubName)
+          .toList();
+      if (byName.isNotEmpty) return byName.first;
+      return null;
+    }
+
+    if (_selectedManagedClubId != null) {
+      final selected = choices
+          .where((choice) => choice.club.id == _selectedManagedClubId)
+          .toList();
+      if (selected.isNotEmpty) {
+        return selected.first.club;
+      }
+    }
+
+    return choices.first.club;
   }
 
   void _reloadRoleData() {
     final session = widget.appState.session;
     if (session == null) return;
-    if (session.role == 'admin') {
+    if (session.hasAdminAccess) {
       _teachersFuture = widget.appState.fetchTeachers();
     }
-    if (session.clubId != null) {
-      _tasksFuture = widget.appState.fetchClubTasks(session.clubId!);
+    final modes = _availableModes(session);
+    if (!modes.contains(_selectedMode)) {
+      _selectedMode = modes.first;
+    }
+    final clubs = _managedClubChoices(session);
+    if (clubs.isNotEmpty &&
+        (_selectedManagedClubId == null ||
+            !clubs.any((choice) => choice.club.id == _selectedManagedClubId))) {
+      _selectedManagedClubId = clubs.first.club.id;
     }
     setState(() {});
+  }
+
+  List<_ManagedClubChoice> _managedClubChoices(UserSession session) {
+    final byId = <String, _ManagedClubChoice>{};
+    final userEmail = session.email.toLowerCase();
+
+    for (final membership in session.memberships) {
+      if (!membership.isManagementMembership) continue;
+      final club = widget.appState.clubs
+          .where((item) => item.id == membership.clubId)
+          .toList();
+      if (club.isEmpty) continue;
+      byId.putIfAbsent(
+        membership.clubId,
+        () => _ManagedClubChoice(club: club.first, roles: {membership.role}),
+      );
+      byId[membership.clubId]!.roles.add(membership.role);
+      if (membership.officerRole != null &&
+          membership.officerRole!.isNotEmpty) {
+        byId[membership.clubId]!.roles.add(membership.officerRole!);
+      }
+    }
+
+    for (final club in widget.appState.clubs) {
+      final matchesEmail = [
+        club.secretaryEmail,
+        club.presidentEmail,
+        club.treasurerEmail,
+        club.advisorEmail,
+      ].any((value) => (value ?? '').toLowerCase() == userEmail);
+      if (!matchesEmail) continue;
+      byId.putIfAbsent(
+        club.id,
+        () => _ManagedClubChoice(club: club, roles: {}),
+      );
+      final choice = byId[club.id]!;
+      if (club.secretaryEmail?.toLowerCase() == userEmail) {
+        choice.roles.add('club-secretary');
+      }
+      if (club.presidentEmail?.toLowerCase() == userEmail) {
+        choice.roles.add('president');
+      }
+      if (club.treasurerEmail?.toLowerCase() == userEmail) {
+        choice.roles.add('treasurer');
+      }
+      if (club.advisorEmail?.toLowerCase() == userEmail) {
+        choice.roles.add('advisor');
+      }
+    }
+
+    final choices = byId.values.toList()
+      ..sort((a, b) => a.club.name.compareTo(b.club.name));
+    return choices;
+  }
+
+  List<_DashboardMode> _availableModes(UserSession session) {
+    final modes = <_DashboardMode>[];
+    if (session.hasAdminAccess) modes.add(_DashboardMode.admin);
+    if (session.hasRole('advisor') ||
+        _managedClubChoices(
+          session,
+        ).any((choice) => choice.roles.contains('advisor'))) {
+      modes.add(_DashboardMode.advisor);
+    }
+    if (session.hasAnyRole(const [
+          'club-secretary',
+          'president',
+          'treasurer',
+        ]) ||
+        _managedClubChoices(session).isNotEmpty) {
+      modes.add(_DashboardMode.officer);
+    }
+    if (session.hasRole('teacher')) modes.add(_DashboardMode.teacher);
+    modes.add(_DashboardMode.student);
+
+    final seen = <_DashboardMode>{};
+    return modes.where(seen.add).toList();
+  }
+
+  String _dashboardTitle(_DashboardMode mode) {
+    switch (mode) {
+      case _DashboardMode.admin:
+        return 'Admin Dashboard';
+      case _DashboardMode.advisor:
+        return 'Advisor Dashboard';
+      case _DashboardMode.officer:
+        return 'Officer Dashboard';
+      case _DashboardMode.teacher:
+        return 'Teacher Dashboard';
+      case _DashboardMode.student:
+        return 'Student Dashboard';
+    }
   }
 
   Future<void> _showNotificationDialog() async {
     final titleController = TextEditingController();
     final messageController = TextEditingController();
-    String type = widget.appState.session?.role == 'admin' ? 'system' : 'club';
+    String type = widget.appState.session?.hasAdminAccess == true
+        ? 'system'
+        : 'club';
     final managedClub = _resolveManagedClub(widget.appState.session!);
 
     await showDialog<void>(
@@ -390,7 +591,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     TextField(
                       controller: contentController,
                       maxLines: 4,
-                      decoration: const InputDecoration(labelText: 'Description'),
+                      decoration: const InputDecoration(
+                        labelText: 'Description',
+                      ),
                     ),
                     if (isEvent) ...[
                       const SizedBox(height: 12),
@@ -408,7 +611,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(height: 12),
                       TextField(
                         controller: locationController,
-                        decoration: const InputDecoration(labelText: 'Location'),
+                        decoration: const InputDecoration(
+                          labelText: 'Location',
+                        ),
                       ),
                     ],
                     const SizedBox(height: 16),
@@ -432,18 +637,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(Icons.image),
-                        label: Text(isUploading ? 'Uploading...' : 'Upload Cover Image'),
+                        label: Text(
+                          isUploading ? 'Uploading...' : 'Upload Cover Image',
+                        ),
                         onPressed: isUploading
                             ? null
                             : () async {
                                 final picker = ImagePicker();
-                                final picked = await picker.pickImage(source: ImageSource.gallery);
+                                final picked = await picker.pickImage(
+                                  source: ImageSource.gallery,
+                                );
                                 if (picked != null) {
                                   setStateDialog(() => isUploading = true);
-                                  final url = await CloudinaryService.uploadImage(File(picked.path));
+                                  final url =
+                                      await CloudinaryService.uploadImage(
+                                        File(picked.path),
+                                      );
                                   setStateDialog(() {
                                     coverImageUrl = url;
                                     isUploading = false;
@@ -462,59 +676,69 @@ class _DashboardScreenState extends State<DashboardScreen> {
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('Cancel'),
             ),
-             FilledButton(
-               onPressed: () async {
-                 if (isEvent) {
-                   final collisions = await widget.appState.checkEventCollision(
-                     dateController.text.trim(),
-                     timeController.text.trim(),
-                   );
-                   if (collisions.isNotEmpty) {
-                     final proceed = await showDialog<bool>(
-                       context: context,
-                       builder: (ctx) => AlertDialog(
-                         title: const Text('Schedule Conflict'),
-                         content: Column(
-                           mainAxisSize: MainAxisSize.min,
-                           children: [
-                             const Text('The following events are already scheduled at this time:'),
-                             const SizedBox(height: 12),
-                             ...collisions.map((c) => ListTile(
-                               title: Text(c['title'] ?? ''),
-                               subtitle: Text(c['clubName'] ?? ''),
-                               contentPadding: EdgeInsets.zero,
-                             )),
-                             const SizedBox(height: 12),
-                             const Text('Do you want to proceed anyway?'),
-                           ],
-                         ),
-                         actions: [
-                           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                           FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Proceed')),
-                         ],
-                       ),
-                     );
-                     if (proceed != true) return;
-                   }
-                 }
+            FilledButton(
+              onPressed: () async {
+                if (isEvent) {
+                  final collisions = await widget.appState.checkEventCollision(
+                    dateController.text.trim(),
+                    timeController.text.trim(),
+                  );
+                  if (collisions.isNotEmpty) {
+                    final proceed = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Schedule Conflict'),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'The following events are already scheduled at this time:',
+                            ),
+                            const SizedBox(height: 12),
+                            ...collisions.map(
+                              (c) => ListTile(
+                                title: Text(c['title'] ?? ''),
+                                subtitle: Text(c['clubName'] ?? ''),
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text('Do you want to proceed anyway?'),
+                          ],
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Cancel'),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text('Proceed'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (proceed != true) return;
+                  }
+                }
 
-                 await widget.appState.createPost(
-                   clubId: club.id,
-                   clubName: club.name,
-                   title: titleController.text.trim(),
-                   content: contentController.text.trim(),
-                   type: isEvent ? 'event' : 'announcement',
-                   status: 'published',
-                   date: isEvent ? dateController.text.trim() : null,
-                   time: isEvent ? timeController.text.trim() : null,
-                   location: isEvent ? locationController.text.trim() : null,
-                   coverImage: coverImageUrl,
-                 );
-                 _reloadRoleData();
-                 navigator.pop();
-               },
-               child: const Text('Create'),
-             ),
+                await widget.appState.createPost(
+                  clubId: club.id,
+                  clubName: club.name,
+                  title: titleController.text.trim(),
+                  content: contentController.text.trim(),
+                  type: isEvent ? 'event' : 'announcement',
+                  status: 'published',
+                  date: isEvent ? dateController.text.trim() : null,
+                  time: isEvent ? timeController.text.trim() : null,
+                  location: isEvent ? locationController.text.trim() : null,
+                  coverImage: coverImageUrl,
+                );
+                _reloadRoleData();
+                navigator.pop();
+              },
+              child: const Text('Create'),
+            ),
           ],
         );
       },
@@ -533,12 +757,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Teacher Dashboard',
-                      style: Theme.of(context).textTheme.headlineSmall),
+                  Text(
+                    'Teacher Dashboard',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
                   IconButton(
                     onPressed: _showAddTeacherClubDialog,
-                    icon: const Icon(Icons.add_circle_outline,
-                        color: AppTheme.blue),
+                    icon: const Icon(
+                      Icons.add_circle_outline,
+                      color: AppTheme.blue,
+                    ),
                     tooltip: 'Add Club',
                   ),
                 ],
@@ -551,20 +779,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   if (clubs.isEmpty &&
                       snapshot.connectionState == ConnectionState.done) {
                     return const _EmptyState(
-                        message: 'No clubs added to your monitor list.');
+                      message: 'No clubs added to your monitor list.',
+                    );
                   }
                   return Column(
                     children: clubs.map((club) {
                       final clubId =
-                          club['_id']?.toString() ?? club['id']?.toString() ?? '';
+                          club['_id']?.toString() ??
+                          club['id']?.toString() ??
+                          '';
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading:
-                            const CircleAvatar(child: Icon(Icons.groups_rounded)),
+                        leading: const CircleAvatar(
+                          child: Icon(Icons.groups_rounded),
+                        ),
                         title: Text(club['name']?.toString() ?? 'Club'),
                         trailing: IconButton(
-                          icon: const Icon(Icons.remove_circle_outline,
-                              color: Colors.red),
+                          icon: const Icon(
+                            Icons.remove_circle_outline,
+                            color: Colors.red,
+                          ),
                           onPressed: () async {
                             await appState.removeTeacherClub(clubId);
                             setState(() {}); // Refresh
@@ -573,7 +807,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         onTap: () {
                           // Show reports for this club
                           _showTeacherReportsDialog(
-                              clubId, club['name']?.toString() ?? 'Club');
+                            clubId,
+                            club['name']?.toString() ?? 'Club',
+                          );
                         },
                       );
                     }).toList(),
@@ -628,8 +864,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           future: appState.fetchTeacherReports(),
           builder: (context, snapshot) {
             final allReports = snapshot.data ?? [];
-            final clubReports =
-                allReports.where((r) => r['clubId'] == clubId).toList();
+            final clubReports = allReports
+                .where((r) => r['clubId'] == clubId)
+                .toList();
             if (clubReports.isEmpty) {
               return const Text('No reports found for this club.');
             }
@@ -641,11 +878,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 itemBuilder: (context, index) {
                   final report = clubReports[index];
                   return ListTile(
-                    leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
-                    title:
-                        Text(report['eventTitle']?.toString() ?? 'Untitled Report'),
+                    leading: const Icon(
+                      Icons.picture_as_pdf,
+                      color: Colors.red,
+                    ),
+                    title: Text(
+                      report['eventTitle']?.toString() ?? 'Untitled Report',
+                    ),
                     subtitle: Text(
-                        'Submitted on ${DateTime.parse(report['reportSubmittedAt']).toLocal().toString().split(' ')[0]}'),
+                      'Submitted on ${DateTime.parse(report['reportSubmittedAt']).toLocal().toString().split(' ')[0]}',
+                    ),
                     trailing: const Icon(Icons.download),
                     onTap: () {
                       final url = report['reportUrl']?.toString() ?? '';
@@ -663,8 +905,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Close')),
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
         ],
       ),
     );
@@ -778,7 +1021,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       .map((member) => member['email'].toString())
                       .toList(),
                   deadline: deadlineController.text.trim(),
-                  relatedEventId: relatedEventId.isNotEmpty ? relatedEventId : null,
+                  relatedEventId: relatedEventId.isNotEmpty
+                      ? relatedEventId
+                      : null,
                   relatedEventTitle: posts
                       .where((p) => p.id == relatedEventId)
                       .firstOrNull
@@ -863,18 +1108,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(Icons.add_photo_alternate),
-                        label: Text(isUploading ? 'Uploading...' : 'Upload Club Logo'),
+                        label: Text(
+                          isUploading ? 'Uploading...' : 'Upload Club Logo',
+                        ),
                         onPressed: isUploading
                             ? null
                             : () async {
                                 final picker = ImagePicker();
-                                final picked = await picker.pickImage(source: ImageSource.gallery);
+                                final picked = await picker.pickImage(
+                                  source: ImageSource.gallery,
+                                );
                                 if (picked != null) {
                                   setStateDialog(() => isUploading = true);
-                                  final url = await CloudinaryService.uploadImage(File(picked.path));
+                                  final url =
+                                      await CloudinaryService.uploadImage(
+                                        File(picked.path),
+                                      );
                                   setStateDialog(() {
                                     uploadedImageUrl = url;
                                     isUploading = false;
@@ -1089,11 +1343,26 @@ class _StatBox extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 28),
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: AppTheme.navy.withValues(alpha: 0.08),
+            child: Icon(icon, size: 22, color: AppTheme.navy),
+          ),
           const SizedBox(height: 16),
-          Text(value, style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            value,
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(color: AppTheme.navy),
+          ),
           const SizedBox(height: 8),
-          Text(title, style: Theme.of(context).textTheme.bodyMedium),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: AppTheme.muted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -1121,11 +1390,25 @@ class _ActionBox extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 28),
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: AppTheme.cyan.withValues(alpha: 0.10),
+              child: Icon(icon, size: 22, color: AppTheme.navy),
+            ),
             const SizedBox(height: 16),
-            Text(title, style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(color: AppTheme.navy),
+            ),
             const SizedBox(height: 8),
-            Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+            Text(
+              subtitle,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppTheme.muted),
+            ),
           ],
         ),
       ),
@@ -1145,7 +1428,12 @@ class _SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(color: AppTheme.navy),
+          ),
           const SizedBox(height: 14),
           child,
         ],
@@ -1157,7 +1445,6 @@ class _SectionCard extends StatelessWidget {
 class _EmptyState extends StatelessWidget {
   const _EmptyState({required this.message});
 
-
   final String message;
 
   @override
@@ -1165,9 +1452,11 @@ class _EmptyState extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Center(
-        child: Text(message,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium),
+        child: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
       ),
     );
   }
@@ -1181,7 +1470,8 @@ class _AdvisorDashboardWidget extends StatefulWidget {
   final Club club;
 
   @override
-  State<_AdvisorDashboardWidget> createState() => _AdvisorDashboardWidgetState();
+  State<_AdvisorDashboardWidget> createState() =>
+      _AdvisorDashboardWidgetState();
 }
 
 class _AdvisorDashboardWidgetState extends State<_AdvisorDashboardWidget>
@@ -1221,12 +1511,20 @@ class _AdvisorDashboardWidgetState extends State<_AdvisorDashboardWidget>
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Column(children: [
-          Icon(icon, size: 18, color: AppTheme.blue),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-        ]),
+        child: Column(
+          children: [
+            Icon(icon, size: 18, color: AppTheme.blue),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1236,67 +1534,125 @@ class _AdvisorDashboardWidgetState extends State<_AdvisorDashboardWidget>
         .where((p) => p.clubId == widget.club.id && p.isEvent)
         .toList();
     final now = DateTime.now();
-    final upcoming = posts.where((p) => p.date != null && p.date!.isAfter(now)).length;
-    final past = posts.where((p) => p.date != null && !p.date!.isAfter(now)).length;
-    return ListView(padding: const EdgeInsets.all(16), children: [
-      Row(children: [
-        _statChip('Total', '${posts.length}', Icons.calendar_today),
-        const SizedBox(width: 8),
-        _statChip('Upcoming', '$upcoming', Icons.upcoming_rounded),
-        const SizedBox(width: 8),
-        _statChip('Past', '$past', Icons.history_rounded),
-      ]),
-      const SizedBox(height: 16),
-      if (posts.isEmpty)
-        const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('No events found.')))
-      else
-        ...posts.map((e) => Card(
+    final upcoming = posts
+        .where((p) => p.date != null && p.date!.isAfter(now))
+        .length;
+    final past = posts
+        .where((p) => p.date != null && !p.date!.isAfter(now))
+        .length;
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Row(
+          children: [
+            _statChip('Total', '${posts.length}', Icons.calendar_today),
+            const SizedBox(width: 8),
+            _statChip('Upcoming', '$upcoming', Icons.upcoming_rounded),
+            const SizedBox(width: 8),
+            _statChip('Past', '$past', Icons.history_rounded),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (posts.isEmpty)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text('No events found.'),
+            ),
+          )
+        else
+          ...posts.map(
+            (e) => Card(
               margin: const EdgeInsets.only(bottom: 10),
               child: ListTile(
                 leading: const CircleAvatar(child: Icon(Icons.event_rounded)),
-                title: Text(e.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text(e.date != null
-                    ? '${e.date!.day}/${e.date!.month}/${e.date!.year}'
-                    : 'No date set'),
-                trailing: e.rsvps != null ? Chip(label: Text('${e.rsvps} RSVPs')) : null,
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => PostDetailScreen(appState: widget.appState, initialPost: e),
-                )),
+                title: Text(
+                  e.title,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text(
+                  e.date != null
+                      ? '${e.date!.day}/${e.date!.month}/${e.date!.year}'
+                      : 'No date set',
+                ),
+                trailing: e.rsvps != null
+                    ? Chip(label: Text('${e.rsvps} RSVPs'))
+                    : null,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PostDetailScreen(
+                      appState: widget.appState,
+                      initialPost: e,
+                    ),
+                  ),
+                ),
               ),
-            )),
-    ]);
+            ),
+          ),
+      ],
+    );
   }
 
   Widget _reportsTab() {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _reportsFuture,
       builder: (ctx, snap) {
-        if (snap.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+        if (snap.connectionState == ConnectionState.waiting)
+          return const Center(child: CircularProgressIndicator());
         final reports = snap.data ?? [];
-        if (reports.isEmpty) return const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('No reports available.')));
+        if (reports.isEmpty)
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text('No reports available.'),
+            ),
+          );
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: reports.length,
           itemBuilder: (ctx, i) {
             final r = reports[i];
-            final ts = DateTime.tryParse(r['reportSubmittedAt']?.toString() ?? '');
+            final ts = DateTime.tryParse(
+              r['reportSubmittedAt']?.toString() ?? '',
+            );
             return Card(
               margin: const EdgeInsets.only(bottom: 10),
               child: ListTile(
-                leading: const CircleAvatar(backgroundColor: Color(0x1A4CAF50), child: Icon(Icons.picture_as_pdf, color: Colors.green)),
-                title: Text(r['eventTitle']?.toString() ?? 'Report', style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text('By ${r['reportSubmittedByName'] ?? 'Unknown'}${ts != null ? " · ${ts.toLocal().toString().split(' ')[0]}" : ""}'),
-                trailing: const Icon(Icons.download_rounded, color: Colors.green),
+                leading: const CircleAvatar(
+                  backgroundColor: Color(0x1A4CAF50),
+                  child: Icon(Icons.picture_as_pdf, color: Colors.green),
+                ),
+                title: Text(
+                  r['eventTitle']?.toString() ?? 'Report',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text(
+                  'By ${r['reportSubmittedByName'] ?? 'Unknown'}${ts != null ? " · ${ts.toLocal().toString().split(' ')[0]}" : ""}',
+                ),
+                trailing: const Icon(
+                  Icons.download_rounded,
+                  color: Colors.green,
+                ),
                 onTap: () async {
                   final url = r['reportUrl']?.toString() ?? '';
                   if (url.isNotEmpty) {
                     try {
-                      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                      await launchUrl(
+                        Uri.parse(url),
+                        mode: LaunchMode.externalApplication,
+                      );
                     } catch (e) {
-                      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not launch URL: $url')));
+                      if (context.mounted)
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Could not launch URL: $url')),
+                        );
                     }
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No URL attached to this report.')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('No URL attached to this report.'),
+                      ),
+                    );
                   }
                 },
               ),
@@ -1309,9 +1665,20 @@ class _AdvisorDashboardWidgetState extends State<_AdvisorDashboardWidget>
 
   Widget _budgetsTab() {
     final events = widget.appState.posts
-        .where((p) => p.clubId == widget.club.id && p.isEvent && (p.budgetImageUrl?.isNotEmpty ?? false))
+        .where(
+          (p) =>
+              p.clubId == widget.club.id &&
+              p.isEvent &&
+              (p.budgetImageUrl?.isNotEmpty ?? false),
+        )
         .toList();
-    if (events.isEmpty) return const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('No budgets submitted yet.')));
+    if (events.isEmpty)
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text('No budgets submitted yet.'),
+        ),
+      );
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: events.length,
@@ -1320,51 +1687,112 @@ class _AdvisorDashboardWidgetState extends State<_AdvisorDashboardWidget>
         final verified = ev.budgetVerified ?? false;
         return Card(
           margin: const EdgeInsets.only(bottom: 10),
-          child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Expanded(child: Text(ev.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: (verified ? Colors.green : Colors.blue).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(verified ? Icons.check_circle_rounded : Icons.hourglass_empty_rounded, size: 14, color: verified ? Colors.green : Colors.blue),
-                  const SizedBox(width: 4),
-                  Text(verified ? 'Verified' : 'Awaiting', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: verified ? Colors.green : Colors.blue)),
-                ]),
-              ),
-            ]),
-            const SizedBox(height: 10),
-            Row(children: [
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final url = ev.budgetImageUrl ?? '';
-                  if (url.isNotEmpty) {
-                    try {
-                      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-                    } catch (e) {
-                      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not launch URL: $url')));
-                    }
-                  }
-                },
-                icon: const Icon(Icons.visibility_rounded, size: 16),
-                label: const Text('View Budget'),
-              ),
-              if (!verified) ...[
-                const SizedBox(width: 10),
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(backgroundColor: Colors.green),
-                  onPressed: _saving ? null : () async {
-                    setState(() => _saving = true);
-                    final ok = await widget.appState.verifyEventBudget(ev.id);
-                    setState(() => _saving = false);
-                    if (ok && mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Budget verified!')));
-                  },
-                  icon: const Icon(Icons.check_circle_rounded, size: 16),
-                  label: _saving ? const Text('Saving...') : const Text('Verify'),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        ev.title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: (verified ? Colors.green : Colors.blue)
+                            .withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            verified
+                                ? Icons.check_circle_rounded
+                                : Icons.hourglass_empty_rounded,
+                            size: 14,
+                            color: verified ? Colors.green : Colors.blue,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            verified ? 'Verified' : 'Awaiting',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: verified ? Colors.green : Colors.blue,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final url = ev.budgetImageUrl ?? '';
+                        if (url.isNotEmpty) {
+                          try {
+                            await launchUrl(
+                              Uri.parse(url),
+                              mode: LaunchMode.externalApplication,
+                            );
+                          } catch (e) {
+                            if (context.mounted)
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Could not launch URL: $url'),
+                                ),
+                              );
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.visibility_rounded, size: 16),
+                      label: const Text('View Budget'),
+                    ),
+                    if (!verified) ...[
+                      const SizedBox(width: 10),
+                      FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.green,
+                        ),
+                        onPressed: _saving
+                            ? null
+                            : () async {
+                                setState(() => _saving = true);
+                                final ok = await widget.appState
+                                    .verifyEventBudget(ev.id);
+                                setState(() => _saving = false);
+                                if (ok && mounted)
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Budget verified!'),
+                                    ),
+                                  );
+                              },
+                        icon: const Icon(Icons.check_circle_rounded, size: 16),
+                        label: _saving
+                            ? const Text('Saving...')
+                            : const Text('Verify'),
+                      ),
+                    ],
+                  ],
                 ),
               ],
-            ]),
-          ])),
+            ),
+          ),
         );
       },
     );
@@ -1374,63 +1802,126 @@ class _AdvisorDashboardWidgetState extends State<_AdvisorDashboardWidget>
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _membersFuture,
       builder: (ctx, snap) {
-        if (snap.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+        if (snap.connectionState == ConnectionState.waiting)
+          return const Center(child: CircularProgressIndicator());
         final members = snap.data ?? [];
 
         Widget section(String label, String roleKey) {
-          final officers = members.where((m) => m['role']?.toString().toLowerCase().trim() == roleKey.toLowerCase()).toList();
-          return Card(margin: const EdgeInsets.only(bottom: 12), child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-              TextButton.icon(
-                onPressed: () => _showAssignRoleDialog(label: label, roleKey: roleKey),
-                icon: const Icon(Icons.person_add_alt_1, size: 16),
-                label: const Text('Add New'),
-              ),
-            ]),
-            if (officers.isEmpty)
-              Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Text('No $label assigned.', style: const TextStyle(color: Colors.grey, fontSize: 13)))
-            else
-              ...officers.map((o) => ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: CircleAvatar(child: Text((o['name']?.toString() ?? 'U')[0])),
-                    title: Text(o['name']?.toString() ?? 'Unknown'),
-                    subtitle: Text(o['email']?.toString() ?? ''),
-                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                      IconButton(icon: const Icon(Icons.edit_outlined, size: 18), onPressed: () => _showAssignRoleDialog(label: label, roleKey: roleKey)),
-                      IconButton(
-                        icon: const Icon(Icons.person_remove_outlined, color: Colors.red, size: 18),
-                        onPressed: () async {
-                          final id = o['_id']?.toString() ?? o['id']?.toString() ?? '';
-                          await widget.appState.removeClubMember(widget.club.id, id);
-                          _refresh();
-                        },
+          final officers = members
+              .where(
+                (m) =>
+                    m['role']?.toString().toLowerCase().trim() ==
+                    roleKey.toLowerCase(),
+              )
+              .toList();
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
                       ),
-                    ]),
-                  )),
-          ])));
+                      TextButton.icon(
+                        onPressed: () => _showAssignRoleDialog(
+                          label: label,
+                          roleKey: roleKey,
+                        ),
+                        icon: const Icon(Icons.person_add_alt_1, size: 16),
+                        label: const Text('Add New'),
+                      ),
+                    ],
+                  ),
+                  if (officers.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'No $label assigned.',
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 13,
+                        ),
+                      ),
+                    )
+                  else
+                    ...officers.map(
+                      (o) => ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          child: Text((o['name']?.toString() ?? 'U')[0]),
+                        ),
+                        title: Text(o['name']?.toString() ?? 'Unknown'),
+                        subtitle: Text(o['email']?.toString() ?? ''),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined, size: 18),
+                              onPressed: () => _showAssignRoleDialog(
+                                label: label,
+                                roleKey: roleKey,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.person_remove_outlined,
+                                color: Colors.red,
+                                size: 18,
+                              ),
+                              onPressed: () async {
+                                final id =
+                                    o['_id']?.toString() ??
+                                    o['id']?.toString() ??
+                                    '';
+                                await widget.appState.removeClubMember(
+                                  widget.club.id,
+                                  id,
+                                );
+                                _refresh();
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
         }
 
-        return ListView(padding: const EdgeInsets.all(16), children: [
-          OutlinedButton.icon(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => BulkImportScreen(
-                    club: widget.club,
-                    appState: widget.appState,
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => BulkImportScreen(
+                      club: widget.club,
+                      appState: widget.appState,
+                    ),
                   ),
-                ),
-              );
-            },
-            icon: const Icon(Icons.cloud_upload_outlined),
-            label: const Text('Bulk Import Members (CSV/Excel)'),
-          ),
-          const SizedBox(height: 16),
-          section('Secretaries', 'secretary'),
-          section('Presidents', 'president'),
-          section('Treasurers', 'treasurer'),
-        ]);
+                );
+              },
+              icon: const Icon(Icons.cloud_upload_outlined),
+              label: const Text('Bulk Import Members (CSV/Excel)'),
+            ),
+            const SizedBox(height: 16),
+            section('Secretaries', 'secretary'),
+            section('Presidents', 'president'),
+            section('Treasurers', 'treasurer'),
+          ],
+        );
       },
     );
   }
@@ -1442,13 +1933,26 @@ class _AdvisorDashboardWidgetState extends State<_AdvisorDashboardWidget>
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('Add $label'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Full Name')),
-          const SizedBox(height: 8),
-          TextField(controller: emailCtrl, decoration: const InputDecoration(labelText: 'Email'), keyboardType: TextInputType.emailAddress),
-        ]),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(labelText: 'Full Name'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: emailCtrl,
+              decoration: const InputDecoration(labelText: 'Email'),
+              keyboardType: TextInputType.emailAddress,
+            ),
+          ],
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () async {
               if (nameCtrl.text.isEmpty || emailCtrl.text.isEmpty) return;
@@ -1458,7 +1962,10 @@ class _AdvisorDashboardWidgetState extends State<_AdvisorDashboardWidget>
                 name: nameCtrl.text.trim(),
                 role: roleKey == 'secretary' ? 'club-secretary' : roleKey,
               );
-              if (ctx.mounted) { Navigator.of(ctx).pop(); _refresh(); }
+              if (ctx.mounted) {
+                Navigator.of(ctx).pop();
+                _refresh();
+              }
             },
             child: const Text('Assign'),
           ),
@@ -1469,34 +1976,138 @@ class _AdvisorDashboardWidgetState extends State<_AdvisorDashboardWidget>
 
   @override
   Widget build(BuildContext context) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-        child: Text('Advisor Dashboard', style: Theme.of(context).textTheme.headlineSmall),
-      ),
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-        child: Text('Managing: ${widget.club.name}',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppTheme.blue, fontWeight: FontWeight.w600)),
-      ),
-      TabBar(
-        controller: _tabController,
-        isScrollable: true,
-        tabAlignment: TabAlignment.start,
-        tabs: const [
-          Tab(icon: Icon(Icons.calendar_month_outlined), text: 'Events'),
-          Tab(icon: Icon(Icons.file_copy_outlined), text: 'Reports'),
-          Tab(icon: Icon(Icons.receipt_long_outlined), text: 'Budgets'),
-          Tab(icon: Icon(Icons.groups_outlined), text: 'Team'),
-        ],
-      ),
-      SizedBox(
-        height: 580,
-        child: TabBarView(
-          controller: _tabController,
-          children: [_eventsTab(), _reportsTab(), _budgetsTab(), _teamTab()],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Text(
+            'Advisor Dashboard',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
         ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: Text(
+            'Managing: ${widget.club.name}',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: AppTheme.blue,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          tabs: const [
+            Tab(icon: Icon(Icons.calendar_month_outlined), text: 'Events'),
+            Tab(icon: Icon(Icons.file_copy_outlined), text: 'Reports'),
+            Tab(icon: Icon(Icons.receipt_long_outlined), text: 'Budgets'),
+            Tab(icon: Icon(Icons.groups_outlined), text: 'Team'),
+          ],
+        ),
+        SizedBox(
+          height: 580,
+          child: TabBarView(
+            controller: _tabController,
+            children: [_eventsTab(), _reportsTab(), _budgetsTab(), _teamTab()],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ManagedClubChoice {
+  _ManagedClubChoice({required this.club, required this.roles});
+
+  final Club club;
+  final Set<String> roles;
+}
+
+class _ModeSelector extends StatelessWidget {
+  const _ModeSelector({
+    required this.selectedMode,
+    required this.modes,
+    required this.onChanged,
+  });
+
+  final _DashboardMode selectedMode;
+  final List<_DashboardMode> modes;
+  final ValueChanged<_DashboardMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: modes.map((mode) {
+        final isSelected = mode == selectedMode;
+        return ChoiceChip(
+          selected: isSelected,
+          label: Text(_labelForMode(mode)),
+          onSelected: (_) => onChanged(mode),
+          selectedColor: AppTheme.navy.withValues(alpha: 0.10),
+          labelStyle: TextStyle(
+            color: isSelected ? AppTheme.navy : AppTheme.muted,
+            fontWeight: FontWeight.w700,
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  String _labelForMode(_DashboardMode mode) {
+    switch (mode) {
+      case _DashboardMode.admin:
+        return 'Admin';
+      case _DashboardMode.advisor:
+        return 'Advisor';
+      case _DashboardMode.officer:
+        return 'Officer';
+      case _DashboardMode.teacher:
+        return 'Teacher';
+      case _DashboardMode.student:
+        return 'Student';
+    }
+  }
+}
+
+class _ManagedClubSelector extends StatelessWidget {
+  const _ManagedClubSelector({
+    required this.choices,
+    required this.selectedClubId,
+    required this.onChanged,
+  });
+
+  final List<_ManagedClubChoice> choices;
+  final String selectedClubId;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      value: choices.any((choice) => choice.club.id == selectedClubId)
+          ? selectedClubId
+          : choices.first.club.id,
+      decoration: const InputDecoration(
+        labelText: 'Active Club',
+        prefixIcon: Icon(Icons.switch_account_rounded),
       ),
-    ]);
+      items: choices.map((choice) {
+        final roles = choice.roles.isEmpty
+            ? ''
+            : ' • ${choice.roles.join(', ')}';
+        return DropdownMenuItem<String>(
+          value: choice.club.id,
+          child: Text('${choice.club.name}$roles'),
+        );
+      }).toList(),
+      onChanged: (value) {
+        if (value != null) onChanged(value);
+      },
+    );
   }
 }

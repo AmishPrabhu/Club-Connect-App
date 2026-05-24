@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
 
 import '../models/club.dart';
@@ -15,7 +16,8 @@ class MemberBoardDetailScreen extends StatefulWidget {
   final Club club;
 
   @override
-  State<MemberBoardDetailScreen> createState() => _MemberBoardDetailScreenState();
+  State<MemberBoardDetailScreen> createState() =>
+      _MemberBoardDetailScreenState();
 }
 
 class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
@@ -53,10 +55,14 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
     }).toList();
   }
 
-  Map<String, List<Map<String, dynamic>>> _groupByBoard(List<Map<String, dynamic>> members) {
+  Map<String, List<Map<String, dynamic>>> _groupByBoard(
+    List<Map<String, dynamic>> members,
+  ) {
     final result = <String, List<Map<String, dynamic>>>{};
     for (final bt in _boardOrder) {
-      result[bt] = members.where((m) => (m['boardType']?.toString() ?? 'member') == bt).toList();
+      result[bt] = members
+          .where((m) => (m['boardType']?.toString() ?? 'member') == bt)
+          .toList();
     }
     return result;
   }
@@ -78,14 +84,23 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
                     value: _boardFilter,
                     decoration: const InputDecoration(
                       labelText: 'Board',
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       isDense: true,
                     ),
                     items: const [
                       DropdownMenuItem(value: '', child: Text('All Boards')),
                       DropdownMenuItem(value: 'main', child: Text('Main (TY)')),
-                      DropdownMenuItem(value: 'executive', child: Text('Executive (SY)')),
-                      DropdownMenuItem(value: 'member', child: Text('Member (FY)')),
+                      DropdownMenuItem(
+                        value: 'executive',
+                        child: Text('Executive (SY)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'member',
+                        child: Text('Member (FY)'),
+                      ),
                     ],
                     onChanged: (v) => setState(() => _boardFilter = v ?? ''),
                   ),
@@ -97,7 +112,10 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
                     value: _yearFilter,
                     decoration: const InputDecoration(
                       labelText: 'Year',
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       isDense: true,
                     ),
                     items: const [
@@ -134,9 +152,16 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.groups_outlined, size: 64, color: Colors.grey[400]),
+                  Icon(
+                    Icons.groups_outlined,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
                   const SizedBox(height: 12),
-                  Text('No members found', style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    'No members found',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ],
               ),
             );
@@ -147,42 +172,59 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final boardType = displayBoards[index];
-                      final boardMembers = grouped[boardType] ?? [];
-                      if (boardMembers.isEmpty) return const SizedBox.shrink();
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final boardType = displayBoards[index];
+                    final boardMembers = grouped[boardType] ?? [];
+                    if (boardMembers.isEmpty) return const SizedBox.shrink();
 
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (index > 0) const SizedBox(height: 24),
-                          Row(
-                            children: [
-                              Container(width: 4, height: 20, decoration: BoxDecoration(color: AppTheme.blue, borderRadius: BorderRadius.circular(2))),
-                              const SizedBox(width: 10),
-                              Text(
-                                _boardLabels[boardType] ?? boardType,
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (index > 0) const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Container(
+                              width: 4,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: AppTheme.blue,
+                                borderRadius: BorderRadius.circular(2),
                               ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.blue.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(20),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              _boardLabels[boardType] ?? boardType,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.blue.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                '${boardMembers.length}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.blue,
                                 ),
-                                child: Text('${boardMembers.length}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.blue)),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          ...boardMembers.map((member) => _MemberCard(member: member)),
-                        ],
-                      );
-                    },
-                    childCount: displayBoards.length,
-                  ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        ...boardMembers.map(
+                          (member) => _MemberCard(member: member),
+                        ),
+                      ],
+                    );
+                  }, childCount: displayBoards.length),
                 ),
               ),
               SliverToBoxAdapter(
@@ -222,7 +264,9 @@ class _MemberCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
+          ),
         ),
         child: ListTile(
           leading: CircleAvatar(
@@ -231,16 +275,35 @@ class _MemberCard extends StatelessWidget {
                 : null,
             backgroundColor: AppTheme.blue.withValues(alpha: 0.15),
             child: (profileImage == null || profileImage.isEmpty)
-                ? Text(initial, style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.blue))
+                ? Text(
+                    initial,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.blue,
+                    ),
+                  )
                 : null,
           ),
-          title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+          title: Text(
+            name,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(role, style: const TextStyle(color: AppTheme.blue, fontWeight: FontWeight.w500, fontSize: 12)),
+              Text(
+                role,
+                style: const TextStyle(
+                  color: AppTheme.blue,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                ),
+              ),
               if (email.isNotEmpty)
-                Text(email, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                Text(
+                  email,
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                ),
             ],
           ),
           isThreeLine: email.isNotEmpty,

@@ -71,9 +71,7 @@ class _BulkImportScreenState extends State<BulkImportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Bulk Import Members'),
-      ),
+      appBar: AppBar(title: const Text('Bulk Import Members')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -196,8 +194,8 @@ class _BulkImportScreenState extends State<BulkImportScreen> {
                       const Divider(),
                       _SummaryRow(
                         label: 'Emails Sent',
-                        value:
-                            _importResult!['summary']['emailsSent'].toString(),
+                        value: _importResult!['summary']['emailsSent']
+                            .toString(),
                       ),
                     ],
                   ),
@@ -212,11 +210,7 @@ class _BulkImportScreenState extends State<BulkImportScreen> {
 }
 
 class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({
-    required this.label,
-    required this.value,
-    this.color,
-  });
+  const _SummaryRow({required this.label, required this.value, this.color});
 
   final String label;
   final String value;
@@ -232,10 +226,7 @@ class _SummaryRow extends StatelessWidget {
           Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
           Text(
             value,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
+            style: TextStyle(fontWeight: FontWeight.bold, color: color),
           ),
         ],
       ),
