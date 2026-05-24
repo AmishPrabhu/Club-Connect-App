@@ -257,15 +257,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                                   borderRadius: BorderRadius.circular(24),
                                 ),
                                 padding: const EdgeInsets.all(14),
-                                child: widget.club.imageAsset.startsWith('http')
-                                    ? Image.network(
-                                        widget.club.imageAsset,
-                                        fit: BoxFit.contain,
-                                      )
-                                    : Image.asset(
-                                        widget.club.imageAsset,
-                                        fit: BoxFit.contain,
-                                      ),
+                                child: _clubImage(widget.club.resolvedImageUrl),
                               ),
                             ],
                           ),
@@ -625,6 +617,37 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+Widget _clubImage(String? src) {
+  final imageUrl = src?.trim() ?? '';
+  if (imageUrl.isEmpty) {
+    return const _ClubImageFallback();
+  }
+  if (imageUrl.startsWith('http')) {
+    return Image.network(
+      imageUrl,
+      fit: BoxFit.contain,
+      errorBuilder: (_, _, _) => const _ClubImageFallback(),
+    );
+  }
+  return const _ClubImageFallback();
+}
+
+class _ClubImageFallback extends StatelessWidget {
+  const _ClubImageFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppTheme.navy.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: const Icon(Icons.school_outlined, color: AppTheme.navy, size: 36),
     );
   }
 }

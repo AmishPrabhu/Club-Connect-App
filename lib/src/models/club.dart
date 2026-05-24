@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class Club {
+  static const String _webOrigin = 'https://club-connect-silk.vercel.app';
+
   const Club({
     required this.id,
     required this.name,
@@ -34,6 +36,17 @@ class Club {
   final Color startColor;
   final Color endColor;
   final int upcomingEvents;
+
+  String? get resolvedImageUrl {
+    final src = imageAsset.trim();
+    if (src.isEmpty) return null;
+    if (src.startsWith('http')) return src;
+    if (src.startsWith('/')) return '$_webOrigin$src';
+    if (RegExp(r'\.(png|jpe?g|webp|gif|avif)$', caseSensitive: false).hasMatch(src)) {
+      return '$_webOrigin/${src.startsWith('/') ? src.substring(1) : src}';
+    }
+    return src;
+  }
 
   factory Club.fromJson(Map<String, dynamic> json) {
     final category = json['category']?.toString() ?? 'technical';

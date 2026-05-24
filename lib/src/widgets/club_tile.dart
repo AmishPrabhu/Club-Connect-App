@@ -18,6 +18,7 @@ class ClubTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageUrl = club.resolvedImageUrl;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -43,13 +44,9 @@ class ClubTile extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor: Colors.white.withValues(alpha: 0.18),
-                    child: Text(
-                      club.icon,
-                      style: const TextStyle(fontSize: 18),
-                    ),
+                  _ClubLogo(
+                    imageUrl: imageUrl,
+                    fallbackLabel: club.icon,
                   ),
                   const Spacer(),
                   if (onToggleLike != null)
@@ -64,25 +61,18 @@ class ClubTile extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  child: _image(club.imageAsset),
-                ),
-              ),
-              const SizedBox(height: 14),
+              const Spacer(),
               Text(
                 club.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: Theme.of(
                   context,
                 ).textTheme.titleLarge?.copyWith(color: Colors.white),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text(
-                club.description,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
+                'Tap to view details',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Colors.white.withValues(alpha: 0.82),
                 ),
@@ -130,16 +120,53 @@ class ClubTile extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _image(String src) {
-    if (src.startsWith('http')) {
+class _ClubLogo extends StatelessWidget {
+  const _ClubLogo({
+    required this.imageUrl,
+    required this.fallbackLabel,
+  });
+
+  final String? imageUrl;
+  final String fallbackLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 52,
+      height: 52,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+      ),
+      alignment: Alignment.center,
+      clipBehavior: Clip.antiAlias,
+      child: _content(),
+    );
+  }
+
+  Widget _content() {
+    final src = imageUrl?.trim() ?? '';
+    if (src.isNotEmpty) {
       return Image.network(
         src,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        errorBuilder: (_, _, _) => Container(color: const Color(0x33000000)),
+        fit: BoxFit.contain,
+        errorBuilder: (_, _, _) => _fallback(),
       );
     }
-    return Image.asset(src, fit: BoxFit.cover, width: double.infinity);
+    return _fallback();
+  }
+
+  Widget _fallback() {
+    return Text(
+      fallbackLabel,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 18,
+        fontWeight: FontWeight.w800,
+      ),
+    );
   }
 }

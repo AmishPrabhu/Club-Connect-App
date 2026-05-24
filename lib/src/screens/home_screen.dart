@@ -115,11 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             (club) => ListTile(
                               leading: CircleAvatar(child: Text(club.icon)),
                               title: Text(club.name),
-                              subtitle: Text(
-                                club.description,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                              subtitle: Text(club.category),
                               trailing: const Icon(Icons.chevron_right_rounded),
                               onTap: () => Navigator.of(context).push(
                                 MaterialPageRoute(
@@ -141,20 +137,56 @@ class _HomeScreenState extends State<HomeScreen> {
                   actionLabel: 'See all',
                   onTap: widget.onOpenClubs,
                 ),
-                const SizedBox(height: 26),
-                _SectionHeading(
-                  title: 'Latest Announcements',
-                  actionLabel: 'View all',
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            AnnouncementsScreen(appState: widget.appState),
-                      ),
-                    );
-                  },
-                ),
               ],
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 190,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              scrollDirection: Axis.horizontal,
+              itemBuilder: (context, index) {
+                final club = clubs[index];
+                return SizedBox(
+                  width: 270,
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ClubDetailScreen(
+                          appState: widget.appState,
+                          club: club,
+                        ),
+                      ),
+                    ),
+                    child: _FeaturedClubCard(
+                      name: club.name,
+                      imageUrl: club.resolvedImageUrl,
+                      category: club.category,
+                    ),
+                  ),
+                );
+              },
+              separatorBuilder: (_, _) => const SizedBox(width: 14),
+              itemCount: clubs.length > 6 ? 6 : clubs.length,
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+            child: _SectionHeading(
+              title: 'Latest Announcements',
+              actionLabel: 'View all',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        AnnouncementsScreen(appState: widget.appState),
+                  ),
+                );
+              },
             ),
           ),
         ),
@@ -194,40 +226,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         SliverToBoxAdapter(
-          child: SizedBox(
-            height: 238,
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              scrollDirection: Axis.horizontal,
-              itemBuilder: (context, index) {
-                final club = clubs[index];
-                return SizedBox(
-                  width: 270,
-                  child: GestureDetector(
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ClubDetailScreen(
-                          appState: widget.appState,
-                          club: club,
-                        ),
-                      ),
-                    ),
-                    child: _FeaturedClubCard(
-                      name: club.name,
-                      imageUrl: club.imageAsset,
-                      category: club.category,
-                    ),
-                  ),
-                );
-              },
-              separatorBuilder: (_, _) => const SizedBox(width: 14),
-              itemCount: clubs.length > 6 ? 6 : clubs.length,
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 26, 20, 12),
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
             child: _SectionHeading(
               title: 'Weekly Events',
               actionLabel: 'Browse all',
@@ -511,66 +511,105 @@ class _FeaturedClubCard extends StatelessWidget {
   });
 
   final String name;
-  final String imageUrl;
+  final String? imageUrl;
   final String category;
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          imageUrl.startsWith('http')
-              ? Image.network(imageUrl, fit: BoxFit.cover)
-              : Image.asset(imageUrl, fit: BoxFit.cover),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withValues(alpha: 0.72),
-                ],
-              ),
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFDFEFF), Color(0xFFEAF3FF)],
+        ),
+        border: Border.all(color: AppTheme.blue.withValues(alpha: 0.12)),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.navy.withValues(alpha: 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
           ),
-          Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
+                _ClubLogo(imageUrl: imageUrl),
+                const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
+                    color: AppTheme.blue.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
                     category,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppTheme.navy,
                       fontSize: 11,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
-                const Spacer(),
-                Text(
-                  name,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(color: Colors.white),
-                ),
               ],
             ),
-          ),
-        ],
+            const Spacer(),
+            Text(
+              name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(color: AppTheme.text),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Tap to view club details',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppTheme.muted,
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class _ClubLogo extends StatelessWidget {
+  const _ClubLogo({required this.imageUrl});
+
+  final String? imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final src = imageUrl?.trim() ?? '';
+    return Container(
+      width: 54,
+      height: 54,
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTheme.blue.withValues(alpha: 0.1)),
+      ),
+      child: src.isEmpty
+          ? const Icon(Icons.school_outlined, color: AppTheme.navy, size: 28)
+          : Image.network(
+              src,
+              fit: BoxFit.contain,
+              errorBuilder: (_, _, _) =>
+                  const Icon(Icons.school_outlined, color: AppTheme.navy, size: 28),
+            ),
     );
   }
 }
