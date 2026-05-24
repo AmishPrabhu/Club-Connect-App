@@ -129,6 +129,17 @@ class UserSession {
 
   bool hasAnyRole(Iterable<String> roleNames) => roleNames.any(hasRole);
 
+  bool hasAnyMembershipRole(Iterable<String> roleNames) {
+    final normalized = roleNames.map(_normalizeRole).toSet();
+    return memberships.any((membership) {
+      final roleMatches = normalized.contains(_normalizeRole(membership.role));
+      final officerMatches =
+          membership.officerRole != null &&
+          normalized.contains(_normalizeRole(membership.officerRole!));
+      return roleMatches || officerMatches;
+    });
+  }
+
   bool hasClubRole(String clubId, Iterable<String> roleNames) {
     final normalized = roleNames.map(_normalizeRole).toSet();
     return memberships.any((membership) {
@@ -136,6 +147,32 @@ class UserSession {
       return membership.matchesAnyRole(normalized);
     });
   }
+
+  bool canManageClubMembers(String clubId) =>
+      hasAdminAccess || hasClubRole(clubId, const ['club-secretary', 'president']);
+
+  bool canPublishClubContent(String clubId) =>
+      hasAdminAccess || hasClubRole(clubId, const ['club-secretary', 'president']);
+
+  bool canUploadBudget(String clubId) =>
+      hasAdminAccess || hasClubRole(clubId, const ['treasurer']);
+
+  bool canVerifyBudget(String clubId) =>
+      hasAdminAccess || hasClubRole(clubId, const ['advisor']);
+
+  bool canManageClubOfficers(String clubId) =>
+      hasAdminAccess || hasClubRole(clubId, const ['advisor']);
+
+  bool get canManageSupervisedClubs =>
+      hasAdminAccess || hasRole('teacher');
+
+  bool canViewClubReports(String clubId) =>
+      hasAdminAccess ||
+      hasClubRole(clubId, const ['club-secretary', 'president', 'advisor']) ||
+      hasRole('teacher');
+
+  bool canAccessGlobalPresidentsChannel(String clubId) =>
+      hasAdminAccess || hasClubRole(clubId, const ['president']);
 
   List<String> get allRoles {
     final combined = <String>[

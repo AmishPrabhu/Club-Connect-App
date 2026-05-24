@@ -204,13 +204,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             _ActionBox(
               title: 'Create Club',
-              subtitle: 'Add a new club to the platform',
+              subtitle: 'Add a new club to the campus portal',
               icon: Icons.add_business_outlined,
               onTap: _showCreateClubDialog,
             ),
             _ActionBox(
               title: 'Assign Teacher',
-              subtitle: 'Invite or promote a teacher account',
+              subtitle: 'Add a campus teacher role',
               icon: Icons.person_add_alt_1_rounded,
               onTap: _showAssignTeacherDialog,
             ),
@@ -223,7 +223,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             children: [
               _SectionCard(
-                title: 'Teachers',
+                title: 'Teacher Accounts',
                 child: FutureBuilder<List<Map<String, dynamic>>>(
                   future: _teachersFuture,
                   builder: (context, snapshot) {
@@ -257,7 +257,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 16),
               _SectionCard(
-                title: 'All Clubs',
+                title: 'Club Management',
                 child: Column(
                   children: appState.clubs.take(8).map((club) {
                     return ListTile(
@@ -270,7 +270,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       trailing: IconButton(
                         onPressed: () => _showAssignOfficerDialog(club),
                         icon: const Icon(Icons.manage_accounts_outlined),
-                        tooltip: 'Assign officer',
+                        tooltip: 'Assign club role',
                       ),
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(
@@ -300,7 +300,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const Icon(Icons.shield_outlined, size: 64, color: Colors.grey),
                 const SizedBox(height: 12),
                 const Text(
-                  'No Club Assigned',
+                  'No club assigned',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
@@ -332,11 +332,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ];
     }
+    final roles = _rolesForClub(managedClub);
     return [
       SliverToBoxAdapter(
         child: OfficerDashboardWidget(
           appState: widget.appState,
           club: managedClub,
+          clubRoles: roles,
+          onCreatePost: (isEvent) =>
+              _showCreatePostDialog(managedClub, isEvent: isEvent),
         ),
       ),
     ];
@@ -447,6 +451,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return choices;
   }
 
+  Set<String> _rolesForClub(Club club) {
+    final session = widget.appState.session;
+    if (session == null) return const {};
+    final choice = _managedClubChoices(session).where((item) => item.club.id == club.id);
+    if (choice.isNotEmpty) return choice.first.roles;
+    return const {};
+  }
+
   List<_DashboardMode> _availableModes(UserSession session) {
     final modes = <_DashboardMode>[];
     if (session.hasAdminAccess) modes.add(_DashboardMode.admin);
@@ -478,7 +490,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case _DashboardMode.advisor:
         return 'Advisor Dashboard';
       case _DashboardMode.officer:
-        return 'Officer Dashboard';
+        return 'Club Roles';
       case _DashboardMode.teacher:
         return 'Teacher Dashboard';
       case _DashboardMode.student:
@@ -758,7 +770,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Teacher Dashboard',
+                    'Teacher Oversight',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   IconButton(
@@ -767,9 +779,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Icons.add_circle_outline,
                       color: AppTheme.blue,
                     ),
-                    tooltip: 'Add Club',
+                    tooltip: 'Add supervised club',
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Manage supervised clubs and review submitted PDF reports.',
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 12),
               FutureBuilder<List<Map<String, dynamic>>>(
@@ -778,9 +795,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   final clubs = snapshot.data ?? [];
                   if (clubs.isEmpty &&
                       snapshot.connectionState == ConnectionState.done) {
-                    return const _EmptyState(
-                      message: 'No clubs added to your monitor list.',
-                    );
+                      return const _EmptyState(
+                        message: 'No supervised clubs added yet.',
+                      );
                   }
                   return Column(
                     children: clubs.map((club) {
@@ -828,7 +845,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Add Club to Monitor'),
+        title: const Text('Add Supervised Club'),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -859,7 +876,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('$clubName Reports'),
+        title: Text('$clubName PDF Reports'),
         content: FutureBuilder<List<Map<String, dynamic>>>(
           future: appState.fetchTeacherReports(),
           builder: (context, snapshot) {
@@ -1983,14 +2000,14 @@ class _AdvisorDashboardWidgetState extends State<_AdvisorDashboardWidget>
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           child: Text(
-            'Advisor Dashboard',
+            'Advisor Oversight',
             style: Theme.of(context).textTheme.headlineSmall,
           ),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
           child: Text(
-            'Managing: ${widget.club.name}',
+            'Advising: ${widget.club.name}',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: AppTheme.blue,
               fontWeight: FontWeight.w600,
@@ -2066,7 +2083,7 @@ class _ModeSelector extends StatelessWidget {
       case _DashboardMode.advisor:
         return 'Advisor';
       case _DashboardMode.officer:
-        return 'Officer';
+        return 'Secretary / President / Treasurer';
       case _DashboardMode.teacher:
         return 'Teacher';
       case _DashboardMode.student:

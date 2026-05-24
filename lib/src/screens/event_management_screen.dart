@@ -52,6 +52,24 @@ class _EventManagementScreenState extends State<EventManagementScreen>
   String _fontColor = '000000';
   bool _isGenerating = false;
 
+  bool get _canEditEvent =>
+      widget.appState.session?.hasAdminAccess == true ||
+      widget.appState.session?.canPublishClubContent(widget.event.clubId) ==
+          true;
+
+  bool get _canUploadBudget =>
+      widget.appState.session?.hasAdminAccess == true ||
+      widget.appState.session?.canUploadBudget(widget.event.clubId) == true;
+
+  bool get _canManageCertificates =>
+      widget.appState.session?.hasAdminAccess == true ||
+      widget.appState.session?.canPublishClubContent(widget.event.clubId) ==
+          true;
+
+  bool get _canViewReports =>
+      widget.appState.session?.canViewClubReports(widget.event.clubId) == true ||
+      widget.appState.session?.hasAdminAccess == true;
+
   @override
   void initState() {
     super.initState();
@@ -247,6 +265,14 @@ class _EventManagementScreenState extends State<EventManagementScreen>
   }
 
   Widget _buildEditTab() {
+    if (!_canEditEvent) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text('Only club secretaries and presidents can edit events.'),
+        ),
+      );
+    }
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -316,6 +342,16 @@ class _EventManagementScreenState extends State<EventManagementScreen>
   }
 
   Widget _buildParticipantsTab() {
+    if (!_canEditEvent) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            'Only club secretaries and presidents can manage attendance.',
+          ),
+        ),
+      );
+    }
     final filtered = _rsvps.where((r) {
       final q = _searchQuery.toLowerCase();
       return (r['name'] ?? '').toString().toLowerCase().contains(q) ||
@@ -356,6 +392,16 @@ class _EventManagementScreenState extends State<EventManagementScreen>
   }
 
   Widget _buildCertificateTab() {
+    if (!_canManageCertificates) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            'Only club secretaries and presidents can manage certificates.',
+          ),
+        ),
+      );
+    }
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -649,28 +695,34 @@ class _EventManagementScreenState extends State<EventManagementScreen>
                   ),
                 ),
               const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final picked = await ImagePicker().pickImage(
-                    source: ImageSource.gallery,
-                  );
-                  if (picked != null) {
-                    setState(() => _isLoading = true);
-                    final url = await CloudinaryService.uploadImage(
-                      File(picked.path),
+              if (_canUploadBudget)
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final picked = await ImagePicker().pickImage(
+                      source: ImageSource.gallery,
                     );
-                    if (url != null) {
-                      await widget.appState.updatePost(widget.event.id, {
-                        'budgetImageUrl': url,
-                      });
-                      await _fetchData();
+                    if (picked != null) {
+                      setState(() => _isLoading = true);
+                      final url = await CloudinaryService.uploadImage(
+                        File(picked.path),
+                      );
+                      if (url != null) {
+                        await widget.appState.updatePost(widget.event.id, {
+                          'budgetImageUrl': url,
+                        });
+                        await _fetchData();
+                      }
+                      setState(() => _isLoading = false);
                     }
-                    setState(() => _isLoading = false);
-                  }
-                },
-                icon: const Icon(Icons.upload_file),
-                label: const Text('Upload Budget Screenshot'),
-              ),
+                  },
+                  icon: const Icon(Icons.upload_file),
+                  label: const Text('Upload Budget Screenshot'),
+                )
+              else
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text('Only the treasurer can upload budgets.'),
+                ),
             ],
           ),
         ),
@@ -693,31 +745,38 @@ class _EventManagementScreenState extends State<EventManagementScreen>
                   ),
                 ),
               const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  // Using file picker for PDF reports
-                  final result = await FilePicker.platform.pickFiles(
-                    type: FileType.custom,
-                    allowedExtensions: ['pdf', 'doc', 'docx'],
-                  );
-                  if (result != null && result.files.single.path != null) {
-                    setState(() => _isLoading = true);
-                    final file = File(result.files.single.path!);
-                    final url = await CloudinaryService.uploadImage(file);
-                    if (url != null) {
-                      await widget.appState.submitReport(
-                        widget.event.id,
-                        url,
-                        result.files.single.name,
-                      );
-                      await _fetchData();
+              if (_canEditEvent)
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final result = await FilePicker.platform.pickFiles(
+                      type: FileType.custom,
+                      allowedExtensions: ['pdf', 'doc', 'docx'],
+                    );
+                    if (result != null && result.files.single.path != null) {
+                      setState(() => _isLoading = true);
+                      final file = File(result.files.single.path!);
+                      final url = await CloudinaryService.uploadImage(file);
+                      if (url != null) {
+                        await widget.appState.submitReport(
+                          widget.event.id,
+                          url,
+                          result.files.single.name,
+                        );
+                        await _fetchData();
+                      }
+                      setState(() => _isLoading = false);
                     }
-                    setState(() => _isLoading = false);
-                  }
-                },
-                icon: const Icon(Icons.description_outlined),
-                label: const Text('Upload Final Report'),
-              ),
+                  },
+                  icon: const Icon(Icons.description_outlined),
+                  label: const Text('Upload Final Report'),
+                )
+              else if (_canViewReports)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text(
+                    'You can view reports, but only secretaries/presidents can upload them.',
+                  ),
+                ),
             ],
           ),
         ),

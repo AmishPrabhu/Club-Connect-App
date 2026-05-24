@@ -124,15 +124,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                             if (widget.appState.session != null &&
                                 post.isEvent &&
                                 (widget.appState.session!.hasAdminAccess ||
-                                    widget.appState.session!.hasClubRole(
-                                      post.clubId,
-                                      const [
-                                        'club-secretary',
-                                        'president',
-                                        'advisor',
-                                        'treasurer',
-                                      ],
-                                    ))) ...[
+                                    widget.appState.session!
+                                        .canPublishClubContent(post.clubId))) ...[
                               const SizedBox(height: 12),
                               SizedBox(
                                 width: double.infinity,

@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
-import '../widgets/event_card.dart';
 import '../widgets/glass_card.dart';
 import 'announcements_screen.dart';
-import 'dashboard_screen.dart';
 import 'club_detail_screen.dart';
 import 'post_detail_screen.dart';
 
@@ -26,8 +24,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _query = '';
-
   @override
   Widget build(BuildContext context) {
     final clubs = widget.appState.clubs;
@@ -43,10 +39,6 @@ class _HomeScreenState extends State<HomeScreen> {
             final bDate = b.date ?? DateTime.fromMillisecondsSinceEpoch(0);
             return bDate.compareTo(aDate);
           });
-    final matches = clubs.where((club) {
-      final text = '${club.name} ${club.description}'.toLowerCase();
-      return text.contains(_query.toLowerCase());
-    }).toList();
 
     return CustomScrollView(
       slivers: [
@@ -67,70 +59,6 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _HeroCard(upcomingCount: upcomingEvents.length),
-                const SizedBox(height: 24),
-                _QuickActions(
-                  appState: widget.appState,
-                  onOpenClubs: widget.onOpenClubs,
-                  onOpenEvents: widget.onOpenEvents,
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _StatCard(
-                        icon: Icons.groups_rounded,
-                        accent: AppTheme.cyan,
-                        value: '${clubs.length}',
-                        label: 'Active Clubs',
-                        onTap: widget.onOpenClubs,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: _StatCard(
-                        icon: Icons.calendar_month_rounded,
-                        accent: AppTheme.purple,
-                        value: '${upcomingEvents.length}',
-                        label: 'Upcoming Events',
-                        onTap: widget.onOpenEvents,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 22),
-                TextField(
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.search_rounded),
-                    hintText: 'Search clubs, events, or announcements...',
-                  ),
-                  onChanged: (value) => setState(() => _query = value),
-                ),
-                if (_query.isNotEmpty) ...[
-                  const SizedBox(height: 14),
-                  GlassCard(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Column(
-                      children: matches
-                          .map(
-                            (club) => ListTile(
-                              leading: CircleAvatar(child: Text(club.icon)),
-                              title: Text(club.name),
-                              subtitle: Text(club.category),
-                              trailing: const Icon(Icons.chevron_right_rounded),
-                              onTap: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => ClubDetailScreen(
-                                    appState: widget.appState,
-                                    club: club,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ),
-                ],
                 const SizedBox(height: 26),
                 _SectionHeading(
                   title: 'Featured Clubs',
@@ -190,39 +118,48 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-          sliver: SliverList.separated(
-            itemCount: announcements.isEmpty
-                ? 0
-                : announcements.length > 2
-                ? 2
-                : announcements.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 14),
-            itemBuilder: (context, index) => GlassCard(
-              child: ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: CircleAvatar(
-                  backgroundColor: const Color(0xFFF3E8FF),
-                  child: Icon(Icons.campaign_outlined, color: AppTheme.purple),
-                ),
-                title: Text(announcements[index].title),
-                subtitle: Text(
-                  announcements[index].content,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => PostDetailScreen(
-                      appState: widget.appState,
-                      initialPost: announcements[index],
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: announcements.isEmpty ? 128 : 168,
+            child: announcements.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: _SectionEmptyCard(
+                      icon: Icons.campaign_outlined,
+                      title: 'No announcements yet',
+                      message:
+                          'Club notices will show up here once they are posted.',
                     ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: announcements.length > 5
+                        ? 5
+                        : announcements.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 14),
+                    itemBuilder: (context, index) {
+                      final announcement = announcements[index];
+                      return SizedBox(
+                        width: 280,
+                        child: _FeedPreviewCard(
+                          icon: Icons.campaign_outlined,
+                          accent: AppTheme.purple,
+                          title: announcement.title,
+                          subtitle: announcement.clubName,
+                          body: announcement.content,
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => PostDetailScreen(
+                                appState: widget.appState,
+                                initialPost: announcement,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                ),
-              ),
-            ),
           ),
         ),
         SliverToBoxAdapter(
@@ -235,22 +172,51 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-        SliverList.separated(
-          itemCount: upcomingEvents.length > 3 ? 3 : upcomingEvents.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 16),
-          itemBuilder: (context, index) => Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-            child: EventCard(
-              post: upcomingEvents[index],
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => PostDetailScreen(
-                    appState: widget.appState,
-                    initialPost: upcomingEvents[index],
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: upcomingEvents.isEmpty ? 128 : 176,
+            child: upcomingEvents.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: _SectionEmptyCard(
+                      icon: Icons.event_busy_outlined,
+                      title: 'No upcoming events',
+                      message:
+                          'Future events will appear here when clubs publish them.',
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: upcomingEvents.length > 5
+                        ? 5
+                        : upcomingEvents.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 14),
+                    itemBuilder: (context, index) {
+                      final event = upcomingEvents[index];
+                      return SizedBox(
+                        width: 280,
+                        child: _FeedPreviewCard(
+                          icon: Icons.event_rounded,
+                          accent: AppTheme.blue,
+                          title: event.title,
+                          subtitle: event.clubName,
+                          body:
+                              '${event.date != null ? '${event.date!.day}/${event.date!.month}/${event.date!.year}' : 'No date'}'
+                              '${event.time != null && event.time!.isNotEmpty ? ' • ${event.time}' : ''}'
+                              '${event.location != null && event.location!.isNotEmpty ? ' • ${event.location}' : ''}',
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => PostDetailScreen(
+                                appState: widget.appState,
+                                initialPost: event,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                ),
-              ),
-            ),
           ),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 30)),
@@ -272,13 +238,14 @@ class _HeroCard extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppTheme.navy, Color(0xFF0F3B73)],
+          colors: [Color(0xFFFDFCF8), Color(0xFFF3F0E9)],
         ),
+        border: Border.all(color: AppTheme.navy.withValues(alpha: 0.08)),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.navy.withValues(alpha: 0.18),
-            blurRadius: 32,
-            offset: const Offset(0, 18),
+            color: AppTheme.navy.withValues(alpha: 0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
@@ -292,10 +259,10 @@ class _HeroCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.14),
+                    color: AppTheme.navy.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.18),
+                      color: AppTheme.navy.withValues(alpha: 0.08),
                     ),
                   ),
                   child: Image.asset(
@@ -316,7 +283,7 @@ class _HeroCard extends StatelessWidget {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.12),
+                          color: AppTheme.navy.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: const Text(
@@ -324,7 +291,7 @@ class _HeroCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
-                            color: Colors.white,
+                            color: AppTheme.navy,
                           ),
                         ),
                       ),
@@ -333,18 +300,21 @@ class _HeroCard extends StatelessWidget {
                         'Walchand College of Engineering',
                         style: Theme.of(
                           context,
-                        ).textTheme.displaySmall?.copyWith(color: Colors.white),
+                        ).textTheme.displaySmall?.copyWith(
+                          color: AppTheme.navy,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 22),
             Text(
               'A central portal for club notices, event schedules, and campus participation.',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Colors.white.withValues(alpha: 0.88),
+                color: AppTheme.text,
               ),
             ),
             const SizedBox(height: 16),
@@ -356,145 +326,6 @@ class _HeroCard extends StatelessWidget {
                 const _InfoChip(label: 'Club notices'),
                 const _InfoChip(label: 'Campus updates'),
               ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.icon,
-    required this.accent,
-    required this.value,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final Color accent;
-  final String value;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: GlassCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: accent.withValues(alpha: 0.14),
-              child: Icon(icon, color: accent),
-            ),
-            const SizedBox(height: 16),
-            Text(value, style: Theme.of(context).textTheme.headlineMedium),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickActions extends StatelessWidget {
-  const _QuickActions({
-    required this.appState,
-    required this.onOpenClubs,
-    required this.onOpenEvents,
-  });
-
-  final AppState appState;
-  final VoidCallback onOpenClubs;
-  final VoidCallback onOpenEvents;
-
-  @override
-  Widget build(BuildContext context) {
-    final session = appState.session;
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: [
-        _ActionChip(
-          icon: Icons.groups_rounded,
-          label: 'Clubs',
-          onTap: onOpenClubs,
-        ),
-        _ActionChip(
-          icon: Icons.event_rounded,
-          label: 'Events',
-          onTap: onOpenEvents,
-        ),
-        _ActionChip(
-          icon: Icons.campaign_outlined,
-          label: 'Announcements',
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => AnnouncementsScreen(appState: appState),
-              ),
-            );
-          },
-        ),
-        _ActionChip(
-          icon: Icons.dashboard_rounded,
-          label: 'Dashboard',
-          onTap: session == null
-              ? null
-              : () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => DashboardScreen(appState: appState),
-                    ),
-                  );
-                },
-        ),
-      ],
-    );
-  }
-}
-
-class _ActionChip extends StatelessWidget {
-  const _ActionChip({required this.icon, required this.label, this.onTap});
-
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.12)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 18, color: AppTheme.navy),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.w800,
-                color: AppTheme.text,
-              ),
             ),
           ],
         ),
@@ -638,6 +469,123 @@ class _SectionHeading extends StatelessWidget {
   }
 }
 
+class _FeedPreviewCard extends StatelessWidget {
+  const _FeedPreviewCard({
+    required this.icon,
+    required this.accent,
+    required this.title,
+    required this.subtitle,
+    required this.body,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color accent;
+  final String title;
+  final String subtitle;
+  final String body;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: GlassCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: accent.withValues(alpha: 0.12),
+              child: Icon(icon, color: accent),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppTheme.muted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: AppTheme.text,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              body,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppTheme.muted,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionEmptyCard extends StatelessWidget {
+  const _SectionEmptyCard({
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassCard(
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: AppTheme.navy.withValues(alpha: 0.08),
+            child: Icon(icon, color: AppTheme.navy),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: AppTheme.text,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  message,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.muted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _InfoChip extends StatelessWidget {
   const _InfoChip({required this.label});
 
@@ -648,9 +596,9 @@ class _InfoChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
+        color: AppTheme.navy.withValues(alpha: 0.88),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+        border: Border.all(color: AppTheme.navy.withValues(alpha: 0.04)),
       ),
       child: Text(
         label,

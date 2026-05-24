@@ -183,15 +183,8 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
   Widget build(BuildContext context) {
     final session = widget.appState.session;
     final isAdmin = session?.hasAdminAccess ?? false;
-    final isOfficer =
-        session?.hasClubRole(widget.club.id, const [
-          'president',
-          'club-secretary',
-          'advisor',
-          'treasurer',
-        ]) ??
-        false;
-    final canManageMembers = isAdmin || isOfficer;
+    final canManageMembers =
+        session?.canManageClubMembers(widget.club.id) ?? isAdmin;
 
     final clubPosts = widget.appState.posts
         .where((post) => post.clubId == widget.club.id)
