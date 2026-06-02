@@ -345,8 +345,24 @@ class _FeaturedClubCard extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           imageUrl.startsWith('http')
-              ? Image.network(imageUrl, fit: BoxFit.cover)
-              : Image.asset(imageUrl, fit: BoxFit.cover),
+              ? Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => Image.asset(
+                    'assets/images/club-default.jpg',
+                    fit: BoxFit.cover,
+                  ),
+                )
+              : Image.asset(
+                  imageUrl.startsWith('/')
+                      ? 'assets/images$imageUrl'
+                      : imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => Image.asset(
+                    'assets/images/club-default.jpg',
+                    fit: BoxFit.cover,
+                  ),
+                ),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(

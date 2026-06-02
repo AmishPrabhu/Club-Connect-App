@@ -82,7 +82,7 @@ class _ClubsScreenState extends State<ClubsScreen> {
               crossAxisCount: 2,
               mainAxisSpacing: 16,
               crossAxisSpacing: 16,
-              childAspectRatio: 0.72,
+              childAspectRatio: 0.65,
             ),
             delegate: SliverChildBuilderDelegate((context, index) {
               final club = clubs[index];

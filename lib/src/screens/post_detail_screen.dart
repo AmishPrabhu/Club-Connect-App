@@ -53,12 +53,26 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                   width: double.infinity,
                                   height: 240,
                                   fit: BoxFit.cover,
+                                  errorBuilder: (_, _, _) => Image.asset(
+                                    'assets/images/club-default.jpg',
+                                    width: double.infinity,
+                                    height: 240,
+                                    fit: BoxFit.cover,
+                                  ),
                                 )
                               : Image.asset(
-                                  post.coverAsset!,
+                                  post.coverAsset!.startsWith('/')
+                                      ? 'assets/images${post.coverAsset!}'
+                                      : post.coverAsset!,
                                   width: double.infinity,
                                   height: 240,
                                   fit: BoxFit.cover,
+                                  errorBuilder: (_, _, _) => Image.asset(
+                                    'assets/images/club-default.jpg',
+                                    width: double.infinity,
+                                    height: 240,
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
                         ),
                       const SizedBox(height: 18),
@@ -148,8 +162,22 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     return ClipRRect(
                       borderRadius: BorderRadius.circular(22),
                       child: src.startsWith('http')
-                          ? Image.network(src, fit: BoxFit.cover)
-                          : Image.asset(src, fit: BoxFit.cover),
+                          ? Image.network(
+                              src,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => Image.asset(
+                                'assets/images/club-default.jpg',
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : Image.asset(
+                              src.startsWith('/') ? 'assets/images$src' : src,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => Image.asset(
+                                'assets/images/club-default.jpg',
+                                fit: BoxFit.cover,
+                              ),
+                            ),
                     );
                   }, childCount: post.attachments.length),
                 ),

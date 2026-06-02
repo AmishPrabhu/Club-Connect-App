@@ -81,7 +81,7 @@ class ClubTile extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 club.description,
-                maxLines: 3,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Colors.white.withValues(alpha: 0.82),
@@ -137,9 +137,23 @@ class ClubTile extends StatelessWidget {
         src,
         fit: BoxFit.cover,
         width: double.infinity,
-        errorBuilder: (_, _, _) => Container(color: const Color(0x33000000)),
+        errorBuilder: (_, _, _) => Image.asset(
+          'assets/images/club-default.jpg',
+          fit: BoxFit.cover,
+          width: double.infinity,
+        ),
       );
     }
-    return Image.asset(src, fit: BoxFit.cover, width: double.infinity);
+    final path = src.startsWith('/') ? 'assets/images$src' : src;
+    return Image.asset(
+      path,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      errorBuilder: (_, _, _) => Image.asset(
+        'assets/images/club-default.jpg',
+        fit: BoxFit.cover,
+        width: double.infinity,
+      ),
+    );
   }
 }

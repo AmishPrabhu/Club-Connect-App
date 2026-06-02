@@ -232,10 +232,20 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                                     ? Image.network(
                                         widget.club.imageAsset,
                                         fit: BoxFit.contain,
+                                        errorBuilder: (_, _, _) => Image.asset(
+                                          'assets/images/club-default.jpg',
+                                          fit: BoxFit.contain,
+                                        ),
                                       )
                                     : Image.asset(
-                                        widget.club.imageAsset,
+                                        widget.club.imageAsset.startsWith('/')
+                                            ? 'assets/images${widget.club.imageAsset}'
+                                            : widget.club.imageAsset,
                                         fit: BoxFit.contain,
+                                        errorBuilder: (_, _, _) => Image.asset(
+                                          'assets/images/club-default.jpg',
+                                          fit: BoxFit.contain,
+                                        ),
                                       ),
                               ),
                             ],

@@ -181,19 +181,26 @@ class EventCard extends StatelessWidget {
         height: height,
         width: double.infinity,
         fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => Container(
+        errorBuilder: (_, _, _) => Image.asset(
+          'assets/images/club-default.jpg',
           height: height,
-          color: const Color(0xFFE2E8F0),
-          alignment: Alignment.center,
-          child: const Icon(Icons.broken_image_outlined),
+          width: double.infinity,
+          fit: BoxFit.cover,
         ),
       );
     }
+    final path = src.startsWith('/') ? 'assets/images$src' : src;
     return Image.asset(
-      src,
+      path,
       height: height,
       width: double.infinity,
       fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => Image.asset(
+        'assets/images/club-default.jpg',
+        height: height,
+        width: double.infinity,
+        fit: BoxFit.cover,
+      ),
     );
   }
 }

@@ -151,38 +151,11 @@ class _BackgroundDecor extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFFF7FAFD), Color(0xFFEFF4FB)],
+          colors: [
+            Color(0xFFF8FAFC),
+            Color(0xFFF1F5F9),
+          ],
         ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: -80,
-            left: -20,
-            child: _blob(const Color(0x2038BDF8), 220),
-          ),
-          Positioned(
-            top: 160,
-            right: -40,
-            child: _blob(const Color(0x187C3AED), 180),
-          ),
-          Positioned(
-            bottom: -70,
-            left: 40,
-            child: _blob(const Color(0x142563EB), 200),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _blob(Color color, double size) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(size),
       ),
     );
   }
