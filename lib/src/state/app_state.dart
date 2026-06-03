@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../models/club.dart';
 import '../models/notification_item.dart';
@@ -7,12 +8,69 @@ import '../models/post_item.dart';
 import '../models/user_session.dart';
 import '../services/api_client.dart';
 
+class GoogleSignupData {
+  GoogleSignupData({
+    required this.email,
+    required this.name,
+    required this.credential,
+  });
+
+  final String email;
+  final String name;
+  final String credential;
+}
+
+class GoogleAuthResult {
+  const GoogleAuthResult._({
+    required this.success,
+    required this.needsSignup,
+    this.error,
+    this.googleData,
+  });
+
+  final bool success;
+  final bool needsSignup;
+  final String? error;
+  final GoogleSignupData? googleData;
+
+  const GoogleAuthResult.success()
+    : this._(success: true, needsSignup: false);
+
+  const GoogleAuthResult.failure(String error)
+    : this._(success: false, needsSignup: false, error: error);
+
+  const GoogleAuthResult.cancelled()
+    : this._(
+        success: false,
+        needsSignup: false,
+        error: 'Google sign-in cancelled.',
+      );
+
+  const GoogleAuthResult.needsSignup(
+    GoogleSignupData googleData, [
+    String? error,
+  ]) : this._(
+         success: false,
+         needsSignup: true,
+         error: error,
+         googleData: googleData,
+       );
+}
+
 class AppState extends ChangeNotifier {
   AppState({ApiClient? apiClient}) : _apiClient = apiClient ?? ApiClient();
 
   static const _tokenKey = 'club_connect_token';
+  static const _googleServerClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+    defaultValue: '158552043080-f7nf9tej36hgo4oidu1dnn9shkq8tan1.apps.googleusercontent.com',
+  );
 
   final ApiClient _apiClient;
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    serverClientId: _googleServerClientId,
+    scopes: ['email', 'profile'],
+  );
 
   bool isBootstrapping = true;
   bool isLoading = false;
@@ -149,7 +207,93 @@ class AppState extends ChangeNotifier {
     _apiClient.setToken(null);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
+    await _googleSignIn.signOut();
     await refreshAll();
+  }
+
+  Future<GoogleAuthResult> signInWithGoogle() async {
+    GoogleSignInAccount? account;
+    String? idToken;
+
+    try {
+      account = await _googleSignIn.signIn();
+      if (account == null) {
+        return const GoogleAuthResult.cancelled();
+      }
+
+      final auth = await account.authentication;
+      idToken = auth.idToken;
+      if (idToken == null || idToken.isEmpty) {
+        throw ApiException(
+          'Google sign-in did not return an ID token. Make sure the app is configured with a Google OAuth client.',
+        );
+      }
+
+      final response =
+          await _apiClient.post('/auth/google', body: {'credential': idToken})
+              as Map<String, dynamic>;
+      final token = response['token']?.toString();
+      if (token == null || token.isEmpty) {
+        throw ApiException('Google sign-in failed: token missing.');
+      }
+
+      await _activateToken(token);
+      return const GoogleAuthResult.success();
+    } on ApiException catch (error) {
+      final payload = error.payload;
+      if (error.statusCode == 404 && payload?['code'] == 'USER_NOT_FOUND') {
+        final googleData = payload?['googleData'];
+        final email = googleData is Map<String, dynamic>
+            ? googleData['email']?.toString() ?? account?.email ?? ''
+            : account?.email ?? '';
+        final name = googleData is Map<String, dynamic>
+            ? googleData['name']?.toString() ?? account?.displayName ?? ''
+            : account?.displayName ?? '';
+        final credential = googleData is Map<String, dynamic>
+            ? googleData['credential']?.toString() ?? idToken ?? ''
+            : idToken ?? '';
+        return GoogleAuthResult.needsSignup(
+          GoogleSignupData(email: email, name: name, credential: credential),
+          error.message,
+        );
+      }
+      return GoogleAuthResult.failure(error.message);
+    } catch (error) {
+      return GoogleAuthResult.failure(error.toString());
+    }
+  }
+
+  Future<UserSession> signUpWithGoogle({
+    required String credential,
+    required String password,
+    String? name,
+  }) async {
+    final response =
+        await _apiClient.post(
+              '/auth/google/signup',
+              body: {
+                'credential': credential,
+                'password': password,
+                if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
+              },
+            )
+            as Map<String, dynamic>;
+    final token = response['token']?.toString();
+    if (token == null || token.isEmpty) {
+      throw ApiException('Google signup failed: token missing.');
+    }
+
+    return _activateToken(token);
+  }
+
+  Future<UserSession> _activateToken(String token) async {
+    _apiClient.setToken(token);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_tokenKey, token);
+    session = await _fetchCurrentUser();
+    await refreshAll();
+    notifyListeners();
+    return session!;
   }
 
   Future<List<Map<String, dynamic>>> fetchClubMembers(String clubId) async {

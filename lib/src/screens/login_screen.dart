@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import 'forgot_password_screen.dart';
+import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.appState});
@@ -18,6 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _obscure = true;
   bool _submitting = false;
+  bool _googleSigningIn = false;
   String? _error;
 
   @override
@@ -176,14 +178,18 @@ class _LoginScreenState extends State<LoginScreen> {
                           width: double.infinity,
                           child: OutlinedButton.icon(
                             icon: const Icon(Icons.g_mobiledata, size: 28),
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Google Auth requires Firebase configuration. Please configure it in app_state.dart.')),
-                              );
-                            },
-                            label: const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 14),
-                              child: Text('Sign in with Google', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
+                            onPressed: _googleSigningIn ? null : _handleGoogle,
+                            label: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              child: Text(
+                                _googleSigningIn
+                                    ? 'Connecting...'
+                                    : 'Sign in with Google',
+                                style: const TextStyle(
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
                             style: OutlinedButton.styleFrom(
                               backgroundColor: Colors.white,
@@ -221,6 +227,55 @@ class _LoginScreenState extends State<LoginScreen> {
     } finally {
       if (mounted) {
         setState(() => _submitting = false);
+      }
+    }
+  }
+
+  Future<void> _handleGoogle() async {
+    setState(() {
+      _googleSigningIn = true;
+      _error = null;
+    });
+
+    try {
+      final result = await widget.appState.signInWithGoogle();
+      if (!mounted) return;
+
+      if (result.success) {
+        Navigator.of(context).pop();
+        return;
+      }
+
+      if (result.needsSignup && result.googleData != null) {
+        final created = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) => SignupScreen(
+              appState: widget.appState,
+              googleData: result.googleData,
+            ),
+          ),
+        );
+        if (!mounted) return;
+        if (created == true || widget.appState.session != null) {
+          Navigator.of(context).pop();
+        }
+        return;
+      }
+
+      setState(() {
+        _error = result.error ?? 'Google sign-in failed. Please try again.';
+      });
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _error = error.toString().replaceFirst('Exception: ', '');
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _googleSigningIn = false;
+        });
       }
     }
   }

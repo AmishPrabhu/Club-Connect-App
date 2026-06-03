@@ -3,10 +3,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiException implements Exception {
-  ApiException(this.message, {this.statusCode});
+  ApiException(this.message, {this.statusCode, this.payload});
 
   final String message;
   final int? statusCode;
+  final Map<String, dynamic>? payload;
 
   @override
   String toString() => message;
@@ -97,11 +98,14 @@ class ApiClient {
         : jsonDecode(response.body);
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      final message =
-          payload is Map<String, dynamic> && payload['message'] != null
-          ? payload['message'].toString()
-          : 'Request failed (${response.statusCode})';
-      throw ApiException(message, statusCode: response.statusCode);
+      final payloadMap = payload is Map<String, dynamic> ? payload : null;
+      final message = payloadMap?['message']?.toString() ??
+          'Request failed (${response.statusCode})';
+      throw ApiException(
+        message,
+        statusCode: response.statusCode,
+        payload: payloadMap,
+      );
     }
 
     return payload;
