@@ -26,6 +26,30 @@ class _ClubConnectAppState extends State<ClubConnectApp> {
       title: 'Club Connect',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
+      builder: (context, child) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final baseTheme = Theme.of(context);
+        
+        double scale(double baseSize) {
+          final s = screenWidth / 375.0;
+          return baseSize * s.clamp(0.85, 1.25);
+        }
+        
+        return Theme(
+          data: baseTheme.copyWith(
+            textTheme: baseTheme.textTheme.copyWith(
+              displaySmall: baseTheme.textTheme.displaySmall?.copyWith(fontSize: scale(34)),
+              headlineMedium: baseTheme.textTheme.headlineMedium?.copyWith(fontSize: scale(26)),
+              titleLarge: baseTheme.textTheme.titleLarge?.copyWith(fontSize: scale(20)),
+              titleMedium: baseTheme.textTheme.titleMedium?.copyWith(fontSize: scale(16)),
+              bodyLarge: baseTheme.textTheme.bodyLarge?.copyWith(fontSize: scale(16)),
+              bodyMedium: baseTheme.textTheme.bodyMedium?.copyWith(fontSize: scale(14)),
+              bodySmall: baseTheme.textTheme.bodySmall?.copyWith(fontSize: scale(12)),
+            ),
+          ),
+          child: child!,
+        );
+      },
       home: AnimatedBuilder(
         animation: _appState,
         builder: (context, _) {

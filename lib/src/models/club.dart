@@ -45,13 +45,13 @@ class Club {
   static (Color, Color) _colorsForCategory(String category) {
     switch (category.toLowerCase()) {
       case 'academic':
-        return (const Color(0xFF10B981), const Color(0xFF14B8A6));
+        return (const Color(0xFF064E3B), const Color(0xFF0F766E));
       case 'cultural':
-        return (const Color(0xFFEC4899), const Color(0xFFE11D48));
+        return (const Color(0xFF581C87), const Color(0xFF701A75));
       case 'sports':
-        return (const Color(0xFF22C55E), const Color(0xFF059669));
+        return (const Color(0xFF14532D), const Color(0xFF065F46));
       default:
-        return (const Color(0xFF2563EB), const Color(0xFF06B6D4));
+        return (const Color(0xFF1E3B8B), const Color(0xFF1D4ED8));
     }
   }
 

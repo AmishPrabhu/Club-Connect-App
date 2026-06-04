@@ -184,7 +184,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                     children: [
                       Container(
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(32),
+                          borderRadius: BorderRadius.circular(16),
                           gradient: LinearGradient(
                             colors: [
                               widget.club.startColor.withValues(alpha: 0.16),
@@ -196,57 +196,61 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                         ),
                         child: Padding(
                           padding: const EdgeInsets.all(22),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Text(
                                       widget.club.name,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.displaySmall,
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Text(
-                                      widget.club.description,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyLarge
-                                          ?.copyWith(color: AppTheme.muted),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Container(
-                                width: 96,
-                                height: 96,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                                padding: const EdgeInsets.all(14),
-                                child: widget.club.imageAsset.startsWith('http')
-                                    ? Image.network(
-                                        widget.club.imageAsset,
-                                        fit: BoxFit.contain,
-                                        errorBuilder: (_, _, _) => Image.asset(
-                                          'assets/images/club-default.jpg',
-                                          fit: BoxFit.contain,
-                                        ),
-                                      )
-                                    : Image.asset(
-                                        widget.club.imageAsset.startsWith('/')
-                                            ? 'assets/images${widget.club.imageAsset}'
-                                            : widget.club.imageAsset,
-                                        fit: BoxFit.contain,
-                                        errorBuilder: (_, _, _) => Image.asset(
-                                          'assets/images/club-default.jpg',
-                                          fit: BoxFit.contain,
-                                        ),
+                                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                                        fontWeight: FontWeight.w800,
                                       ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Container(
+                                    width: 72,
+                                    height: 72,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    padding: const EdgeInsets.all(10),
+                                    child: widget.club.imageAsset.startsWith('http')
+                                        ? Image.network(
+                                            widget.club.imageAsset,
+                                            fit: BoxFit.contain,
+                                            errorBuilder: (_, _, _) => Image.asset(
+                                              'assets/images/club-default.jpg',
+                                              fit: BoxFit.contain,
+                                            ),
+                                          )
+                                        : Image.asset(
+                                            widget.club.imageAsset.startsWith('/')
+                                                ? 'assets/images${widget.club.imageAsset}'
+                                                : widget.club.imageAsset,
+                                            fit: BoxFit.contain,
+                                            errorBuilder: (_, _, _) => Image.asset(
+                                              'assets/images/club-default.jpg',
+                                              fit: BoxFit.contain,
+                                            ),
+                                          ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                widget.club.description,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.copyWith(
+                                      color: AppTheme.text.withValues(alpha: 0.8),
+                                      height: 1.4,
+                                    ),
                               ),
                             ],
                           ),

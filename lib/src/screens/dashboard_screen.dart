@@ -93,7 +93,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             crossAxisCount: 2,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: 1.15,
+            childAspectRatio: 0.95,
           ),
           delegate: SliverChildListDelegate([
             _StatBox(
@@ -225,7 +225,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ];
     }
     return [
-      SliverToBoxAdapter(
+      SliverFillRemaining(
+        hasScrollBody: true,
         child: _AdvisorDashboardWidget(appState: widget.appState, club: club),
       ),
     ];
@@ -247,7 +248,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             crossAxisCount: 2,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: 1.15,
+            childAspectRatio: 0.95,
           ),
           delegate: SliverChildListDelegate([
             _StatBox(
@@ -1230,14 +1231,38 @@ class _StatBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Icon(icon, size: 28),
-          const SizedBox(height: 16),
-          Text(value, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
-          Text(title, style: Theme.of(context).textTheme.bodyMedium),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Flexible(
+                  child: Text(
+                    value,
+                    style: Theme.of(context).textTheme.titleLarge,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Flexible(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -1262,14 +1287,38 @@ class _ActionBox extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: GlassCard(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Icon(icon, size: 28),
-            const SizedBox(height: 16),
-            Text(title, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
-            Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Flexible(
+                    child: Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleLarge,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Flexible(
+                    child: Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -1602,8 +1651,7 @@ class _AdvisorDashboardWidgetState extends State<_AdvisorDashboardWidget>
           Tab(icon: Icon(Icons.groups_outlined), text: 'Team'),
         ],
       ),
-      SizedBox(
-        height: 580,
+      Expanded(
         child: TabBarView(
           controller: _tabController,
           children: [_eventsTab(), _reportsTab(), _budgetsTab(), _teamTab()],

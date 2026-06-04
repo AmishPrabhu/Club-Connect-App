@@ -34,7 +34,7 @@ class EventCard extends StatelessWidget {
       onTap: onTap,
       child: GlassCard(
         padding: EdgeInsets.zero,
-        radius: 26,
+        radius: 16,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -42,7 +42,7 @@ class EventCard extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(26),
+                    top: Radius.circular(16),
                   ),
                   child: _image(post.coverAsset, height: 190),
                 ),
@@ -56,7 +56,7 @@ class EventCard extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
                       children: [
@@ -126,6 +126,8 @@ class EventCard extends StatelessWidget {
                   const SizedBox(height: 10),
                   Text(
                     post.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),

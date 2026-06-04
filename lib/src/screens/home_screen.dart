@@ -203,7 +203,7 @@ class _HeroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(16),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -219,61 +219,62 @@ class _HeroCard extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppTheme.cyan.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: const Text(
-                      'Premier Institute',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.blue,
-                      ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cyan.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Text(
+                    'Premier Institute',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.blue,
                     ),
                   ),
-                  const SizedBox(height: 18),
-                  Text(
-                    'Walchand College of Engineering',
-                    style: Theme.of(context).textTheme.displaySmall,
+                ),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.asset(
+                    'assets/images/wce-logo.png',
+                    width: 48,
+                    height: 48,
+                    fit: BoxFit.contain,
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Discover communities, track club activity, and join the next wave of campus events.',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge?.copyWith(color: AppTheme.muted),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    '$upcomingCount events lined up this week',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleMedium?.copyWith(color: AppTheme.navy),
-                  ),
-                ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Walchand College of Engineering',
+              style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                height: 1.2,
+                fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(width: 16),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: Image.asset(
-                'assets/images/wce-logo.png',
-                width: 96,
-                height: 96,
-                fit: BoxFit.contain,
-              ),
+            const SizedBox(height: 10),
+            Text(
+              'Discover communities, track club activity, and join the next wave of campus events.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: AppTheme.muted, height: 1.4),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '$upcomingCount events lined up this week',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: AppTheme.navy, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -340,7 +341,7 @@ class _FeaturedClubCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
+      borderRadius: BorderRadius.circular(16),
       child: Stack(
         fit: StackFit.expand,
         children: [
