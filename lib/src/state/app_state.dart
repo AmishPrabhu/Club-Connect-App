@@ -672,6 +672,23 @@ class AppState extends ChangeNotifier {
     await logout();
   }
 
+  Future<List<Map<String, dynamic>>> fetchClubMessages(String clubId) async {
+    final response = await _apiClient.get('/clubs/$clubId/messages') as List<dynamic>;
+    return response.cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>> sendClubMessage({
+    required String clubId,
+    required String title,
+    required String body,
+  }) async {
+    final response = await _apiClient.post(
+      '/clubs/$clubId/messages',
+      body: {'title': title, 'body': body},
+    );
+    return response as Map<String, dynamic>;
+  }
+
   Future<UserSession> _fetchCurrentUser() async {
     final response = await _apiClient.get('/auth/me') as Map<String, dynamic>;
     return UserSession.fromJson(response);

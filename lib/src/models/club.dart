@@ -12,6 +12,9 @@ class Club {
     required this.startColor,
     required this.endColor,
     required this.upcomingEvents,
+    this.fullForm = '',
+    this.whatsappUrl = '',
+    this.instagramUrl = '',
   });
 
   final String id;
@@ -24,6 +27,9 @@ class Club {
   final Color startColor;
   final Color endColor;
   final int upcomingEvents;
+  final String fullForm;
+  final String whatsappUrl;
+  final String instagramUrl;
 
   factory Club.fromJson(Map<String, dynamic> json) {
     final category = json['category']?.toString() ?? 'technical';
@@ -39,6 +45,9 @@ class Club {
       startColor: colors.$1,
       endColor: colors.$2,
       upcomingEvents: (json['upcomingEvents'] as num?)?.toInt() ?? 0,
+      fullForm: json['fullForm']?.toString() ?? '',
+      whatsappUrl: json['whatsappUrl']?.toString() ?? '',
+      instagramUrl: json['instagramUrl']?.toString() ?? '',
     );
   }
 
