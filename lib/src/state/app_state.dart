@@ -689,6 +689,16 @@ class AppState extends ChangeNotifier {
     return response as Map<String, dynamic>;
   }
 
+  Future<void> deleteNotification(String notificationId) async {
+    await _apiClient.delete('/notifications/$notificationId');
+    await refreshAll();
+  }
+
+  Future<void> deleteTeacher(String teacherId) async {
+    await _apiClient.delete('/users/$teacherId');
+    await refreshAll();
+  }
+
   Future<UserSession> _fetchCurrentUser() async {
     final response = await _apiClient.get('/auth/me') as Map<String, dynamic>;
     return UserSession.fromJson(response);

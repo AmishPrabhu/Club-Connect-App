@@ -15,6 +15,11 @@ class Club {
     this.fullForm = '',
     this.whatsappUrl = '',
     this.instagramUrl = '',
+    this.presidentEmail = '',
+    this.secretaryEmail = '',
+    this.treasurerEmail = '',
+    this.advisorEmail = '',
+    this.advisorName = '',
   });
 
   final String id;
@@ -30,6 +35,11 @@ class Club {
   final String fullForm;
   final String whatsappUrl;
   final String instagramUrl;
+  final String presidentEmail;
+  final String secretaryEmail;
+  final String treasurerEmail;
+  final String advisorEmail;
+  final String advisorName;
 
   factory Club.fromJson(Map<String, dynamic> json) {
     final category = json['category']?.toString() ?? 'technical';
@@ -48,6 +58,11 @@ class Club {
       fullForm: json['fullForm']?.toString() ?? '',
       whatsappUrl: json['whatsappUrl']?.toString() ?? '',
       instagramUrl: json['instagramUrl']?.toString() ?? '',
+      presidentEmail: json['presidentEmail']?.toString() ?? '',
+      secretaryEmail: json['secretaryEmail']?.toString() ?? '',
+      treasurerEmail: json['treasurerEmail']?.toString() ?? '',
+      advisorEmail: json['advisorEmail']?.toString() ?? '',
+      advisorName: json['advisorName']?.toString() ?? '',
     );
   }
 

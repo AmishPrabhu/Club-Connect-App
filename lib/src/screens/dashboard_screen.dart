@@ -6,6 +6,7 @@ import 'dart:io';
 
 import '../models/club.dart';
 import '../models/post_item.dart';
+import '../models/notification_item.dart';
 import '../models/user_session.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
@@ -29,6 +30,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<Club> _monitoredClubs = [];
   bool _isLoadingMonitored = false;
   bool _isUploadingLogo = false;
+  String _clubSearchQuery = '';
 
   // Futures for asynchronous views
   Future<List<Map<String, dynamic>>>? _membersFuture;
@@ -121,8 +123,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     switch (section) {
       case 'Overview':
         return Icons.trending_up_rounded;
+      case 'Manage Clubs':
       case 'Members':
         return Icons.groups_rounded;
+      case 'Manage Posts':
       case 'Posts & Announcements':
         return Icons.edit_note_rounded;
       case 'Events':
@@ -133,11 +137,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return Icons.chat_bubble_outline_rounded;
       case 'Notifications':
         return Icons.notifications_active_outlined;
+      case 'Teachers':
+        return Icons.person_outline_rounded;
       case 'Budgets':
         return Icons.account_balance_wallet_outlined;
       default:
         return Icons.circle_outlined;
     }
+  }
+
+  String _dropdownHeaderLabel(String section) {
+    if (section == 'Manage Clubs') return 'Clubs';
+    if (section == 'Manage Posts') return 'Posts';
+    return section;
   }
 
   @override
@@ -150,85 +162,117 @@ class _DashboardScreenState extends State<DashboardScreen> {
         session.role == 'treasurer' ||
         session.role == 'advisor';
 
-    final List<String> availableSections = [
-      'Overview',
-      'Members',
-      'Posts & Announcements',
-      'Events',
-      'Tasks',
-      'Live Chat',
-      'Notifications',
-      if (isAdmin || session.role == 'advisor' || session.role == 'president' || session.role == 'treasurer')
-        'Budgets',
-    ];
+    final List<String> availableSections = isAdmin
+        ? ['Overview', 'Manage Clubs', 'Manage Posts', 'Notifications', 'Teachers']
+        : [
+            'Overview',
+            'Members',
+            'Posts & Announcements',
+            'Events',
+            'Tasks',
+            'Live Chat',
+            'Notifications',
+            if (session.role == 'advisor' || session.role == 'president' || session.role == 'treasurer')
+              'Budgets',
+          ];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(isOfficer ? 'Club Dashboard' : 'Campus Dashboard'),
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.navy,
-        elevation: 0,
-      ),
+      appBar: isAdmin
+          ? null
+          : AppBar(
+              title: Text(isOfficer ? 'Club Dashboard' : 'Campus Dashboard'),
+              backgroundColor: Colors.white,
+              foregroundColor: AppTheme.navy,
+              elevation: 0,
+            ),
       body: _isLoadingMonitored
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                // Top Club Selector for Admin / Teacher
-                if (isAdmin)
-                  _buildClubSelectorHeader(widget.appState.clubs)
-                else if (isTeacher)
-                  _buildClubSelectorHeader(_monitoredClubs, onAddMonitored: _showAddMonitoredClubDialog),
+          : SafeArea(
+              child: Column(
+                children: [
+                  // Top Club Selector for Admin / Teacher
+                  if (!isAdmin && isTeacher)
+                    _buildClubSelectorHeader(_monitoredClubs, onAddMonitored: _showAddMonitoredClubDialog),
 
-                if (_selectedClub == null)
-                  Expanded(
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.shield_outlined, size: 64, color: Colors.grey),
-                            const SizedBox(height: 12),
-                            const Text('No Club Selected', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                            const SizedBox(height: 6),
-                            Text(
-                              isTeacher ? 'Please add a club to monitor first.' : 'No clubs available to manage.',
-                              style: const TextStyle(color: Colors.grey),
-                              textAlign: TextAlign.center,
-                            ),
-                            if (isTeacher) ...[
-                              const SizedBox(height: 16),
-                              FilledButton.icon(
-                                onPressed: _showAddMonitoredClubDialog,
-                                icon: const Icon(Icons.add),
-                                label: const Text('Add Club to Monitor'),
-                              )
+                  if (isAdmin)
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: () async {
+                          await widget.appState.refreshAll();
+                          _reloadSectionData();
+                        },
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Column(
+                            children: [
+                              if (_selectedSection == 'Overview') ...[
+                                _buildAdminHeaderCard(session),
+                                _buildAdminStatsGrid(),
+                              ],
+                              _buildDropdownNavigation(availableSections, isAdmin),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                                child: _buildActiveSectionView(session),
+                              ),
                             ],
-                          ],
+                          ),
                         ),
                       ),
-                    ),
-                  )
-                else ...[
-                  // Dropdown Navigation Selector
-                  _buildDropdownNavigation(availableSections),
+                    )
+                  else ...[
+                    if (_selectedClub == null)
+                      Expanded(
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.shield_outlined, size: 64, color: Colors.grey),
+                                const SizedBox(height: 12),
+                                const Text('No Club Selected', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                const SizedBox(height: 6),
+                                Text(
+                                  isTeacher ? 'Please add a club to monitor first.' : 'No clubs available to manage.',
+                                  style: const TextStyle(color: Colors.grey),
+                                  textAlign: TextAlign.center,
+                                ),
+                                if (isTeacher) ...[
+                                  const SizedBox(height: 16),
+                                  FilledButton.icon(
+                                    onPressed: _showAddMonitoredClubDialog,
+                                    icon: const Icon(Icons.add),
+                                    label: const Text('Add Club to Monitor'),
+                                  )
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    else ...[
+                      // Dropdown Navigation Selector
+                      _buildDropdownNavigation(availableSections, isAdmin),
 
-                  // Active view body
-                  Expanded(
-                    child: RefreshIndicator(
-                      onRefresh: () async {
-                        await widget.appState.refreshAll();
-                        _reloadSectionData();
-                      },
-                      child: SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                        child: _buildActiveSectionView(session),
+                      // Active view body
+                      Expanded(
+                        child: RefreshIndicator(
+                          onRefresh: () async {
+                            await widget.appState.refreshAll();
+                            _reloadSectionData();
+                          },
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                            child: _buildActiveSectionView(session),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
+                    ],
+                  ],
                 ],
-              ],
+              ),
             ),
     );
   }
@@ -283,7 +327,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildDropdownNavigation(List<String> availableSections) {
+  Widget _buildDropdownNavigation(List<String> availableSections, bool isAdmin) {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 12, 20, 12),
       decoration: BoxDecoration(
@@ -310,7 +354,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const Icon(Icons.menu_rounded, color: AppTheme.blue),
                   const SizedBox(width: 12),
                   Text(
-                    _selectedSection,
+                    isAdmin ? _dropdownHeaderLabel(_selectedSection) : _selectedSection,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: AppTheme.blue,
@@ -364,11 +408,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildActiveSectionView(UserSession session) {
-    if (_selectedClub == null) return const SizedBox.shrink();
+    if (session.role != 'admin' && _selectedClub == null) return const SizedBox.shrink();
 
     switch (_selectedSection) {
       case 'Overview':
-        return _buildOverviewView(session);
+        return session.role == 'admin' ? _buildAdminOverviewSection() : _buildOverviewView(session);
+      case 'Manage Clubs':
+        return _buildManageClubsSection();
+      case 'Manage Posts':
+        return _buildManagePostsSection();
+      case 'Notifications':
+        return session.role == 'admin' ? _buildAdminNotificationsSection() : _buildNotificationsView(session);
+      case 'Teachers':
+        return session.role == 'admin' ? _buildAdminTeachersSection() : const SizedBox.shrink();
       case 'Members':
         return _buildMembersView(session);
       case 'Posts & Announcements':
@@ -379,13 +431,1391 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return _buildTasksView(session);
       case 'Live Chat':
         return _buildMessagesView(session);
-      case 'Notifications':
-        return _buildNotificationsView(session);
       case 'Budgets':
         return _buildBudgetView(session);
       default:
         return const SizedBox.shrink();
     }
+  }
+
+  // ─── ADMIN DASHBOARD HELPER METHODS ────────────────────────────────────────
+
+  Widget _buildAdminHeaderCard(UserSession session) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Administrative Control Center',
+            style: TextStyle(
+              color: AppTheme.navy,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Manage clubs, events, and system settings •',
+            style: TextStyle(
+              color: Colors.grey,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Welcome, ${session.name}',
+            style: const TextStyle(
+              color: Colors.blue,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAdminStatsGrid() {
+    final clubsCount = widget.appState.clubs.length;
+    final events = widget.appState.posts.where((p) => p.isEvent).toList();
+    final announcementsCount = widget.appState.posts.where((p) => p.type == 'announcement').length;
+    final alertsCount = widget.appState.notifications.length;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        children: [
+          _buildStatCard(
+            icon: Icons.people_alt_outlined,
+            iconColor: Colors.blue.shade700,
+            iconBgColor: Colors.blue.shade50,
+            value: '$clubsCount',
+            label: 'TOTAL CLUBS',
+          ),
+          _buildStatCard(
+            icon: Icons.calendar_month_outlined,
+            iconColor: Colors.blue.shade700,
+            iconBgColor: Colors.blue.shade50,
+            value: '${events.length}',
+            label: 'UPCOMING',
+          ),
+          _buildStatCard(
+            icon: Icons.trending_up_rounded,
+            iconColor: Colors.purple.shade700,
+            iconBgColor: Colors.purple.shade50,
+            value: '${events.length + announcementsCount}',
+            label: 'POSTS',
+          ),
+          _buildStatCard(
+            icon: Icons.notifications_none_rounded,
+            iconColor: Colors.red.shade700,
+            iconBgColor: Colors.red.shade50,
+            value: '$alertsCount',
+            label: 'ALERTS',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard({
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBgColor,
+    required String value,
+    required String label,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: iconBgColor,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: iconColor, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.navy,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentEventCard(PostItem post) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Row(
+          children: [
+            Container(width: 4, height: 90, color: Colors.cyan.shade600),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.cyan.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.calendar_today_outlined, color: Colors.cyan.shade700, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.cyan.shade100.withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'EVENT',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF006064),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(Icons.access_time, size: 11, color: Colors.grey.shade500),
+                              const SizedBox(width: 4),
+                              Text(
+                                post.date != null
+                                    ? '${post.date!.year}-${post.date!.month.toString().padLeft(2, '0')}-${post.date!.day.toString().padLeft(2, '0')}'
+                                    : '',
+                                style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            post.title,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.navy,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Posted by ${post.clubName}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdminOverviewSection() {
+    final events = widget.appState.posts.where((p) => p.isEvent).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  Container(width: 4, height: 18, color: Colors.blue.shade700),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Recent Campus Activity',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.navy,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => setState(() => _selectedSection = 'Manage Posts'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.cyan.shade50.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'VIEW ALL ACTIVITY',
+                      style: TextStyle(
+                        color: Colors.teal.shade700,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.north_east_rounded, size: 12, color: Colors.teal.shade700),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (events.isEmpty)
+          const Center(child: Text('No recent events.'))
+        else
+          ...events.map((e) => _buildRecentEventCard(e)),
+      ],
+    );
+  }
+
+  Widget _buildManageClubsSection() {
+    final clubs = widget.appState.clubs.where((club) {
+      return club.name.toLowerCase().contains(_clubSearchQuery.toLowerCase());
+    }).toList();
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  hintText: 'Search clubs by name...',
+                  fillColor: Colors.white,
+                  filled: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade200),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade200),
+                  ),
+                ),
+                onChanged: (val) => setState(() => _clubSearchQuery = val),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.blue,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: _showCreateClubDialog,
+            icon: const Icon(Icons.add, color: Colors.white),
+            label: const Text('NEW CLUB', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (clubs.isEmpty)
+          const Center(child: Text('No clubs found.'))
+        else
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: clubs.length,
+            itemBuilder: (context, index) {
+              final club = clubs[index];
+              return _buildAdminClubCard(club);
+            },
+          ),
+      ],
+    );
+  }
+
+  Widget _buildAdminClubCard(Club club) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                padding: const EdgeInsets.all(4),
+                child: club.imageAsset.isNotEmpty
+                    ? (club.imageAsset.startsWith('http')
+                        ? Image.network(club.imageAsset, fit: BoxFit.contain)
+                        : Image.asset(
+                            club.imageAsset.startsWith('/')
+                                ? 'assets/images${club.imageAsset}'
+                                : club.imageAsset,
+                            fit: BoxFit.contain,
+                          ))
+                    : const Icon(Icons.groups_rounded, size: 36, color: Colors.grey),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      club.name,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.navy,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        _buildCategoryBadge(club.category),
+                        _buildDeptBadge('CSE'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(),
+                    icon: const Icon(Icons.image_outlined, color: Colors.grey, size: 18),
+                    onPressed: () => _pickAndUploadLogoForClub(club),
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(),
+                    icon: const Icon(Icons.tune_outlined, color: Colors.grey, size: 18),
+                    onPressed: () => _showEditClubDialog(club),
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(),
+                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
+                    onPressed: () => _showDeleteClubConfirmation(club),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            club.description,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey.shade700,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade100),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'CLUB LEADERSHIP',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                FutureBuilder<List<Map<String, dynamic>>>(
+                  future: widget.appState.fetchClubMembers(club.id),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      );
+                    }
+                    final members = snapshot.data ?? [];
+
+                    Map<String, dynamic>? findOfficer(String roleKey, String clubEmail, [String advisorName = '']) {
+                      final registered = members.where((m) {
+                        final r = m['role']?.toString().toLowerCase();
+                        if (roleKey == 'club-secretary') {
+                          return r == 'club-secretary' || r == 'secretary';
+                        }
+                        return r == roleKey;
+                      }).firstOrNull;
+
+                      if (registered != null) return registered;
+
+                      if (clubEmail.isNotEmpty) {
+                        return {
+                          'name': advisorName.isNotEmpty ? advisorName : clubEmail.split('@')[0],
+                          'email': clubEmail,
+                          'role': roleKey,
+                        };
+                      }
+
+                      return null;
+                    }
+
+                    final secretary = findOfficer('club-secretary', club.secretaryEmail);
+                    final president = findOfficer('president', club.presidentEmail);
+                    final treasurer = findOfficer('treasurer', club.treasurerEmail);
+                    final advisor = findOfficer('advisor', club.advisorEmail, club.advisorName);
+
+                    return Column(
+                      children: [
+                        _buildLeadershipRoleRow(club, 'Secretary', secretary, 'club-secretary'),
+                        const Divider(height: 12, thickness: 0.5),
+                        _buildLeadershipRoleRow(club, 'President', president, 'president'),
+                        const Divider(height: 12, thickness: 0.5),
+                        _buildLeadershipRoleRow(club, 'Treasurer', treasurer, 'treasurer'),
+                        const Divider(height: 12, thickness: 0.5),
+                        _buildLeadershipRoleRow(club, 'Advisor', advisor, 'advisor'),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryBadge(String category) {
+    Color bgColor = Colors.blue.shade50;
+    Color textColor = Colors.blue.shade700;
+
+    switch (category.toLowerCase()) {
+      case 'academic':
+        bgColor = Colors.green.shade50;
+        textColor = Colors.green.shade700;
+      case 'cultural':
+        bgColor = Colors.purple.shade50;
+        textColor = Colors.purple.shade700;
+      case 'sports':
+        bgColor = Colors.orange.shade50;
+        textColor = Colors.orange.shade700;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        category.toUpperCase(),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: textColor,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeptBadge(String dept) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.deepPurple.shade50,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        dept.toUpperCase(),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: Colors.deepPurple.shade700,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLeadershipRoleRow(Club club, String roleLabel, Map<String, dynamic>? member, String roleKey) {
+    if (member != null) {
+      final email = member['email']?.toString() ?? '';
+      final name = member['name']?.toString() ?? email;
+      final display = name.split('@')[0];
+
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Text(
+                  '$roleLabel: ',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                ),
+                Expanded(
+                  child: Text(
+                    display,
+                    style: const TextStyle(color: Colors.green, fontSize: 13, fontWeight: FontWeight.w500),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: Text('Remove $roleLabel'),
+                  content: Text('Are you sure you want to remove $name from the $roleLabel role?'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+                    FilledButton(
+                      style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: const Text('Remove'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                await widget.appState.removeClubOfficer(club.id, roleKey);
+                _reloadSectionData();
+              }
+            },
+            child: const Icon(Icons.close, size: 16, color: Colors.redAccent),
+          ),
+        ],
+      );
+    } else {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            '$roleLabel: ',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+          ),
+          GestureDetector(
+            onTap: () => _showAssignLeadershipDialog(club, roleLabel, roleKey),
+            child: Row(
+              children: [
+                const Icon(Icons.add, size: 14, color: AppTheme.blue),
+                const SizedBox(width: 4),
+                Text(
+                  'Assign',
+                  style: TextStyle(color: AppTheme.blue, fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+  }
+
+  Future<void> _showAssignLeadershipDialog(Club club, String roleLabel, String roleKey) async {
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        final navigator = Navigator.of(context);
+        return AlertDialog(
+          title: Text('Assign $roleLabel'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Name'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(labelText: 'Email (@walchandsangli.ac.in)'),
+                keyboardType: TextInputType.emailAddress,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: navigator.pop, child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () async {
+                final email = emailController.text.trim();
+                final name = nameController.text.trim();
+                if (email.isEmpty || name.isEmpty) return;
+
+                await widget.appState.assignOfficer(
+                  clubId: club.id,
+                  email: email,
+                  name: name,
+                  role: roleKey,
+                );
+                navigator.pop();
+                _reloadSectionData();
+              },
+              child: const Text('Assign'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _pickAndUploadLogoForClub(Club club) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _isUploadingLogo = true;
+      });
+      final file = File(pickedFile.path);
+      final imageUrl = await CloudinaryService.uploadImage(file);
+      if (imageUrl != null) {
+        await widget.appState.updateClub(club.id, {'image': imageUrl});
+        await widget.appState.refreshAll();
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to upload image.')),
+          );
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _isUploadingLogo = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _showEditClubDialog(Club club) async {
+    final nameController = TextEditingController(text: club.name);
+    final fullFormController = TextEditingController(text: club.fullForm);
+    final descriptionController = TextEditingController(text: club.description);
+    String category = club.category.toLowerCase();
+    if (category != 'technical' && category != 'academic' && category != 'cultural' && category != 'sports') {
+      category = 'technical';
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        final navigator = Navigator.of(context);
+        return AlertDialog(
+          title: const Text('Edit Club Details'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Club Name')),
+                const SizedBox(height: 12),
+                TextField(controller: fullFormController, decoration: const InputDecoration(labelText: 'Full Form')),
+                const SizedBox(height: 12),
+                TextField(controller: descriptionController, maxLines: 3, decoration: const InputDecoration(labelText: 'Description')),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: category,
+                  items: const [
+                    DropdownMenuItem(value: 'technical', child: Text('Technical')),
+                    DropdownMenuItem(value: 'academic', child: Text('Academic')),
+                    DropdownMenuItem(value: 'cultural', child: Text('Cultural')),
+                    DropdownMenuItem(value: 'sports', child: Text('Sports')),
+                  ],
+                  onChanged: (value) => category = value ?? 'technical',
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: navigator.pop, child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () async {
+                await widget.appState.updateClub(club.id, {
+                  'name': nameController.text.trim(),
+                  'fullForm': fullFormController.text.trim(),
+                  'description': descriptionController.text.trim(),
+                  'category': category,
+                });
+                navigator.pop();
+                await widget.appState.refreshAll();
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showDeleteClubConfirmation(Club club) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Club'),
+        content: Text('Are you sure you want to delete ${club.name}? This will remove all members, posts, and details of this club.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      await widget.appState.deleteClub(club.id);
+      await widget.appState.refreshAll();
+    }
+  }
+
+  Widget _buildManagePostsSection() {
+    final posts = widget.appState.posts;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'All Posts & Announcements',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.navy,
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (posts.isEmpty)
+          const Center(child: Text('No posts found.'))
+        else
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: posts.length,
+            itemBuilder: (context, index) {
+              final post = posts[index];
+              return _buildAdminPostCard(post);
+            },
+          ),
+      ],
+    );
+  }
+
+  Widget _buildAdminPostCard(PostItem post) {
+    final isEvent = post.isEvent;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Row(
+          children: [
+            Container(width: 4, height: 85, color: isEvent ? Colors.cyan.shade600 : Colors.orange.shade600),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isEvent ? Colors.cyan.shade50 : Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        isEvent ? Icons.calendar_today_outlined : Icons.campaign_outlined,
+                        color: isEvent ? Colors.cyan.shade700 : Colors.orange.shade700,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isEvent
+                                      ? Colors.cyan.shade100.withValues(alpha: 0.5)
+                                      : Colors.orange.shade100.withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  isEvent ? 'EVENT' : 'ANNOUNCEMENT',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    color: isEvent ? Colors.cyan.shade800 : Colors.orange.shade800,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              if (post.date != null) ...[
+                                Icon(Icons.access_time, size: 11, color: Colors.grey.shade500),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${post.date!.year}-${post.date!.month.toString().padLeft(2, '0')}-${post.date!.day.toString().padLeft(2, '0')}',
+                                  style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            post.title,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.navy,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Posted by ${post.clubName}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, color: Colors.grey),
+                      onPressed: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Delete Post'),
+                            content: const Text('Are you sure you want to delete this post?'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+                              FilledButton(
+                                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                                onPressed: () => Navigator.of(ctx).pop(true),
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirm == true) {
+                          await widget.appState.deletePost(post.id);
+                          _reloadSectionData();
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdminNotificationsSection() {
+    final notifications = widget.appState.notifications;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Expanded(
+              child: Text(
+                'System Broadcasts',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.navy,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 12),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.blue,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: _showNotificationDialog,
+              icon: const Icon(Icons.send_rounded, color: Colors.white, size: 16),
+              label: const Text('NEW BROADCAST', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (notifications.isEmpty)
+          const Center(child: Text('No notifications broadcasts found.'))
+        else
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: notifications.length,
+            itemBuilder: (context, index) {
+              final n = notifications[index];
+              return _buildAdminNotificationCard(n);
+            },
+          ),
+      ],
+    );
+  }
+
+  Widget _buildAdminNotificationCard(NotificationItem n) {
+    final typeLabel = n.type.toUpperCase();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Row(
+          children: [
+            Container(width: 4, height: 95, color: AppTheme.blue),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                typeLabel,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue.shade800,
+                                ),
+                              ),
+                              if (n.timeAgo.isNotEmpty) ...[
+                                const SizedBox(width: 6),
+                                Text(
+                                  '•  ${n.timeAgo}',
+                                  style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            n.title,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.navy,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            n.message,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, color: Colors.grey),
+                      onPressed: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Delete Broadcast'),
+                            content: const Text('Are you sure you want to delete this notification broadcast?'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+                              FilledButton(
+                                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                                onPressed: () => Navigator.of(ctx).pop(true),
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirm == true) {
+                          await widget.appState.deleteNotification(n.id);
+                          _reloadSectionData();
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdminTeachersSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  Container(width: 4, height: 18, color: Colors.green.shade600),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Teacher Management',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.navy,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.green.shade600,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: _showAssignTeacherDialog,
+              icon: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 16),
+              label: const Text('Add Teacher', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.green.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.green.shade100),
+          ),
+          child: Text(
+            'Note: Teachers can monitor event reports from clubs they manage. When you add a teacher by email, they will receive an invitation to create their account.',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.green.shade800,
+              fontWeight: FontWeight.w500,
+              height: 1.4,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        FutureBuilder<List<Map<String, dynamic>>>(
+          future: _teachersFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final teachers = snapshot.data ?? [];
+            if (teachers.isEmpty) {
+              return const Center(child: Text('No teachers assigned.'));
+            }
+            return ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: teachers.length,
+              itemBuilder: (context, index) {
+                final teacher = teachers[index];
+                return _buildAdminTeacherCard(teacher);
+              },
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAdminTeacherCard(Map<String, dynamic> teacher) {
+    final tId = teacher['_id']?.toString() ?? teacher['id']?.toString() ?? '';
+    final name = teacher['name']?.toString() ?? 'Teacher';
+    final email = teacher['email']?.toString() ?? '';
+
+    int managedCount = 0;
+    if (teacher['monitoredClubs'] is List) {
+      managedCount = (teacher['monitoredClubs'] as List).length;
+    } else if (teacher['clubs'] is List) {
+      managedCount = (teacher['clubs'] as List).length;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            right: 0,
+            child: GestureDetector(
+              onTap: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Delete Teacher'),
+                    content: Text('Are you sure you want to delete teacher $name? This will remove their monitor access.'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+                      FilledButton(
+                        style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        child: const Text('Delete'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  await widget.appState.deleteTeacher(tId);
+                  setState(() {
+                    _teachersFuture = widget.appState.fetchTeachers();
+                  });
+                }
+              },
+              child: Icon(Icons.delete_outline_rounded, color: Colors.grey.shade400, size: 22),
+            ),
+          ),
+          Center(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: CircleAvatar(
+                    radius: 36,
+                    backgroundColor: Colors.white,
+                    child: Icon(Icons.person_outline_rounded, color: Colors.grey.shade400, size: 36),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.navy,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  email,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.shade50.withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$managedCount CLUBS MANAGED',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.teal.shade800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // ─── OVERVIEW TAB ──────────────────────────────────────────────────────────
