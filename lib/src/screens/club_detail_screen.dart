@@ -34,7 +34,56 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
   void initState() {
     super.initState();
     _club = widget.club;
+    widget.appState.addListener(_onAppStateChanged);
     _refreshMembers();
+  }
+
+  @override
+  void dispose() {
+    widget.appState.removeListener(_onAppStateChanged);
+    super.dispose();
+  }
+
+  void _onAppStateChanged() {
+    if (!mounted) return;
+    setState(() {
+      final matches = widget.appState.clubs.where((c) => c.id == _club.id).toList();
+      if (matches.isNotEmpty) {
+        _club = matches.first;
+      }
+    });
+  }
+
+  void _showSuccessSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+        ),
+        backgroundColor: Colors.green.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+        ),
+        backgroundColor: Colors.red.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   void _refreshMembers() {
@@ -51,17 +100,9 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
       setState(() {
         _club = updatedClub;
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Club updated successfully!')),
-        );
-      }
+      _showSuccessSnackBar('Club updated successfully!');
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update club: $e')),
-        );
-      }
+      _showErrorSnackBar('Failed to update club: $e');
     }
   }
 
@@ -673,7 +714,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
               onPressed: () async {
                 if (nameController.text.isEmpty || emailController.text.isEmpty) return;
                 
-                try {
+                 try {
                   if (isEditing) {
                     final memberId = member['_id']?.toString() ?? member['id']?.toString() ?? '';
                     await widget.appState.updateClubMember(_club.id, memberId, {
@@ -683,6 +724,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                       'boardType': boardType,
                       'academicYear': academicYear,
                     });
+                    _showSuccessSnackBar('Member "${nameController.text}" updated successfully!');
                   } else {
                     await widget.appState.addClubMember(
                       _club.id,
@@ -693,17 +735,14 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                       academicYear: academicYear,
                       joinedAt: DateTime.now(),
                     );
+                    _showSuccessSnackBar('Member "${nameController.text}" added successfully!');
                   }
                   if (context.mounted) {
                     Navigator.of(ctx).pop();
                     _refreshMembers();
                   }
                 } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
-                  }
+                  _showErrorSnackBar('Failed to save member: $e');
                 }
               },
               child: Text(isEditing ? 'Save Changes' : 'Add Member'),
@@ -937,8 +976,13 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                                                 ),
                                               );
                                               if (confirm == true) {
-                                                await widget.appState.removeClubMember(_club.id, memberId);
-                                                _refreshMembers();
+                                                try {
+                                                  await widget.appState.removeClubMember(_club.id, memberId);
+                                                  _showSuccessSnackBar('Member "${member['name']}" removed successfully!');
+                                                  _refreshMembers();
+                                                } catch (e) {
+                                                  _showErrorSnackBar('Failed to remove member: $e');
+                                                }
                                               }
                                             },
                                           ),
@@ -1043,8 +1087,13 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                                         ),
                                       );
                                       if (confirm == true) {
-                                        await widget.appState.deletePost(post.id);
-                                        _refreshMembers(); 
+                                        try {
+                                          await widget.appState.deletePost(post.id);
+                                          _showSuccessSnackBar('Post deleted successfully!');
+                                          _refreshMembers();
+                                        } catch (e) {
+                                          _showErrorSnackBar('Failed to delete post: $e');
+                                        }
                                       }
                                     },
                                   ),
@@ -1087,9 +1136,14 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                             ),
                           );
                           if (confirm == true) {
-                            await widget.appState.deleteClub(_club.id);
-                            if (context.mounted) {
-                              Navigator.of(context).pop();
+                            try {
+                              await widget.appState.deleteClub(_club.id);
+                              _showSuccessSnackBar('Club "${_club.name}" deleted successfully!');
+                              if (context.mounted) {
+                                Navigator.of(context).pop();
+                              }
+                            } catch (e) {
+                              _showErrorSnackBar('Failed to delete club: $e');
                             }
                           }
                         },

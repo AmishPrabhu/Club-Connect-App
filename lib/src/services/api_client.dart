@@ -93,9 +93,14 @@ class ApiClient {
       );
     }
 
-    final dynamic payload = response.body.isEmpty
-        ? null
-        : jsonDecode(response.body);
+    dynamic payload;
+    if (response.body.isNotEmpty) {
+      try {
+        payload = jsonDecode(response.body);
+      } catch (_) {
+        // Not a JSON payload, or malformed JSON
+      }
+    }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final payloadMap = payload is Map<String, dynamic> ? payload : null;

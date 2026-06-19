@@ -46,14 +46,74 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    widget.appState.addListener(_onAppStateChanged);
     _initializeDashboard();
   }
 
   @override
   void dispose() {
+    widget.appState.removeListener(_onAppStateChanged);
     _chatController.dispose();
     _chatScrollController.dispose();
     super.dispose();
+  }
+
+  void _onAppStateChanged() {
+    if (!mounted) return;
+    setState(() {
+      if (_selectedClub != null) {
+        final matches = widget.appState.clubs.where((c) => c.id == _selectedClub!.id).toList();
+        if (matches.isNotEmpty) {
+          _selectedClub = matches.first;
+        } else {
+          _selectedClub = widget.appState.clubs.isNotEmpty ? widget.appState.clubs.first : null;
+        }
+      } else if (widget.appState.clubs.isNotEmpty) {
+        _selectedClub = widget.appState.clubs.first;
+      }
+
+      final session = widget.appState.session;
+      if (session != null) {
+        if (session.role == 'president' ||
+            session.role == 'club-secretary' ||
+            session.role == 'treasurer' ||
+            session.role == 'advisor') {
+          _selectedClub = _resolveManagedClub(session);
+        }
+      }
+    });
+  }
+
+  void _showSuccessSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+        ),
+        backgroundColor: Colors.green.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+        ),
+        backgroundColor: Colors.red.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   void _initializeDashboard() async {
@@ -1103,8 +1163,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               );
               if (confirm == true) {
-                await widget.appState.removeClubOfficer(club.id, roleKey);
-                _reloadSectionData();
+                try {
+                  await widget.appState.removeClubOfficer(club.id, roleKey);
+                  _showSuccessSnackBar('$roleLabel removed successfully!');
+                  _reloadSectionData();
+                } catch (e) {
+                  _showErrorSnackBar('Failed to remove $roleLabel: $e');
+                }
               }
             },
             child: const Icon(Icons.close, size: 16, color: Colors.redAccent),
@@ -1168,16 +1233,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
               onPressed: () async {
                 final email = emailController.text.trim();
                 final name = nameController.text.trim();
-                if (email.isEmpty || name.isEmpty) return;
-
-                await widget.appState.assignOfficer(
-                  clubId: club.id,
-                  email: email,
-                  name: name,
-                  role: roleKey,
-                );
-                navigator.pop();
-                _reloadSectionData();
+                if (email.isEmpty || name.isEmpty) {
+                  _showErrorSnackBar('Please fill in both name and email.');
+                  return;
+                }
+                try {
+                  await widget.appState.assignOfficer(
+                    clubId: club.id,
+                    email: email,
+                    name: name,
+                    role: roleKey,
+                  );
+                  _showSuccessSnackBar('$roleLabel assigned to $name successfully!');
+                  _reloadSectionData();
+                  navigator.pop();
+                } catch (e) {
+                  _showErrorSnackBar('Failed to assign $roleLabel: $e');
+                }
               },
               child: const Text('Assign'),
             ),
@@ -1194,22 +1266,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
       setState(() {
         _isUploadingLogo = true;
       });
-      final file = File(pickedFile.path);
-      final imageUrl = await CloudinaryService.uploadImage(file);
-      if (imageUrl != null) {
-        await widget.appState.updateClub(club.id, {'image': imageUrl});
-        await widget.appState.refreshAll();
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to upload image.')),
-          );
+      try {
+        final file = File(pickedFile.path);
+        final imageUrl = await CloudinaryService.uploadImage(file);
+        if (imageUrl != null) {
+          await widget.appState.updateClub(club.id, {'image': imageUrl});
+          _showSuccessSnackBar('Club logo updated successfully!');
+          await widget.appState.refreshAll();
+        } else {
+          _showErrorSnackBar('Failed to upload image.');
         }
-      }
-      if (mounted) {
-        setState(() {
-          _isUploadingLogo = false;
-        });
+      } catch (e) {
+        _showErrorSnackBar('Error uploading image: $e');
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isUploadingLogo = false;
+          });
+        }
       }
     }
   }
@@ -1256,14 +1330,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
             TextButton(onPressed: navigator.pop, child: const Text('Cancel')),
             FilledButton(
               onPressed: () async {
-                await widget.appState.updateClub(club.id, {
-                  'name': nameController.text.trim(),
-                  'fullForm': fullFormController.text.trim(),
-                  'description': descriptionController.text.trim(),
-                  'category': category,
-                });
-                navigator.pop();
-                await widget.appState.refreshAll();
+                final name = nameController.text.trim();
+                if (name.isEmpty) {
+                  _showErrorSnackBar('Club name cannot be empty');
+                  return;
+                }
+                try {
+                  await widget.appState.updateClub(club.id, {
+                    'name': name,
+                    'fullForm': fullFormController.text.trim(),
+                    'description': descriptionController.text.trim(),
+                    'category': category,
+                  });
+                  _showSuccessSnackBar('Club "$name" updated successfully!');
+                  navigator.pop();
+                  await widget.appState.refreshAll();
+                } catch (e) {
+                  _showErrorSnackBar('Failed to update club: $e');
+                }
               },
               child: const Text('Save'),
             ),
@@ -1290,8 +1374,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
     if (confirm == true) {
-      await widget.appState.deleteClub(club.id);
-      await widget.appState.refreshAll();
+      try {
+        await widget.appState.deleteClub(club.id);
+        _showSuccessSnackBar('Club "${club.name}" deleted successfully!');
+        await widget.appState.refreshAll();
+      } catch (e) {
+        _showErrorSnackBar('Failed to delete club: $e');
+      }
     }
   }
 
@@ -1440,8 +1529,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         );
                         if (confirm == true) {
-                          await widget.appState.deletePost(post.id);
-                          _reloadSectionData();
+                          try {
+                            await widget.appState.deletePost(post.id);
+                            _showSuccessSnackBar('Post deleted successfully!');
+                            _reloadSectionData();
+                          } catch (e) {
+                            _showErrorSnackBar('Failed to delete post: $e');
+                          }
                         }
                       },
                     ),
@@ -1598,8 +1692,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         );
                         if (confirm == true) {
-                          await widget.appState.deleteNotification(n.id);
-                          _reloadSectionData();
+                          try {
+                            await widget.appState.deleteNotification(n.id);
+                            _showSuccessSnackBar('Broadcast notification deleted successfully!');
+                            _reloadSectionData();
+                          } catch (e) {
+                            _showErrorSnackBar('Failed to delete notification: $e');
+                          }
                         }
                       },
                     ),
@@ -1745,10 +1844,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 );
                 if (confirm == true) {
-                  await widget.appState.deleteTeacher(tId);
-                  setState(() {
-                    _teachersFuture = widget.appState.fetchTeachers();
-                  });
+                  try {
+                    await widget.appState.deleteTeacher(tId);
+                    _showSuccessSnackBar('Teacher "$name" deleted successfully!');
+                    setState(() {
+                      _teachersFuture = widget.appState.fetchTeachers();
+                    });
+                  } catch (e) {
+                    _showErrorSnackBar('Failed to delete teacher: $e');
+                  }
                 }
               },
               child: Icon(Icons.delete_outline_rounded, color: Colors.grey.shade400, size: 22),
@@ -2369,13 +2473,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         content: Text('Are you sure you want to remove ${m['name']}?'),
                                         actions: [
                                           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-                                          FilledButton(style: FilledButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Remove')),
+                                          FilledButton(
+                                            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                                            onPressed: () => Navigator.of(ctx).pop(true),
+                                            child: const Text('Remove'),
+                                          ),
                                         ],
                                       ),
                                     );
                                     if (confirm == true) {
-                                      await widget.appState.removeClubMember(_selectedClub!.id, mId);
-                                      _reloadSectionData();
+                                      try {
+                                        await widget.appState.removeClubMember(_selectedClub!.id, mId);
+                                        _showSuccessSnackBar('Member "${m['name']}" removed successfully!');
+                                        _reloadSectionData();
+                                      } catch (e) {
+                                        _showErrorSnackBar('Failed to remove member: $e');
+                                      }
                                     }
                                   },
                                 ),
@@ -2470,8 +2583,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                             );
                             if (confirm == true) {
-                              await widget.appState.deletePost(post.id);
-                              _reloadSectionData();
+                              try {
+                                await widget.appState.deletePost(post.id);
+                                _showSuccessSnackBar('Post deleted successfully!');
+                                _reloadSectionData();
+                              } catch (e) {
+                                _showErrorSnackBar('Failed to delete post: $e');
+                              }
                             }
                           },
                         )
@@ -2657,12 +2775,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       trailing: canEdit
                           ? PopupMenuButton<String>(
                               onSelected: (val) async {
-                                if (val == 'delete') {
-                                  await widget.appState.deleteTask(taskId);
-                                } else {
-                                  await widget.appState.updateTask(taskId, {'status': val});
+                                try {
+                                  if (val == 'delete') {
+                                    await widget.appState.deleteTask(taskId);
+                                    _showSuccessSnackBar('Task deleted successfully!');
+                                  } else {
+                                    await widget.appState.updateTask(taskId, {'status': val});
+                                    _showSuccessSnackBar('Task status updated to $val successfully!');
+                                  }
+                                  _reloadSectionData();
+                                } catch (e) {
+                                  _showErrorSnackBar('Operation failed: $e');
                                 }
-                                _reloadSectionData();
                               },
                               itemBuilder: (ctx) => [
                                 const PopupMenuItem(value: 'pending', child: Text('Mark Pending')),
@@ -2787,13 +2911,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     onPressed: () async {
                       final text = _chatController.text.trim();
                       if (text.isEmpty) return;
-                      await widget.appState.sendClubMessage(
-                        clubId: _selectedClub!.id,
-                        title: 'Board Message',
-                        body: text,
-                      );
-                      _chatController.clear();
-                      _reloadSectionData();
+                      try {
+                        await widget.appState.sendClubMessage(
+                          clubId: _selectedClub!.id,
+                          title: 'Board Message',
+                          body: text,
+                        );
+                        _chatController.clear();
+                        _reloadSectionData();
+                      } catch (e) {
+                        _showErrorSnackBar('Failed to send message: $e');
+                      }
                     },
                   ),
                 ),
@@ -2935,11 +3063,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             const SizedBox(width: 10),
                             FilledButton.icon(
                               style: FilledButton.styleFrom(backgroundColor: Colors.green),
-                              onPressed: () async {
-                                final ok = await widget.appState.verifyEventBudget(ev.id);
-                                if (ok && mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Budget verified!')));
-                                  _reloadSectionData();
+                               onPressed: () async {
+                                try {
+                                  final ok = await widget.appState.verifyEventBudget(ev.id);
+                                  if (ok) {
+                                    _showSuccessSnackBar('Budget verified successfully!');
+                                    _reloadSectionData();
+                                  } else {
+                                    _showErrorSnackBar('Failed to verify budget.');
+                                  }
+                                } catch (e) {
+                                  _showErrorSnackBar('Error verifying budget: $e');
                                 }
                               },
                               icon: const Icon(Icons.check_circle_rounded, size: 16),
@@ -3347,15 +3481,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
             TextButton(onPressed: navigator.pop, child: const Text('Cancel')),
             FilledButton(
               onPressed: () async {
-                await widget.appState.createClub(
-                  name: nameController.text.trim(),
-                  description: descriptionController.text.trim(),
-                  fullForm: fullFormController.text.trim(),
-                  category: category,
-                  image: uploadedImageUrl ?? '',
-                  departments: selectedDepartments.toList(),
-                );
-                navigator.pop();
+                final name = nameController.text.trim();
+                if (name.isEmpty) {
+                  _showErrorSnackBar('Club name cannot be empty');
+                  return;
+                }
+                try {
+                  await widget.appState.createClub(
+                    name: name,
+                    description: descriptionController.text.trim(),
+                    fullForm: fullFormController.text.trim(),
+                    category: category,
+                    image: uploadedImageUrl ?? '',
+                    departments: selectedDepartments.toList(),
+                  );
+                  _showSuccessSnackBar('Club "$name" created successfully!');
+                  navigator.pop();
+                } catch (e) {
+                  _showErrorSnackBar('Failed to create club: $e');
+                }
               },
               child: const Text('Create'),
             ),
@@ -3387,11 +3531,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
             TextButton(onPressed: navigator.pop, child: const Text('Cancel')),
             FilledButton(
               onPressed: () async {
-                await widget.appState.assignTeacher(
-                  name: nameController.text.trim(),
-                  email: emailController.text.trim(),
-                );
-                navigator.pop();
+                final name = nameController.text.trim();
+                final email = emailController.text.trim();
+                if (name.isEmpty || email.isEmpty) {
+                  _showErrorSnackBar('Please fill in both name and email.');
+                  return;
+                }
+                try {
+                  await widget.appState.assignTeacher(
+                    name: name,
+                    email: email,
+                  );
+                  _showSuccessSnackBar('Teacher "$name" assigned successfully!');
+                  setState(() {
+                    _teachersFuture = widget.appState.fetchTeachers();
+                  });
+                  navigator.pop();
+                } catch (e) {
+                  _showErrorSnackBar('Failed to assign teacher: $e');
+                }
               },
               child: const Text('Assign'),
             ),
@@ -3464,30 +3622,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
             TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
             FilledButton(
               onPressed: () async {
-                if (nameController.text.isEmpty || emailController.text.isEmpty) return;
-                if (isEditing) {
-                  final mId = member['_id']?.toString() ?? member['id']?.toString() ?? '';
-                  await widget.appState.updateClubMember(_selectedClub!.id, mId, {
-                    'name': nameController.text.trim(),
-                    'email': emailController.text.trim(),
-                    'role': roleController.text.trim(),
-                    'boardType': boardType,
-                    'academicYear': academicYear,
-                  });
-                } else {
-                  await widget.appState.addClubMember(
-                    _selectedClub!.id,
-                    name: nameController.text.trim(),
-                    email: emailController.text.trim(),
-                    role: roleController.text.trim(),
-                    boardType: boardType,
-                    academicYear: academicYear,
-                    joinedAt: DateTime.now(),
-                  );
+                final name = nameController.text.trim();
+                final email = emailController.text.trim();
+                if (name.isEmpty || email.isEmpty) {
+                  _showErrorSnackBar('Please fill in both name and email.');
+                  return;
                 }
-                if (mounted) {
-                  Navigator.of(ctx).pop();
-                  _reloadSectionData();
+                try {
+                  if (isEditing) {
+                    final mId = member['_id']?.toString() ?? member['id']?.toString() ?? '';
+                    await widget.appState.updateClubMember(_selectedClub!.id, mId, {
+                      'name': name,
+                      'email': email,
+                      'role': roleController.text.trim(),
+                      'boardType': boardType,
+                      'academicYear': academicYear,
+                    });
+                    _showSuccessSnackBar('Member "$name" updated successfully!');
+                  } else {
+                    await widget.appState.addClubMember(
+                      _selectedClub!.id,
+                      name: name,
+                      email: email,
+                      role: roleController.text.trim(),
+                      boardType: boardType,
+                      academicYear: academicYear,
+                      joinedAt: DateTime.now(),
+                    );
+                    _showSuccessSnackBar('Member "$name" added successfully!');
+                  }
+                  if (mounted) {
+                    Navigator.of(ctx).pop();
+                    _reloadSectionData();
+                  }
+                } catch (e) {
+                  _showErrorSnackBar('Failed to save member: $e');
                 }
               },
               child: Text(isEditing ? 'Save Changes' : 'Add Member'),
@@ -3514,9 +3683,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 title: Text(club.name),
                 trailing: const Icon(Icons.add),
                 onTap: () async {
-                  await widget.appState.addTeacherClub(club.id);
-                  if (ctx.mounted) Navigator.of(ctx).pop();
-                  _initializeDashboard(); // Reload monitored clubs list
+                  try {
+                    await widget.appState.addTeacherClub(club.id);
+                    _showSuccessSnackBar('Club "${club.name}" added to monitored list successfully!');
+                    if (ctx.mounted) Navigator.of(ctx).pop();
+                    _initializeDashboard(); // Reload monitored clubs list
+                  } catch (e) {
+                    _showErrorSnackBar('Failed to add club: $e');
+                  }
                 },
               );
             },

@@ -590,10 +590,13 @@ class AppState extends ChangeNotifier {
     final updates = <String, dynamic>{};
     if (role == 'club-secretary') {
       updates['secretaryEmail'] = email;
+      updates['secretaryName'] = name;
     } else if (role == 'president') {
       updates['presidentEmail'] = email;
+      updates['presidentName'] = name;
     } else if (role == 'treasurer') {
       updates['treasurerEmail'] = email;
+      updates['treasurerName'] = name;
     } else if (role == 'advisor') {
       updates['advisorEmail'] = email;
       updates['advisorName'] = name;
@@ -603,10 +606,25 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> removeClubOfficer(String clubId, String role) async {
-    await _apiClient.post(
-      '/auth/remove-officer',
-      body: {'clubId': clubId, 'role': role},
-    );
+    final updates = <String, dynamic>{};
+    if (role == 'club-secretary') {
+      updates['secretaryEmail'] = null;
+      updates['secretaryId'] = null;
+      updates['secretaryName'] = null;
+    } else if (role == 'president') {
+      updates['presidentEmail'] = null;
+      updates['presidentId'] = null;
+      updates['presidentName'] = null;
+    } else if (role == 'treasurer') {
+      updates['treasurerEmail'] = null;
+      updates['treasurerId'] = null;
+      updates['treasurerName'] = null;
+    } else if (role == 'advisor') {
+      updates['advisorEmail'] = null;
+      updates['advisorId'] = null;
+      updates['advisorName'] = null;
+    }
+    await _apiClient.put('/clubs/$clubId', body: updates);
     await refreshAll();
   }
 
