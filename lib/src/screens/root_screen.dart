@@ -111,12 +111,11 @@ class _TopBar extends StatelessWidget {
                   'Club Connect',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
-                Text(
-                  session == null
-                      ? 'Live data from your campus backend'
-                      : 'Signed in as ${session.name}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+                if (session != null)
+                  Text(
+                    'Signed in as ${session.name}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
               ],
             ),
           ),

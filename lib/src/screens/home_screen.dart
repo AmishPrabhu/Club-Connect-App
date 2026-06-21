@@ -340,73 +340,91 @@ class _FeaturedClubCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: Stack(
-        fit: StackFit.expand,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          imageUrl.startsWith('http')
-              ? Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => Image.asset(
-                    'assets/images/club-default.jpg',
-                    fit: BoxFit.cover,
-                  ),
-                )
-              : Image.asset(
-                  imageUrl.startsWith('/')
-                      ? 'assets/images$imageUrl'
-                      : imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => Image.asset(
-                    'assets/images/club-default.jpg',
-                    fit: BoxFit.cover,
-                  ),
-                ),
-          DecoratedBox(
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 4,
+            ),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withValues(alpha: 0.72),
-                ],
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Text(
+              category,
+              style: const TextStyle(
+                color: Color(0xFF475569),
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.3,
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    category,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  name,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(color: Colors.white),
-                ),
-              ],
+          const Spacer(),
+          Align(
+            alignment: Alignment.center,
+            child: Container(
+              width: 96,
+              height: 96,
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: imageUrl.startsWith('http')
+                    ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, _, _) => Image.asset(
+                          'assets/images/club-default.jpg',
+                          fit: BoxFit.contain,
+                        ),
+                      )
+                    : Image.asset(
+                        imageUrl.startsWith('/')
+                            ? 'assets/images$imageUrl'
+                            : imageUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, _, _) => Image.asset(
+                          'assets/images/club-default.jpg',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+              ),
+            ),
+          ),
+          const Spacer(),
+          Align(
+            alignment: Alignment.center,
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF0F172A),
+                fontSize: 15.5,
+                fontWeight: FontWeight.bold,
+                letterSpacing: -0.2,
+              ),
             ),
           ),
         ],
