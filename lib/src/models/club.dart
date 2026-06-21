@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class Club {
+  static const String _webOrigin = 'https://club-connect-silk.vercel.app';
+
   const Club({
     required this.id,
     required this.name,
@@ -12,14 +14,13 @@ class Club {
     required this.startColor,
     required this.endColor,
     required this.upcomingEvents,
+    this.image,
+    this.secretaryEmail,
+    this.presidentEmail,
+    this.treasurerEmail,
+    this.advisorEmail,
     this.fullForm = '',
-    this.whatsappUrl = '',
-    this.instagramUrl = '',
-    this.presidentEmail = '',
-    this.secretaryEmail = '',
-    this.treasurerEmail = '',
-    this.advisorEmail = '',
-    this.advisorName = '',
+    this.departments = const [],
   });
 
   final String id;
@@ -29,17 +30,27 @@ class Club {
   final int members;
   final String icon;
   final String imageAsset;
+  final String? image;
+  final String? secretaryEmail;
+  final String? presidentEmail;
+  final String? treasurerEmail;
+  final String? advisorEmail;
   final Color startColor;
   final Color endColor;
   final int upcomingEvents;
   final String fullForm;
-  final String whatsappUrl;
-  final String instagramUrl;
-  final String presidentEmail;
-  final String secretaryEmail;
-  final String treasurerEmail;
-  final String advisorEmail;
-  final String advisorName;
+  final List<String> departments;
+
+  String? get resolvedImageUrl {
+    final src = imageAsset.trim();
+    if (src.isEmpty) return null;
+    if (src.startsWith('http')) return src;
+    if (src.startsWith('/')) return '$_webOrigin$src';
+    if (RegExp(r'\.(png|jpe?g|webp|gif|avif)$', caseSensitive: false).hasMatch(src)) {
+      return '$_webOrigin/${src.startsWith('/') ? src.substring(1) : src}';
+    }
+    return src;
+  }
 
   factory Club.fromJson(Map<String, dynamic> json) {
     final category = json['category']?.toString() ?? 'technical';
@@ -52,30 +63,29 @@ class Club {
       members: (json['members'] as num?)?.toInt() ?? 0,
       icon: _iconForCategory(category),
       imageAsset: json['image']?.toString() ?? '',
+      image: json['image']?.toString(),
+      secretaryEmail: json['secretaryEmail']?.toString(),
+      presidentEmail: json['presidentEmail']?.toString(),
+      treasurerEmail: json['treasurerEmail']?.toString(),
+      advisorEmail: json['advisorEmail']?.toString(),
       startColor: colors.$1,
       endColor: colors.$2,
       upcomingEvents: (json['upcomingEvents'] as num?)?.toInt() ?? 0,
       fullForm: json['fullForm']?.toString() ?? '',
-      whatsappUrl: json['whatsappUrl']?.toString() ?? '',
-      instagramUrl: json['instagramUrl']?.toString() ?? '',
-      presidentEmail: json['presidentEmail']?.toString() ?? '',
-      secretaryEmail: json['secretaryEmail']?.toString() ?? '',
-      treasurerEmail: json['treasurerEmail']?.toString() ?? '',
-      advisorEmail: json['advisorEmail']?.toString() ?? '',
-      advisorName: json['advisorName']?.toString() ?? '',
+      departments: (json['departments'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
     );
   }
 
   static (Color, Color) _colorsForCategory(String category) {
     switch (category.toLowerCase()) {
       case 'academic':
-        return (const Color(0xFF064E3B), const Color(0xFF0F766E));
+        return (const Color(0xFF10B981), const Color(0xFF14B8A6));
       case 'cultural':
-        return (const Color(0xFF581C87), const Color(0xFF701A75));
+        return (const Color(0xFFEC4899), const Color(0xFFE11D48));
       case 'sports':
-        return (const Color(0xFF14532D), const Color(0xFF065F46));
+        return (const Color(0xFF22C55E), const Color(0xFF059669));
       default:
-        return (const Color(0xFF1E3B8B), const Color(0xFF1D4ED8));
+        return (const Color(0xFF2563EB), const Color(0xFF06B6D4));
     }
   }
 
