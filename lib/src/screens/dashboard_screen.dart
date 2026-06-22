@@ -13,6 +13,7 @@ import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import 'club_detail_screen.dart';
 import 'post_detail_screen.dart';
+import 'profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key, required this.appState});
@@ -265,16 +266,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               if (_selectedSection == 'Overview') ...[
-                                _buildAdminHeaderCard(session),
-                                _buildAdminStatsGrid(),
+                                _buildNewAdminHeader(session),
+                                const SizedBox(height: 16),
+                                _buildNewAdminStatsOverview(),
+                                const SizedBox(height: 24),
+                                _buildNewAdminQuickActions(),
+                              ] else ...[
+                                _buildNewSubSectionHeader(),
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                                  child: _buildActiveSectionView(session),
+                                ),
                               ],
-                              _buildDropdownNavigation(availableSections, isAdmin),
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                                child: _buildActiveSectionView(session),
-                              ),
                             ],
                           ),
                         ),
@@ -499,6 +505,405 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // ─── ADMIN DASHBOARD HELPER METHODS ────────────────────────────────────────
+
+  Widget _buildNewAdminHeader(UserSession session) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Hello,',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppTheme.muted,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                session.name,
+                style: const TextStyle(
+                  fontSize: 26,
+                  color: AppTheme.navy,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => AdminProfileScreen(appState: widget.appState),
+                ),
+              );
+            },
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEDE9FE), // Light lavender/purple background
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFFC084FC), // Light purple border
+                      width: 1.5,
+                    ),
+                    image: session.profileImage != null && session.profileImage!.isNotEmpty
+                        ? DecorationImage(
+                            image: NetworkImage(session.profileImage!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: session.profileImage == null || session.profileImage!.isEmpty
+                      ? Center(
+                          child: Text(
+                            session.name.isNotEmpty ? session.name[0].toUpperCase() : 'A',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF6D28D9), // Dark purple text
+                            ),
+                          ),
+                        )
+                      : null,
+                ),
+                Positioned(
+                  bottom: -2,
+                  right: -2,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF7C3AED), // Purple edit badge
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.edit_rounded,
+                      size: 10,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNewAdminStatsOverview() {
+    final clubsCount = widget.appState.clubs.length;
+    final eventsCount = widget.appState.posts.where((p) => p.isEvent).length;
+    final postsCount = widget.appState.posts.length;
+    final alertsCount = widget.appState.notifications.length;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Dashboard Overview',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.navy,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildNewOverviewCard(
+                  icon: Icons.groups_rounded,
+                  iconColor: const Color(0xFF2563EB),
+                  bgColor: const Color(0xFFEFF6FF),
+                  value: '$clubsCount',
+                  label: 'Clubs',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildNewOverviewCard(
+                  icon: Icons.calendar_month_rounded,
+                  iconColor: const Color(0xFF10B981),
+                  bgColor: const Color(0xFFECFDF5),
+                  value: '$eventsCount',
+                  label: 'Events',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildNewOverviewCard(
+                  icon: Icons.edit_note_rounded,
+                  iconColor: const Color(0xFFEC4899),
+                  bgColor: const Color(0xFFFDF2F8),
+                  value: '$postsCount',
+                  label: 'Posts',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildNewOverviewCard(
+                  icon: Icons.notifications_none_rounded,
+                  iconColor: const Color(0xFFF59E0B),
+                  bgColor: const Color(0xFFFFFBEB),
+                  value: '$alertsCount',
+                  label: 'Alerts',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNewOverviewCard({
+    required IconData icon,
+    required Color iconColor,
+    required Color bgColor,
+    required String value,
+    required String label,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.015),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: bgColor,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.navy,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppTheme.muted,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNewAdminQuickActions() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Quick Actions',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.navy,
+                ),
+              ),
+              TextButton(
+                onPressed: () {},
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text(
+                  'View All',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2563EB),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildNewActionTile(
+            title: 'Manage Clubs',
+            subtitle: 'View and manage clubs',
+            icon: Icons.groups_outlined,
+            iconColor: const Color(0xFF2563EB),
+            bgColor: const Color(0xFFEFF6FF),
+            section: 'Manage Clubs',
+          ),
+          const SizedBox(height: 12),
+          _buildNewActionTile(
+            title: 'Manage Posts',
+            subtitle: 'Create and edit posts',
+            icon: Icons.edit_note_outlined,
+            iconColor: const Color(0xFFEC4899),
+            bgColor: const Color(0xFFFDF2F8),
+            section: 'Manage Posts',
+          ),
+          const SizedBox(height: 12),
+          _buildNewActionTile(
+            title: 'Teachers',
+            subtitle: 'Manage teachers',
+            icon: Icons.person_outline_rounded,
+            iconColor: const Color(0xFF10B981),
+            bgColor: const Color(0xFFECFDF5),
+            section: 'Teachers',
+          ),
+          const SizedBox(height: 12),
+          _buildNewActionTile(
+            title: 'Notifications',
+            subtitle: 'View all notifications',
+            icon: Icons.notifications_none_outlined,
+            iconColor: const Color(0xFFF59E0B),
+            bgColor: const Color(0xFFFFFBEB),
+            section: 'Notifications',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNewActionTile({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color iconColor,
+    required Color bgColor,
+    required String section,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.015),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => setState(() => _selectedSection = section),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.navy,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppTheme.muted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colors.grey.shade400,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNewSubSectionHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.navy),
+            onPressed: () => setState(() => _selectedSection = 'Overview'),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            _selectedSection,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.navy,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildAdminHeaderCard(UserSession session) {
     return Container(
