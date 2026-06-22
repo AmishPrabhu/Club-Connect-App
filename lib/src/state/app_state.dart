@@ -549,20 +549,20 @@ class AppState extends ChangeNotifier {
   }
 
   Future<List<Map<String, dynamic>>> fetchTeacherClubs() async {
-    final response = await _apiClient.get('/teachers/clubs') as List<dynamic>;
+    final response = await _apiClient.get('/users/teacher/clubs') as List<dynamic>;
     return response.cast<Map<String, dynamic>>();
   }
 
   Future<void> addTeacherClub(String clubId) async {
-    await _apiClient.post('/teachers/clubs', body: {'clubId': clubId});
+    await _apiClient.post('/users/teacher/clubs', body: {'clubId': clubId});
   }
 
   Future<void> removeTeacherClub(String clubId) async {
-    await _apiClient.delete('/teachers/clubs/$clubId');
+    await _apiClient.delete('/users/teacher/clubs/$clubId');
   }
 
   Future<List<Map<String, dynamic>>> fetchTeacherReports() async {
-    final response = await _apiClient.get('/teachers/reports') as List<dynamic>;
+    final response = await _apiClient.get('/users/teacher/reports') as List<dynamic>;
     return response.cast<Map<String, dynamic>>();
   }
 
@@ -630,7 +630,7 @@ class AppState extends ChangeNotifier {
 
   Future<bool> verifyEventBudget(String postId) async {
     try {
-      await _apiClient.post('/posts/$postId/verify-budget');
+      await _apiClient.put('/posts/$postId/budget/verify');
       await refreshAll();
       return true;
     } catch (_) {
@@ -713,8 +713,47 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> deleteTeacher(String teacherId) async {
-    await _apiClient.delete('/users/$teacherId');
+    await _apiClient.post('/users/remove-teacher', body: {'userId': teacherId});
     await refreshAll();
+  }
+
+  Future<List<Map<String, dynamic>>> checkEventCollision(
+    String dateStr,
+    String timeStr,
+  ) async {
+    if (dateStr.isEmpty || timeStr.isEmpty) return const [];
+    final List<Map<String, dynamic>> collisions = [];
+    DateTime? targetDate;
+    try {
+      targetDate = DateTime.parse(dateStr);
+    } catch (_) {}
+
+    for (final post in posts) {
+      if (!post.isEvent) continue;
+
+      bool isSameDate = false;
+      if (targetDate != null && post.date != null) {
+        isSameDate = targetDate.year == post.date!.year &&
+            targetDate.month == post.date!.month &&
+            targetDate.day == post.date!.day;
+      } else if (post.date != null) {
+        final postDateStr =
+            "${post.date!.year}-${post.date!.month.toString().padLeft(2, '0')}-${post.date!.day.toString().padLeft(2, '0')}";
+        isSameDate = postDateStr == dateStr;
+      }
+
+      if (isSameDate) {
+        final pTime = (post.time ?? '').toLowerCase().trim();
+        final tTime = timeStr.toLowerCase().trim();
+        if (pTime == tTime && pTime.isNotEmpty) {
+          collisions.add({
+            'title': post.title,
+            'clubName': post.clubName,
+          });
+        }
+      }
+    }
+    return collisions;
   }
 
   Future<UserSession> _fetchCurrentUser() async {

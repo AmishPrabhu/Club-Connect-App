@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:http/http.dart' as http;
 
 class ApiException implements Exception {
@@ -13,15 +15,25 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
+String _getDefaultBaseUrl() {
+  const envUrl = String.fromEnvironment('API_BASE_URL');
+  if (envUrl.isNotEmpty) return envUrl;
+
+  if (kDebugMode) {
+    if (kIsWeb) return 'http://localhost:5001/api';
+    try {
+      if (Platform.isAndroid) return 'http://10.0.2.2:5001/api';
+    } catch (_) {}
+    return 'http://localhost:5001/api';
+  }
+
+  return 'https://club-connect-7fwy.onrender.com/api';
+}
+
 class ApiClient {
   ApiClient({String? baseUrl, http.Client? httpClient})
     : _httpClient = httpClient ?? http.Client(),
-      baseUrl =
-          baseUrl ??
-          const String.fromEnvironment(
-            'API_BASE_URL',
-            defaultValue: 'https://club-connect-7fwy.onrender.com/api',
-          );
+      baseUrl = baseUrl ?? _getDefaultBaseUrl();
 
   final String baseUrl;
   final http.Client _httpClient;

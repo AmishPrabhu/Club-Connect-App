@@ -6,6 +6,8 @@ class PostItem {
     required this.title,
     required this.content,
     required this.type,
+    this.status = 'published',
+    required this.createdAt,
     this.date,
     this.time,
     this.location,
@@ -23,6 +25,8 @@ class PostItem {
   final String title;
   final String content;
   final String type;
+  final String status;
+  final DateTime createdAt;
   final DateTime? date;
   final String? time;
   final String? location;
@@ -70,6 +74,10 @@ class PostItem {
       title: json['title']?.toString() ?? '',
       content: json['content']?.toString() ?? '',
       type: json['type']?.toString() ?? 'announcement',
+      status: json['status']?.toString() ?? 'published',
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
+          : DateTime.now(),
       date: json['date'] != null
           ? DateTime.tryParse(json['date'].toString())
           : null,

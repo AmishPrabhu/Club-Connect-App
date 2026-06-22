@@ -1,0 +1,31 @@
+{
+    "name": "club-connect-server",
+    "version": "1.0.0",
+    "description": "Backend for Club Connect",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "start": "node index.js",
+        "dev": "nodemon index.js"
+    },
+    "dependencies": {
+        "@getbrevo/brevo": "^3.0.1",
+        "bcryptjs": "^2.4.3",
+        "cors": "^2.8.5",
+        "dotenv": "^16.4.5",
+        "exceljs": "^4.4.0",
+        "express": "^4.18.2",
+        "express-rate-limit": "^8.2.1",
+        "google-auth-library": "^10.5.0",
+        "helmet": "^8.1.0",
+        "hpp": "^0.2.3",
+        "jsonwebtoken": "^9.0.2",
+        "mongodb": "^7.0.0",
+        "mongoose": "^8.2.0",
+        "multer": "^2.0.2",
+        "slugify": "^1.6.6"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.0"
+    }
+}
