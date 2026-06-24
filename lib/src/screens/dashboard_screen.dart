@@ -10,8 +10,6 @@ import '../models/notification_item.dart';
 import '../models/user_session.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
-import '../widgets/glass_card.dart';
-import 'club_detail_screen.dart';
 import 'post_detail_screen.dart';
 import 'profile_screen.dart';
 
@@ -26,7 +24,6 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   String _selectedSection = 'Overview';
-  bool _isMenuExpanded = false;
   Club? _selectedClub;
   List<Club> _monitoredClubs = [];
   bool _isLoadingMonitored = false;
@@ -180,39 +177,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return null;
   }
 
-  IconData _iconForSection(String section) {
-    switch (section) {
-      case 'Overview':
-        return Icons.trending_up_rounded;
-      case 'Manage Clubs':
-      case 'Members':
-        return Icons.groups_rounded;
-      case 'Manage Posts':
-      case 'Posts & Announcements':
-        return Icons.edit_note_rounded;
-      case 'Events':
-        return Icons.calendar_month_outlined;
-      case 'Tasks':
-        return Icons.playlist_add_check_rounded;
-      case 'Live Chat':
-        return Icons.chat_bubble_outline_rounded;
-      case 'Notifications':
-        return Icons.notifications_active_outlined;
-      case 'Teachers':
-        return Icons.person_outline_rounded;
-      case 'Budgets':
-        return Icons.account_balance_wallet_outlined;
-      default:
-        return Icons.circle_outlined;
-    }
-  }
-
-  String _dropdownHeaderLabel(String section) {
-    if (section == 'Manage Clubs') return 'Clubs';
-    if (section == 'Manage Posts') return 'Posts';
-    return section;
-  }
-
   @override
   Widget build(BuildContext context) {
     final session = widget.appState.session!;
@@ -223,28 +187,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
         session.role == 'treasurer' ||
         session.role == 'advisor';
 
-    final List<String> availableSections = isAdmin
-        ? ['Overview', 'Manage Clubs', 'Manage Posts', 'Notifications', 'Teachers']
-        : [
-            'Overview',
-            'Members',
-            'Posts & Announcements',
-            'Events',
-            'Tasks',
-            'Live Chat',
-            'Notifications',
-            if (session.role == 'advisor' || session.role == 'president' || session.role == 'treasurer')
-              'Budgets',
-          ];
-
     return Scaffold(
       appBar: isAdmin
           ? null
           : AppBar(
-              title: Text(isOfficer ? 'Club Dashboard' : 'Campus Dashboard'),
+              title: Text(_selectedSection == 'Overview' ? (isOfficer ? 'Club Dashboard' : 'Campus Dashboard') : _selectedSection),
               backgroundColor: Colors.white,
               foregroundColor: AppTheme.navy,
               elevation: 0,
+              leading: _selectedSection != 'Overview'
+                  ? IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                      onPressed: () => setState(() => _selectedSection = 'Overview'),
+                    )
+                  : (Navigator.of(context).canPop()
+                      ? IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                          onPressed: () => Navigator.of(context).pop(),
+                        )
+                      : null),
             ),
       body: _isLoadingMonitored
           ? const Center(child: CircularProgressIndicator())
@@ -318,9 +279,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       )
                     else ...[
-                      // Dropdown Navigation Selector
-                      _buildDropdownNavigation(availableSections, isAdmin),
-
                       // Active view body
                       Expanded(
                         child: RefreshIndicator(
@@ -393,85 +351,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildDropdownNavigation(List<String> availableSections, bool isAdmin) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          GestureDetector(
-            onTap: () => setState(() => _isMenuExpanded = !_isMenuExpanded),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  const Icon(Icons.menu_rounded, color: AppTheme.blue),
-                  const SizedBox(width: 12),
-                  Text(
-                    isAdmin ? _dropdownHeaderLabel(_selectedSection) : _selectedSection,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.blue,
-                        ),
-                  ),
-                  const Spacer(),
-                  Icon(
-                    _isMenuExpanded ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_right_rounded,
-                    color: Colors.grey,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (_isMenuExpanded) ...[
-            const Divider(height: 1),
-            Column(
-              children: availableSections.map((section) {
-                final isSelected = _selectedSection == section;
-                return Container(
-                  color: isSelected ? Colors.blue.shade50.withValues(alpha: 0.5) : null,
-                  child: ListTile(
-                    dense: true,
-                    leading: Icon(
-                      _iconForSection(section),
-                      color: isSelected ? AppTheme.blue : Colors.grey.shade600,
-                      size: 20,
-                    ),
-                    title: Text(
-                      section,
-                      style: TextStyle(
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                        color: isSelected ? AppTheme.blue : Colors.black87,
-                        fontSize: 14,
-                      ),
-                    ),
-                    onTap: () {
-                      setState(() {
-                        _selectedSection = section;
-                        _isMenuExpanded = false;
-                      });
-                    },
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 
   Widget _buildActiveSectionView(UserSession session) {
     if (session.role != 'admin' && _selectedClub == null) return const SizedBox.shrink();
@@ -538,7 +417,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => AdminProfileScreen(appState: widget.appState),
+                  builder: (_) => ProfileSettingsScreen(appState: widget.appState),
                 ),
               );
             },
@@ -2329,128 +2208,471 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ─── OVERVIEW TAB ──────────────────────────────────────────────────────────
   Widget _buildOverviewView(UserSession session) {
-    final clubPosts = widget.appState.posts.where((p) => p.clubId == _selectedClub!.id).toList();
+    if (_selectedClub == null) return const SizedBox.shrink();
 
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _membersFuture,
+    final clubPosts = widget.appState.posts.where((p) => p.clubId == _selectedClub!.id).toList();
+    final clubEvents = clubPosts.where((p) => p.isEvent).toList();
+    final upcomingClubEvents = clubEvents.where((p) => p.isUpcoming).toList();
+
+    return FutureBuilder<List<dynamic>>(
+      future: Future.wait([
+        _membersFuture ?? Future.value(<Map<String, dynamic>>[]),
+        _tasksFuture ?? Future.value(<Map<String, dynamic>>[]),
+      ]),
       builder: (context, snapshot) {
-        final members = snapshot.data ?? [];
+        final data = snapshot.data;
+        final members = data != null ? data[0] as List<dynamic> : [];
+        final tasks = data != null ? data[1] as List<dynamic> : [];
         final canEdit = session.role == 'admin' || session.role == 'advisor' || session.role == 'president' || session.role == 'club-secretary';
+
+        // Find next upcoming club event
+        PostItem? nextUpcoming;
+        if (upcomingClubEvents.isNotEmpty) {
+          upcomingClubEvents.sort((a, b) {
+            final dateA = a.date ?? DateTime.now();
+            final dateB = b.date ?? DateTime.now();
+            return dateA.compareTo(dateB);
+          });
+          nextUpcoming = upcomingClubEvents.first;
+        }
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Blue left strip overview card
+            // 1. Club Header Block (Image 2 layout)
             Container(
-              margin: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade200),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.grey.shade100, width: 1.5),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
+                    color: Colors.black.withValues(alpha: 0.015),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Row(
-                  children: [
-                    Container(width: 6, height: 120, color: Colors.blue.shade700),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(18),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text('Club Name', style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
-                                Text(_selectedClub!.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy)),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text('Total Members', style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.shade50,
-                                    borderRadius: BorderRadius.circular(12),
+              child: Row(
+                children: [
+                  // Club Logo
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.all(6),
+                    child: _selectedClub!.imageAsset.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: _selectedClub!.imageAsset.startsWith('http')
+                                ? Image.network(_selectedClub!.imageAsset, fit: BoxFit.contain)
+                                : Image.asset(
+                                    _selectedClub!.imageAsset.startsWith('/')
+                                        ? 'assets/images${_selectedClub!.imageAsset}'
+                                        : _selectedClub!.imageAsset,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) => const Icon(Icons.groups_rounded, color: AppTheme.blue),
                                   ),
-                                  child: Text('${members.length}', style: TextStyle(color: Colors.blue.shade700, fontWeight: FontWeight.bold, fontSize: 12)),
-                                ),
-                              ],
+                          )
+                        : const Icon(Icons.groups_rounded, color: AppTheme.blue, size: 28),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _selectedClub!.name,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.navy,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _selectedClub!.fullForm.isNotEmpty
+                              ? _selectedClub!.fullForm
+                              : _selectedClub!.description,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.muted,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F3FF),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFFDDD6FE), width: 1),
+                          ),
+                          child: Text(
+                            session.role.toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF7C3AED),
+                              letterSpacing: 0.5,
                             ),
-                            const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text('Total Posts', style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
-                                Text('${clubPosts.length}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy)),
-                              ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // 2. Stat Counters Row (Image 2 layout)
+            Row(
+              children: [
+                Expanded(
+                  child: _MiniStatCard(
+                    icon: Icons.groups_outlined,
+                    iconColor: const Color(0xFF6366F1),
+                    bgColor: const Color(0xFFEEF2FF),
+                    value: '${members.length}',
+                    label: 'Members',
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _MiniStatCard(
+                    icon: Icons.calendar_month_outlined,
+                    iconColor: const Color(0xFF10B981),
+                    bgColor: const Color(0xFFE6FDF5),
+                    value: '${clubEvents.length}',
+                    label: 'Events',
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _MiniStatCard(
+                    icon: Icons.edit_note_outlined,
+                    iconColor: const Color(0xFFEC4899),
+                    bgColor: const Color(0xFFFDF2F8),
+                    value: '${clubPosts.length}',
+                    label: 'Posts',
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _MiniStatCard(
+                    icon: Icons.playlist_add_check_rounded,
+                    iconColor: const Color(0xFFF59E0B),
+                    bgColor: const Color(0xFFFFFBEB),
+                    value: '${tasks.length}',
+                    label: 'Tasks',
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // 3. Quick Actions Section (Image 2 layout)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Quick Actions',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.navy,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {},
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                  child: const Text('View All', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.blue)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Action Tiles List depending on user roles
+            if (session.role == 'treasurer') ...[
+              _QuickActionTile(
+                title: 'Member',
+                subtitle: 'View and manage club members',
+                icon: Icons.groups_outlined,
+                iconColor: const Color(0xFF6366F1),
+                bgColor: const Color(0xFFEEF2FF),
+                onTap: () => setState(() => _selectedSection = 'Members'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Task',
+                subtitle: 'View and assign club tasks',
+                icon: Icons.playlist_add_check_rounded,
+                iconColor: const Color(0xFFF59E0B),
+                bgColor: const Color(0xFFFFFBEB),
+                onTap: () => setState(() => _selectedSection = 'Tasks'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Messages',
+                subtitle: 'Chat with club members',
+                icon: Icons.chat_bubble_outline_rounded,
+                iconColor: const Color(0xFF06B6D4),
+                bgColor: const Color(0xFFECFEFF),
+                onTap: () => setState(() => _selectedSection = 'Live Chat'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Budgets',
+                subtitle: 'Verify and view event budgets',
+                icon: Icons.account_balance_wallet_outlined,
+                iconColor: const Color(0xFFEF4444),
+                bgColor: const Color(0xFFFEF2F2),
+                onTap: () => setState(() => _selectedSection = 'Budgets'),
+              ),
+            ] else ...[
+              _QuickActionTile(
+                title: 'Members',
+                subtitle: 'View and manage club members',
+                icon: Icons.groups_outlined,
+                iconColor: const Color(0xFF6366F1),
+                bgColor: const Color(0xFFEEF2FF),
+                onTap: () => setState(() => _selectedSection = 'Members'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Drafts & Posts',
+                subtitle: 'Manage and create announcements',
+                icon: Icons.edit_note_rounded,
+                iconColor: const Color(0xFFEC4899),
+                bgColor: const Color(0xFFFDF2F8),
+                onTap: () => setState(() => _selectedSection = 'Posts & Announcements'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Events',
+                subtitle: 'Manage and schedule club events',
+                icon: Icons.calendar_month_rounded,
+                iconColor: const Color(0xFF10B981),
+                bgColor: const Color(0xFFE6FDF5),
+                onTap: () => setState(() => _selectedSection = 'Events'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Tasks',
+                subtitle: 'Assign and track club tasks',
+                icon: Icons.playlist_add_check_rounded,
+                iconColor: const Color(0xFFF59E0B),
+                bgColor: const Color(0xFFFFFBEB),
+                onTap: () => setState(() => _selectedSection = 'Tasks'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Messages',
+                subtitle: 'Chat with club members',
+                icon: Icons.chat_bubble_outline_rounded,
+                iconColor: const Color(0xFF06B6D4),
+                bgColor: const Color(0xFFECFEFF),
+                onTap: () => setState(() => _selectedSection = 'Live Chat'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Notifications',
+                subtitle: 'Broadcast alerts and notices',
+                icon: Icons.notifications_none_rounded,
+                iconColor: const Color(0xFF8B5CF6),
+                bgColor: const Color(0xFFF5F3FF),
+                onTap: () => setState(() => _selectedSection = 'Notifications'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Budget',
+                subtitle: 'Submit or verify event budgets',
+                icon: Icons.account_balance_wallet_outlined,
+                iconColor: const Color(0xFFEF4444),
+                bgColor: const Color(0xFFFEF2F2),
+                onTap: () => setState(() => _selectedSection = 'Budgets'),
+              ),
+            ],
+
+            const SizedBox(height: 24),
+
+            // 4. Upcoming Event Section (Image 2 layout)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Upcoming Event',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.navy,
+                  ),
+                ),
+                if (upcomingClubEvents.isNotEmpty)
+                  TextButton(
+                    onPressed: () => setState(() => _selectedSection = 'Events'),
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                    child: const Text('View All', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.blue)),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            if (nextUpcoming == null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                ),
+                alignment: Alignment.center,
+                child: const Text('No upcoming events scheduled.', style: TextStyle(color: Colors.grey, fontSize: 13)),
+              )
+            else
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => PostDetailScreen(
+                        appState: widget.appState,
+                        initialPost: nextUpcoming!,
+                      ),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.015),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      // Date Block
+                      Container(
+                        width: 54,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              _getMonthName(nextUpcoming.date),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.blue,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${nextUpcoming.date?.day ?? ""}',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                color: AppTheme.navy,
+                              ),
                             ),
                           ],
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 14),
+
+                      // Details
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              nextUpcoming.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.navy,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              nextUpcoming.time ?? 'TBD',
+                              style: const TextStyle(fontSize: 11, color: AppTheme.muted),
+                            ),
+                            Text(
+                              nextUpcoming.location ?? 'Campus',
+                              style: const TextStyle(fontSize: 11, color: AppTheme.muted),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Going badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDCFCE7),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          'Going',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF15803D),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
+
+            const SizedBox(height: 24),
+
+            // Secondary: WhatsApp / Instagram Profile and template links
+            const Text(
+              'Social & Configurations',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.navy),
             ),
-
-            // Profile Picture Card
+            const SizedBox(height: 10),
             _buildProfilePictureCard(canEdit),
-
-            // WhatsApp Card
             _buildWhatsAppCard(canEdit),
-
-            // Instagram Card
             _buildInstagramCard(canEdit),
-
-            if (session.role == 'admin') ...[
-              const SizedBox(height: 24),
-              const Text('Admin Global Operations', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navy)),
-              const SizedBox(height: 12),
-              GlassCard(
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: const CircleAvatar(child: Icon(Icons.add_business_outlined)),
-                      title: const Text('Create New Club', style: TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: const Text('Add a new club profile to Campus Connect'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: _showCreateClubDialog,
-                    ),
-                    const Divider(),
-                    ListTile(
-                      leading: const CircleAvatar(child: Icon(Icons.person_add_alt_1_rounded)),
-                      title: const Text('Assign Teacher Role', style: TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: const Text('Assign teacher/monitor privileges'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: _showAssignTeacherDialog,
-                    ),
-                    const Divider(),
-                    ListTile(
-                      leading: const CircleAvatar(child: Icon(Icons.campaign_outlined)),
-                      title: const Text('Broadcast System Notice', style: TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: const Text('Send notification to all campus users'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: _showNotificationDialog,
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ],
         );
       },
     );
+  }
+
+  String _getMonthName(DateTime? date) {
+    if (date == null) return "MAY";
+    const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+    if (date.month >= 1 && date.month <= 12) {
+      return months[date.month - 1];
+    }
+    return "MAY";
   }
 
   Future<void> _updateClubField(Map<String, dynamic> updates) async {
@@ -4144,4 +4366,157 @@ class DashedBorderPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant DashedBorderPainter oldDelegate) =>
       oldDelegate.color != color || oldDelegate.strokeWidth != strokeWidth || oldDelegate.gap != gap;
+}
+
+class _MiniStatCard extends StatelessWidget {
+  const _MiniStatCard({
+    required this.icon,
+    required this.iconColor,
+    required this.bgColor,
+    required this.value,
+    required this.label,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final Color bgColor;
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.01),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: bgColor,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: iconColor, size: 16),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.navy,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.muted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickActionTile extends StatelessWidget {
+  const _QuickActionTile({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.iconColor,
+    required this.bgColor,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color iconColor;
+  final Color bgColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.015),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 20),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.navy,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AppTheme.muted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colors.grey.shade400,
+                  size: 18,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

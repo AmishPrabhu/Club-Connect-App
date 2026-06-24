@@ -208,6 +208,7 @@ class AppState extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await _googleSignIn.signOut();
+    notifyListeners();
     await refreshAll();
   }
 
@@ -720,5 +721,10 @@ class AppState extends ChangeNotifier {
   Future<UserSession> _fetchCurrentUser() async {
     final response = await _apiClient.get('/auth/me') as Map<String, dynamic>;
     return UserSession.fromJson(response);
+  }
+
+  Future<List<Map<String, dynamic>>> fetchUserRsvps() async {
+    final response = await _apiClient.get('/posts/user/rsvps') as List<dynamic>;
+    return response.cast<Map<String, dynamic>>();
   }
 }

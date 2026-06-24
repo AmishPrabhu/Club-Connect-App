@@ -11,6 +11,7 @@ import 'dashboard_screen.dart';
 import 'login_screen.dart';
 import 'signup_screen.dart';
 import '../services/cloudinary_service.dart';
+import 'user_dashboard_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key, required this.appState});
@@ -43,17 +44,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return DashboardScreen(appState: widget.appState);
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: _ProfileBody(appState: widget.appState),
-      ),
+    return UserDashboardScreen(
+      appState: widget.appState,
+      onOpenProfileSettings: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ProfileSettingsScreen(appState: widget.appState),
+          ),
+        );
+      },
     );
   }
 }
 
-class AdminProfileScreen extends StatelessWidget {
-  const AdminProfileScreen({super.key, required this.appState});
+class ProfileSettingsScreen extends StatelessWidget {
+  const ProfileSettingsScreen({super.key, required this.appState});
 
   final AppState appState;
 
@@ -63,7 +68,7 @@ class AdminProfileScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: const Text(
-          'Profile & Account',
+          'Profile & Settings',
           style: TextStyle(
             color: AppTheme.navy,
             fontWeight: FontWeight.bold,
@@ -489,8 +494,13 @@ class _ProfileBodyState extends State<_ProfileBody> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () async {
-            await widget.appState.logout();
+          onTap: () {
+            final appState = widget.appState;
+            final navigator = Navigator.of(context);
+            if (navigator.canPop()) {
+              navigator.pop();
+            }
+            appState.logout();
           },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
