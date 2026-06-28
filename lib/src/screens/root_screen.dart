@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
+import '../theme/app_theme.dart';
 import 'clubs_screen.dart';
 import 'events_screen.dart';
 import 'home_screen.dart';
@@ -19,6 +20,49 @@ class RootScreen extends StatefulWidget {
 class _RootScreenState extends State<RootScreen> {
   int _index = 0;
 
+  Widget _buildNavItem(int index, IconData unselectedIcon, IconData selectedIcon, String label) {
+    final isSelected = _index == index;
+    final color = isSelected ? AppTheme.navy : AppTheme.muted;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _index = index),
+        behavior: HitTestBehavior.opaque,
+        child: Center(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppTheme.navy.withValues(alpha: 0.08) // Soft navy capsule background
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isSelected ? selectedIcon : unselectedIcon,
+                  color: color,
+                  size: 24,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = widget.appState;
@@ -30,7 +74,6 @@ class _RootScreenState extends State<RootScreen> {
       ),
       ClubsScreen(appState: appState),
       EventsScreen(appState: appState),
-      NotificationsScreen(appState: appState),
       ProfileScreen(appState: appState),
     ];
 
@@ -43,7 +86,6 @@ class _RootScreenState extends State<RootScreen> {
               children: [
                 _TopBar(
                   appState: appState,
-                  onOpenProfile: () => setState(() => _index = 4),
                 ),
                 Expanded(
                   child: IndexedStack(index: _index, children: screens),
@@ -53,46 +95,46 @@ class _RootScreenState extends State<RootScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (value) => setState(() => _index = value),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded),
-            label: 'Home',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            top: BorderSide(
+              color: Colors.blueGrey.withValues(alpha: 0.08),
+              width: 1.2,
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.groups_outlined),
-            selectedIcon: Icon(Icons.groups_rounded),
-            label: 'Clubs',
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: SizedBox(
+            height: 68,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(0, Icons.home_outlined, Icons.home_rounded, 'Home'),
+                _buildNavItem(1, Icons.groups_outlined, Icons.groups_rounded, 'Clubs'),
+                _buildNavItem(2, Icons.event_outlined, Icons.event_rounded, 'Events'),
+                _buildNavItem(3, Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
+              ],
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.event_outlined),
-            selectedIcon: Icon(Icons.event_rounded),
-            label: 'Events',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.notifications_none_rounded),
-            selectedIcon: Icon(Icons.notifications_rounded),
-            label: 'Alerts',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
-            label: 'Profile',
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.appState, required this.onOpenProfile});
+  const _TopBar({required this.appState});
 
   final AppState appState;
-  final VoidCallback onOpenProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -131,8 +173,17 @@ class _TopBar extends StatelessWidget {
               icon: const Icon(Icons.refresh_rounded),
             ),
           IconButton(
-            onPressed: onOpenProfile,
-            icon: const Icon(Icons.account_circle_outlined),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => Scaffold(
+                    appBar: AppBar(elevation: 0, backgroundColor: Colors.transparent),
+                    body: NotificationsScreen(appState: appState),
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.notifications_none_rounded),
           ),
         ],
       ),
