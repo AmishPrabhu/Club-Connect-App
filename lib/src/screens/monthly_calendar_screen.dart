@@ -1,0 +1,463 @@
+import 'package:flutter/material.dart';
+
+import '../models/post_item.dart';
+import '../state/app_state.dart';
+import '../theme/app_theme.dart';
+import '../widgets/event_card.dart';
+import '../widgets/glass_card.dart';
+import 'post_detail_screen.dart';
+
+class MonthlyCalendarScreen extends StatefulWidget {
+  const MonthlyCalendarScreen({super.key, required this.appState});
+
+  final AppState appState;
+
+  @override
+  State<MonthlyCalendarScreen> createState() => _MonthlyCalendarScreenState();
+}
+
+class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
+  DateTime _focusedMonth = DateTime.now();
+  DateTime? _selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _selectedDate = DateTime(now.year, now.month, now.day);
+  }
+
+  // Month navigation helpers
+  void _prevMonth() {
+    setState(() {
+      _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month - 1, 1);
+    });
+  }
+
+  void _nextMonth() {
+    setState(() {
+      _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 1);
+    });
+  }
+
+  // Get total days in the focused month
+  int _getDaysInMonth(int year, int month) {
+    if (month == 12) {
+      return DateTime(year + 1, 1, 0).day;
+    }
+    return DateTime(year, month + 1, 0).day;
+  }
+
+  // Get the start weekday index (0 = Sunday, ..., 6 = Saturday)
+  int _getStartWeekdayOfMonth(int year, int month) {
+    final firstDay = DateTime(year, month, 1);
+    return firstDay.weekday % 7;
+  }
+
+  // Check if a date has events
+  bool _dateHasEvents(DateTime date) {
+    return widget.appState.posts.any((post) =>
+        post.isEvent &&
+        post.date != null &&
+        post.date!.year == date.year &&
+        post.date!.month == date.month &&
+        post.date!.day == date.day);
+  }
+
+  // Format month and year (e.g. "March 2026")
+  String _formatMonthYear(DateTime date) {
+    final months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
+    ];
+    return '${months[date.month - 1]} ${date.year}';
+  }
+
+  // Format full date (e.g. "Fri, Mar 20")
+  String _formatFullDate(DateTime date) {
+    final weekdays = [
+      'Mon',
+      'Tue',
+      'Wed',
+      'Thu',
+      'Fri',
+      'Sat',
+      'Sun'
+    ];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+    return '${weekdays[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}';
+  }
+
+  // Get start of the current week (Monday)
+  DateTime _startOfCurrentWeek() {
+    final now = DateTime.now();
+    final daysToSubtract = now.weekday - 1;
+    return DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: daysToSubtract));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final daysInMonth = _getDaysInMonth(_focusedMonth.year, _focusedMonth.month);
+    final startOffset =
+        _getStartWeekdayOfMonth(_focusedMonth.year, _focusedMonth.month);
+
+    // Total cells in the grid (offset padding + days)
+    final totalCells = startOffset + daysInMonth;
+
+    // Days of the week headers (Starting with Sunday as in typical monthly calendar)
+    final weekHeaders = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+
+    // Determine current week days for default view
+    final startOfWeek = _startOfCurrentWeek();
+    final currentWeekDays = List.generate(
+      7,
+      (index) => startOfWeek.add(Duration(days: index)),
+    );
+
+    // Filter events based on selection
+    final List<PostItem> displayedEvents;
+    final String eventsHeader;
+
+    if (_selectedDate == null) {
+      eventsHeader = 'Events this week';
+      displayedEvents = widget.appState.posts.where((post) {
+        if (!post.isEvent || post.date == null) return false;
+        return currentWeekDays.any((day) =>
+            post.date!.year == day.year &&
+            post.date!.month == day.month &&
+            post.date!.day == day.day);
+      }).toList();
+    } else {
+      eventsHeader = 'Events on ${_formatFullDate(_selectedDate!)}';
+      displayedEvents = widget.appState.posts.where((post) {
+        if (!post.isEvent || post.date == null) return false;
+        return post.date!.year == _selectedDate!.year &&
+            post.date!.month == _selectedDate!.month &&
+            post.date!.day == _selectedDate!.day;
+      }).toList();
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Campus Calendar'),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),
+      body: Stack(
+        children: [
+          // Background Decor (matches RootScreen background)
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFFF8FAFC),
+                  Color(0xFFF1F5F9),
+                ],
+              ),
+            ),
+          ),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Calendar Card
+                  GlassCard(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Month Year header & Navigation
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _formatMonthYear(_focusedMonth),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 22,
+                                  ),
+                            ),
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.chevron_left_rounded,
+                                    size: 28,
+                                  ),
+                                  onPressed: _prevMonth,
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.chevron_right_rounded,
+                                    size: 28,
+                                  ),
+                                  onPressed: _nextMonth,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        // Days of week header row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: weekHeaders.map((header) {
+                            return Expanded(
+                              child: Text(
+                                header,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                  color: AppTheme.muted,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 12),
+                        // Calendar Grid
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 7,
+                            mainAxisSpacing: 10,
+                            crossAxisSpacing: 10,
+                            childAspectRatio: 1.0,
+                          ),
+                          itemCount: totalCells,
+                          itemBuilder: (context, index) {
+                            // If index is less than first day offset, draw empty space
+                            if (index < startOffset) {
+                              return const SizedBox.shrink();
+                            }
+
+                            final dayNumber = index - startOffset + 1;
+                            final cellDate = DateTime(
+                              _focusedMonth.year,
+                              _focusedMonth.month,
+                              dayNumber,
+                            );
+
+                            final isSelected = _selectedDate != null &&
+                                _selectedDate!.year == cellDate.year &&
+                                _selectedDate!.month == cellDate.month &&
+                                _selectedDate!.day == cellDate.day;
+
+                            final isToday = now.year == cellDate.year &&
+                                now.month == cellDate.month &&
+                                now.day == cellDate.day;
+
+                            final hasEvent = _dateHasEvents(cellDate);
+
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  if (isSelected) {
+                                    // Deselect to reset to current week events
+                                    _selectedDate = null;
+                                  } else {
+                                    _selectedDate = cellDate;
+                                  }
+                                });
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? AppTheme.blue
+                                      : isToday
+                                          ? AppTheme.blue.withValues(alpha: 0.1)
+                                          : Colors.transparent,
+                                  shape: BoxShape.circle,
+                                ),
+                                alignment: Alignment.center,
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: 6.0,
+                                      ),
+                                      child: Text(
+                                        '$dayNumber',
+                                        style: TextStyle(
+                                          fontWeight: isSelected || isToday
+                                              ? FontWeight.bold
+                                              : FontWeight.w500,
+                                          fontSize: 15,
+                                          color: isSelected
+                                              ? Colors.white
+                                              : isToday
+                                                  ? AppTheme.blue
+                                                  : AppTheme.text,
+                                        ),
+                                      ),
+                                    ),
+                                    if (hasEvent)
+                                      Positioned(
+                                        bottom: 6,
+                                        child: Container(
+                                          width: 5,
+                                          height: 5,
+                                          decoration: BoxDecoration(
+                                            color: isSelected
+                                                ? Colors.white
+                                                : const Color(0xFF22C55E), // Green dot
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        const Divider(color: Color(0xFFF1F5F9)),
+                        const SizedBox(height: 8),
+                        // Legend
+                        const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.circle,
+                              size: 10,
+                              color: Color(0xFF22C55E),
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Events are marked with green',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppTheme.muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Events Title
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          eventsHeader,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (_selectedDate != null)
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _selectedDate = null;
+                            });
+                          },
+                          child: const Text('Clear Filter'),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Filtered Event List
+                  if (displayedEvents.isEmpty)
+                    GlassCard(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 32,
+                        horizontal: 20,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.event_busy_rounded,
+                            size: 48,
+                            color: AppTheme.muted.withValues(alpha: 0.5),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _selectedDate == null
+                                ? 'No events scheduled for this week.'
+                                : 'No events scheduled for this day.',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: AppTheme.muted,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: displayedEvents.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 16),
+                      itemBuilder: (context, index) {
+                        final event = displayedEvents[index];
+                        return EventCard(
+                          post: event,
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => PostDetailScreen(
+                                appState: widget.appState,
+                                initialPost: event,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

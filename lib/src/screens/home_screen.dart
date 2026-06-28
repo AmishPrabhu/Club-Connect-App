@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../models/post_item.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/event_card.dart';
 import '../widgets/glass_card.dart';
 import 'club_detail_screen.dart';
 import 'post_detail_screen.dart';
+import 'monthly_calendar_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -25,6 +27,88 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String _query = '';
+  DateTime? _selectedDate;
+  final ScrollController _calendarScrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _selectedDate = DateTime(now.year, now.month, now.day);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_calendarScrollController.hasClients) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        const todayIndex = 15; // middle of 31 days
+        const itemWidth = 54.0;
+        const separatorWidth = 12.0;
+        const itemSpace = itemWidth + separatorWidth;
+
+        // Offset to align center of item with center of screen
+        final targetOffset = (todayIndex * itemSpace) - (screenWidth / 2) + (itemWidth / 2) + 20; // 20 is horizontal padding
+        _calendarScrollController.jumpTo(targetOffset);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _calendarScrollController.dispose();
+    super.dispose();
+  }
+
+  DateTime _startOfCurrentWeek() {
+    final now = DateTime.now();
+    final daysToSubtract = now.weekday - 1;
+    return DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: daysToSubtract));
+  }
+
+  bool _dateHasEvents(DateTime date) {
+    return widget.appState.posts.any((post) =>
+        post.isEvent &&
+        post.date != null &&
+        post.date!.year == date.year &&
+        post.date!.month == date.month &&
+        post.date!.day == date.day);
+  }
+
+  String _formatFullDate(DateTime date) {
+    final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+    return '${weekdays[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}';
+  }
+
+  String _formatMonthYear(DateTime date) {
+    final months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
+    ];
+    return '${months[date.month - 1]} ${date.year}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +120,44 @@ class _HomeScreenState extends State<HomeScreen> {
       final text = '${club.name} ${club.description}'.toLowerCase();
       return text.contains(_query.toLowerCase());
     }).toList();
+
+    // Calculate current week days
+    final startOfWeek = _startOfCurrentWeek();
+    final currentWeekDays = List.generate(
+      7,
+      (index) => startOfWeek.add(Duration(days: index)),
+    );
+
+    final today = DateTime.now();
+    final todayMidnight = DateTime(today.year, today.month, today.day);
+    final calendarDays = List.generate(
+      31,
+      (index) => todayMidnight.add(Duration(days: index - 15)),
+    );
+
+    final List<PostItem> displayedEvents;
+    final String eventsHeader;
+
+    if (_selectedDate == null) {
+      eventsHeader = 'Weekly Events';
+      displayedEvents = widget.appState.posts.where((post) {
+        if (!post.isEvent || post.date == null) return false;
+        return currentWeekDays.any((day) =>
+            post.date!.year == day.year &&
+            post.date!.month == day.month &&
+            post.date!.day == day.day);
+      }).toList();
+    } else {
+      eventsHeader = 'Events on ${_formatFullDate(_selectedDate!)}';
+      displayedEvents = widget.appState.posts.where((post) {
+        if (!post.isEvent || post.date == null) return false;
+        return post.date!.year == _selectedDate!.year &&
+            post.date!.month == _selectedDate!.month &&
+            post.date!.day == _selectedDate!.day;
+      }).toList();
+    }
+
+    final weekdaysShort = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
     return CustomScrollView(
       slivers: [
@@ -160,34 +282,229 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
+        // Campus Calendar Section
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 26, 20, 12),
-            child: _SectionHeading(
-              title: 'Weekly Events',
-              actionLabel: 'Browse all',
-              onTap: widget.onOpenEvents,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Calendar',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _formatMonthYear(_selectedDate ?? todayMidnight).toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.muted,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => MonthlyCalendarScreen(
+                          appState: widget.appState,
+                        ),
+                      ),
+                    );
+                  },
+                  child: const Text('View Month'),
+                ),
+              ],
             ),
           ),
         ),
-        SliverList.separated(
-          itemCount: upcomingEvents.length > 3 ? 3 : upcomingEvents.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 16),
-          itemBuilder: (context, index) => Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-            child: EventCard(
-              post: upcomingEvents[index],
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => PostDetailScreen(
-                    appState: widget.appState,
-                    initialPost: upcomingEvents[index],
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 98,
+            child: ShaderMask(
+              shaderCallback: (Rect bounds) {
+                return const LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black,
+                    Colors.black,
+                    Colors.transparent,
+                  ],
+                  stops: [0.0, 0.08, 0.92, 1.0],
+                ).createShader(bounds);
+              },
+              blendMode: BlendMode.dstIn,
+              child: ListView.separated(
+                controller: _calendarScrollController,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                scrollDirection: Axis.horizontal,
+                itemCount: 31,
+                separatorBuilder: (_, _) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final cellDate = calendarDays[index];
+                  final isSelected = _selectedDate != null &&
+                      _selectedDate!.year == cellDate.year &&
+                      _selectedDate!.month == cellDate.month &&
+                      _selectedDate!.day == cellDate.day;
+                  final isToday = todayMidnight.year == cellDate.year &&
+                      todayMidnight.month == cellDate.month &&
+                      todayMidnight.day == cellDate.day;
+                  final hasEvent = _dateHasEvents(cellDate);
+
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (isSelected) {
+                          _selectedDate = null;
+                        } else {
+                          _selectedDate = cellDate;
+                        }
+                      });
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 54,
+                          height: 76,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppTheme.navy
+                                : const Color(0xFFF1F5F9), // Light gray background
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                weekdaysShort[cellDate.weekday - 1],
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: isSelected
+                                      ? Colors.white.withValues(alpha: 0.8)
+                                      : AppTheme.muted,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                '${cellDate.day}',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : AppTheme.text,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        // Small dot indicator
+                        Container(
+                          width: 5,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: hasEvent
+                                ? (isSelected ? AppTheme.navy : const Color(0xFF22C55E))
+                                : Colors.transparent,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    eventsHeader,
+                    style: Theme.of(context).textTheme.titleLarge,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (_selectedDate != null)
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _selectedDate = null;
+                      });
+                    },
+                    child: const Text('Clear Filter'),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        if (displayedEvents.isEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: GlassCard(
+                padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.event_busy_rounded,
+                      size: 44,
+                      color: AppTheme.muted.withValues(alpha: 0.5),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _selectedDate == null
+                          ? 'No events scheduled for this week.'
+                          : 'No events scheduled for this day.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppTheme.muted,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else
+          SliverList.separated(
+            itemCount: displayedEvents.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 16),
+            itemBuilder: (context, index) => Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+              child: EventCard(
+                post: displayedEvents[index],
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PostDetailScreen(
+                      appState: widget.appState,
+                      initialPost: displayedEvents[index],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
         const SliverToBoxAdapter(child: SizedBox(height: 30)),
       ],
     );
