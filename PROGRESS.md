@@ -24,12 +24,13 @@ Last updated: 2026-04-19
 
 ## How to run
 - Start backend:
-  - `cd /Users/amishprabhu/Documents/GitHub/Club-Connect/server`
-  - `npm run dev`
-- Run Flutter on Android emulator:
-  - `flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5001/api`
-- Run Flutter on iOS simulator:
-  - `flutter run --dart-define=API_BASE_URL=http://127.0.0.1:5001/api`
+  - Copy `server/.env.example` to `server/.env` and fill in your connection credentials and API keys.
+  - Run `cd server && npm install` (to install dependencies)
+  - Run `npm run dev` (to start the local development server)
+- Run Flutter:
+  - Simply run `flutter run`. The app will automatically connect to your local server on port 5001 (`http://10.0.2.2:5001/api` for Android Emulator, and `http://localhost:5001/api` for iOS/Web) in debug mode.
+  - To override the API URL manually:
+    `flutter run --dart-define=API_BASE_URL=https://your-custom-api-url/api`
 
 ## Remaining high-value work
 - Profile/account actions:

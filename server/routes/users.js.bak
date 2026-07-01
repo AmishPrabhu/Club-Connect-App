@@ -1,0 +1,319 @@
+import express from 'express';
+import User from '../models/User.js';
+import Club from '../models/Club.js';
+import ClubMember from '../models/ClubMember.js';
+import { verifyToken } from '../middleware/auth.js';
+
+const router = express.Router();
+
+// Get my club memberships
+router.get('/memberships', verifyToken, async (req, res) => {
+    try {
+        const memberships = await ClubMember.find({
+            $or: [
+                { userId: req.user.id },
+                { email: req.user.email }
+            ]
+        });
+
+        const fullMemberships = await Promise.all(memberships.map(async (m) => {
+            const club = await Club.findById(m.clubId);
+            if (!club) return null;
+
+            return {
+                clubId: club._id,
+                clubName: club.name,
+                clubImage: club.image,
+                clubIcon: '🏛️',
+                role: m.role,
+                boardType: m.boardType, // Include boardType for dashboard access control
+                joinedAt: m.joinedAt,
+
+                // Add styling props that frontend might expect
+                clubColor: 'from-blue-500 to-cyan-500', // Default or fetch from club if exists
+            };
+        }));
+
+        res.json(fullMemberships.filter(m => m));
+    } catch (error) {
+        console.error('Error fetching memberships:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+
+// Get total student stats
+router.get('/stats/count', async (req, res) => {
+    try {
+        const count = await User.countDocuments({ role: 'student' }); // Or just all users if 'student' role isn't strict yet
+        // Fallback to all users if student role specific logic isn't populated
+        const total = await User.countDocuments();
+        res.json({ count: total });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get user profile
+router.get('/:id', verifyToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id).select('-password -resetPasswordToken -resetPasswordExpires');
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Update user profile
+router.put('/:id', verifyToken, async (req, res) => {
+
+    try {
+        // Authorization Check: User can only update their own profile
+        if (req.user.id !== req.params.id) {
+            return res.status(403).json({ message: 'Not authorized to update this profile' });
+        }
+
+        const { name, bio, email, profileImage, clubId, clubName } = req.body;
+        // Prevent role, clubId, clubName updates here for security
+        // These should only be updated via specific actions (joining a club, being promoted)
+        const updates = {};
+        if (name !== undefined) updates.name = name;
+        if (bio !== undefined) updates.bio = bio;
+        if (email !== undefined) updates.email = email;
+        if (profileImage !== undefined) updates.profileImage = profileImage;
+
+        const updatedUser = await User.findByIdAndUpdate(req.params.id, updates, { new: true }).select('-password -resetPasswordToken -resetPasswordExpires');
+        res.json(updatedUser);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Like a club
+router.post('/:id/like/:clubId', verifyToken, async (req, res) => {
+    try {
+        if (req.user.id !== req.params.id) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        const user = await User.findById(req.params.id);
+        if (!user.likedClubs.includes(req.params.clubId)) {
+            user.likedClubs.push(req.params.clubId);
+            await user.save();
+        }
+        res.json(user.likedClubs);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Unlike a club
+router.delete('/:id/like/:clubId', verifyToken, async (req, res) => {
+    try {
+        if (req.user.id !== req.params.id) {
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        const user = await User.findById(req.params.id);
+        user.likedClubs = user.likedClubs.filter(id => id !== req.params.clubId);
+        await user.save();
+
+        res.json(user.likedClubs);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// ==================== ADMIN: ASSIGN TEACHER ROLE ====================
+
+// Assign teacher role to a user (Admin only)
+router.post('/assign-teacher', verifyToken, async (req, res) => {
+    try {
+        // Verify user is admin
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Only admins can assign teacher roles' });
+        }
+
+        const { email, name } = req.body;
+        if (!email || !name) {
+            return res.status(400).json({ message: 'Email and name are required' });
+        }
+
+        // Check if user exists
+        let user = await User.findOne({ email: email.toLowerCase() });
+
+        if (user) {
+            // User exists - update role to teacher
+            user.role = 'teacher';
+            user.name = name; // Update name in case it changed
+            await user.save();
+
+            return res.json({
+                success: true,
+                message: 'User role updated to teacher',
+                userId: user._id,
+                isNewUser: false
+            });
+        } else {
+            // User doesn't exist - create new teacher account
+            // Generate a temporary password (they'll need to reset it)
+            const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+            const bcrypt = (await import('bcryptjs')).default;
+            const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+            user = new User({
+                email: email.toLowerCase(),
+                name,
+                password: hashedPassword,
+                role: 'teacher',
+                managedClubs: []
+            });
+
+            await user.save();
+
+            // TODO: Send email to teacher with account creation notification
+            // For now, we'll just return success
+            // In production, you'd send an email with a password reset link
+
+            return res.json({
+                success: true,
+                message: 'Teacher account created. User will receive an email to set their password.',
+                userId: user._id,
+                isNewUser: true
+            });
+        }
+    } catch (error) {
+        console.error('Error assigning teacher role:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// ==================== TEACHER ROUTES ====================
+
+// Get teacher's managed clubs
+router.get('/teacher/clubs', verifyToken, async (req, res) => {
+    try {
+        // Verify user is a teacher
+        if (req.user.role !== 'teacher' && req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Only teachers can access this endpoint' });
+        }
+
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // Fetch full club details for managed clubs
+        const clubs = await Club.find({ _id: { $in: user.managedClubs || [] } });
+        res.json(clubs);
+    } catch (error) {
+        console.error('Error fetching teacher clubs:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Add a club to teacher's managed list
+router.post('/teacher/clubs', verifyToken, async (req, res) => {
+    try {
+        // Verify user is a teacher
+        if (req.user.role !== 'teacher' && req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Only teachers can access this endpoint' });
+        }
+
+        const { clubId } = req.body;
+        if (!clubId) {
+            return res.status(400).json({ message: 'Club ID is required' });
+        }
+
+        // Verify club exists
+        const club = await Club.findById(clubId);
+        if (!club) {
+            return res.status(404).json({ message: 'Club not found' });
+        }
+
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // Add club if not already in list
+        if (!user.managedClubs) user.managedClubs = [];
+        if (!user.managedClubs.includes(clubId)) {
+            user.managedClubs.push(clubId);
+            await user.save();
+        }
+
+        res.json({ message: 'Club added to managed list', managedClubs: user.managedClubs });
+    } catch (error) {
+        console.error('Error adding club to teacher:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Remove a club from teacher's managed list
+router.delete('/teacher/clubs/:clubId', verifyToken, async (req, res) => {
+    try {
+        // Verify user is a teacher
+        if (req.user.role !== 'teacher' && req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Only teachers can access this endpoint' });
+        }
+
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // Remove club from managed list
+        if (user.managedClubs) {
+            user.managedClubs = user.managedClubs.filter(id => id !== req.params.clubId);
+            await user.save();
+        }
+
+        res.json({ message: 'Club removed from managed list', managedClubs: user.managedClubs });
+    } catch (error) {
+        console.error('Error removing club from teacher:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get all reports for teacher's managed clubs
+router.get('/teacher/reports', verifyToken, async (req, res) => {
+    try {
+        // Verify user is a teacher
+        if (req.user.role !== 'teacher' && req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Only teachers can access this endpoint' });
+        }
+
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // For admin, show all reports; for teacher, only show reports from managed clubs
+        const Post = (await import('../models/Post.js')).default;
+        let query = { type: 'event', reportUrl: { $ne: null } };
+
+        if (req.user.role === 'teacher') {
+            if (!user.managedClubs || user.managedClubs.length === 0) {
+                return res.json([]); // No managed clubs, return empty array
+            }
+            query.clubId = { $in: user.managedClubs };
+        }
+
+        const events = await Post.find(query).sort({ reportSubmittedAt: -1 });
+
+        // Format response with relevant details
+        const reports = events.map(event => ({
+            id: event._id,
+            eventId: event._id,
+            eventTitle: event.title,
+            eventDate: event.date,
+            clubId: event.clubId,
+            clubName: event.clubName,
+            reportUrl: event.reportUrl,
+            reportSubmittedBy: event.reportSubmittedBy,
+            reportSubmittedByName: event.reportSubmittedByName,
+            reportSubmittedAt: event.reportSubmittedAt,
+        }));
+
+        res.json(reports);
+    } catch (error) {
+        console.error('Error fetching teacher reports:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+export default router;
