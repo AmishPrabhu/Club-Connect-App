@@ -8,7 +8,9 @@ class UserSession {
     this.clubName,
     this.profileImage,
     List<String>? likedClubs,
-  }) : likedClubs = likedClubs ?? [];
+    List<String>? roles,
+  })  : likedClubs = likedClubs ?? [],
+        roles = roles ?? [];
 
   final String? id;
   final String name;
@@ -18,9 +20,13 @@ class UserSession {
   final String? clubName;
   final String? profileImage;
   final List<String> likedClubs;
+  final List<String> roles;
 
   factory UserSession.fromJson(Map<String, dynamic> json) {
     final liked = (json['likedClubs'] as List<dynamic>? ?? const [])
+        .map((item) => item.toString())
+        .toList();
+    final rolesList = (json['roles'] as List<dynamic>? ?? const [])
         .map((item) => item.toString())
         .toList();
     return UserSession(
@@ -32,6 +38,7 @@ class UserSession {
       clubName: json['clubName']?.toString(),
       profileImage: json['profileImage']?.toString(),
       likedClubs: liked,
+      roles: rolesList,
     );
   }
 }

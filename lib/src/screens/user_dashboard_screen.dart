@@ -90,6 +90,158 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
     return 'Member';
   }
 
+  List<Map<String, dynamic>> _getAvailableManagementRoles(UserSession session) {
+    final email = session.email.toLowerCase();
+    final list = <Map<String, dynamic>>[];
+    
+    for (final club in widget.appState.clubs) {
+      if (club.presidentEmail.toLowerCase() == email) {
+        list.add({'club': club, 'role': 'President', 'type': 'club'});
+      }
+      if (club.secretaryEmail.toLowerCase() == email) {
+        list.add({'club': club, 'role': 'Secretary', 'type': 'club'});
+      }
+      if (club.treasurerEmail.toLowerCase() == email) {
+        list.add({'club': club, 'role': 'Treasurer', 'type': 'club'});
+      }
+      if (club.advisorEmail.toLowerCase() == email) {
+        list.add({'club': club, 'role': 'Advisor', 'type': 'club'});
+      }
+    }
+    
+    final hasTeacherRole = session.roles.contains('teacher') || session.role == 'teacher';
+    if (hasTeacherRole) {
+      list.add({'role': 'Teacher', 'type': 'teacher'});
+    }
+    
+    final hasAdminRole = session.roles.contains('admin') || session.role == 'admin';
+    if (hasAdminRole) {
+      list.add({'role': 'Admin', 'type': 'admin'});
+    }
+    
+    return list;
+  }
+
+  void _showRoleSelector(UserSession session, List<Map<String, dynamic>> roles) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      backgroundColor: Colors.white,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Select Management Dashboard',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.navy,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ...roles.map((cr) {
+                  final type = cr['type'] as String;
+                  final role = cr['role'] as String;
+                  final Club? club = cr['club'] as Club?;
+                  
+                  String title = '';
+                  String subtitle = '';
+                  IconData icon = Icons.groups_rounded;
+                  
+                  if (type == 'club' && club != null) {
+                    title = '${club.name} ($role)';
+                    subtitle = club.fullForm.isNotEmpty ? club.fullForm : 'Club Dashboard';
+                    icon = Icons.dashboard_rounded;
+                  } else if (type == 'teacher') {
+                    title = 'Teacher Dashboard';
+                    subtitle = 'Monitor and supervise assigned clubs';
+                    icon = Icons.school_rounded;
+                  } else if (type == 'admin') {
+                    title = 'System Admin Dashboard';
+                    subtitle = 'Manage all clubs, posts, and teachers';
+                    icon = Icons.admin_panel_settings_rounded;
+                  }
+                  
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                    ),
+                    child: ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFEFF6FF),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(icon, color: const Color(0xFF3B82F6), size: 20),
+                      ),
+                      title: Text(
+                        title,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy),
+                      ),
+                      subtitle: Text(
+                        subtitle,
+                        style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 18),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => DashboardScreen(
+                              appState: widget.appState,
+                              initialClub: club,
+                              initialRole: type == 'club' ? role.toLowerCase() : type,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _handleManagementTap(UserSession session, Club? defaultClub) {
+    final roles = _getAvailableManagementRoles(session);
+    if (roles.length > 1) {
+      _showRoleSelector(session, roles);
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => DashboardScreen(
+            appState: widget.appState,
+            initialClub: defaultClub,
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = widget.appState.session;
@@ -102,22 +254,41 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
     }
 
     final isOfficer = _isClubOfficer(session);
+    final isTeacher = session.role == 'teacher' || session.roles.contains('teacher');
+    final hasManagementAccess = isOfficer || isTeacher;
 
     Club? managedClub;
     if (isOfficer) {
-      final clubNameLower = session.clubName?.toLowerCase() ?? '';
       final clubId = session.clubId;
-      final matches = widget.appState.clubs.where((c) {
-        if (clubId != null && c.id == clubId) return true;
-        if (clubNameLower.isNotEmpty) {
+      final clubNameLower = session.clubName?.toLowerCase() ?? '';
+      
+      if (clubId != null) {
+        final byId = widget.appState.clubs.where((c) => c.id == clubId).toList();
+        if (byId.isNotEmpty) {
+          managedClub = byId.first;
+        }
+      }
+      
+      if (managedClub == null && clubNameLower.isNotEmpty) {
+        final byName = widget.appState.clubs.where((c) {
           final cName = c.name.toLowerCase();
           final cFull = c.fullForm.toLowerCase();
-          if (cName == clubNameLower || cFull == clubNameLower) return true;
-          if (clubNameLower.contains(cName) || cName.contains(clubNameLower)) return true;
+          return cName == clubNameLower || cFull == clubNameLower;
+        }).toList();
+        if (byName.isNotEmpty) {
+          managedClub = byName.first;
         }
-        return false;
-      }).toList();
-      if (matches.isNotEmpty) managedClub = matches.first;
+      }
+
+      if (managedClub == null && clubNameLower.isNotEmpty) {
+        final byLoose = widget.appState.clubs.where((c) {
+          final cName = c.name.toLowerCase();
+          return clubNameLower.contains(cName) || cName.contains(clubNameLower);
+        }).toList();
+        if (byLoose.isNotEmpty) {
+          managedClub = byLoose.first;
+        }
+      }
     }
 
     // Filter user's clubs (either liked or where they are an officer)
@@ -313,146 +484,143 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                   ),
 
                   // 2. Walkway to Club Management
-                  if (isOfficer) ...[
+                  if (hasManagementAccess) ...[
                     const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: Colors.grey.shade100, width: 1.5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.02),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Core Member',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      managedClub?.name ?? session.clubName ?? 'Your Club',
-                                      style: const TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w900,
-                                        color: AppTheme.navy,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              // Specific Club Logo Container
-                              Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: Colors.grey.shade100, width: 1.5),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.015),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                padding: const EdgeInsets.all(6),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: (managedClub != null && managedClub.imageAsset.isNotEmpty)
-                                      ? (managedClub.imageAsset.startsWith('http')
-                                          ? Image.network(managedClub.imageAsset, fit: BoxFit.contain)
-                                          : Image.asset(
-                                              managedClub.imageAsset.startsWith('/')
-                                                  ? 'assets/images${managedClub.imageAsset}'
-                                                  : managedClub.imageAsset,
-                                              fit: BoxFit.contain,
-                                              errorBuilder: (_, __, ___) => const Icon(Icons.groups_rounded, color: AppTheme.blue),
-                                            ))
-                                      : const Icon(Icons.groups_rounded, color: AppTheme.blue, size: 28),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              // Indigo/blue pill button
-                              InkWell(
-                                borderRadius: BorderRadius.circular(24),
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => DashboardScreen(
-                                        appState: widget.appState,
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF4F46E5),
-                                    borderRadius: BorderRadius.circular(24),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFF4F46E5).withOpacity(0.2),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 3),
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Row(
-                                    mainAxisSize: MainAxisSize.min,
+                    GestureDetector(
+                      onTap: () => _handleManagementTap(session, managedClub),
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.02),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Go to Club Management',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w800,
+                                        isOfficer ? 'Core Member' : 'Faculty Monitor',
+                                        style: const TextStyle(
                                           fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.grey,
                                         ),
                                       ),
-                                      SizedBox(width: 8),
-                                      Icon(
-                                        Icons.chevron_right_rounded,
-                                        color: Colors.white,
-                                        size: 16,
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        isOfficer 
+                                            ? (managedClub?.name ?? session.clubName ?? 'Your Club')
+                                            : 'Monitored Clubs',
+                                        style: const TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w900,
+                                          color: AppTheme.navy,
+                                        ),
                                       ),
                                     ],
                                   ),
                                 ),
-                              ),
-                              const Spacer(),
-                              Icon(
-                                Icons.chevron_right_rounded,
-                                color: Colors.grey.shade400,
-                                size: 20,
-                              ),
-                            ],
-                          ),
-                        ],
+                                const SizedBox(width: 12),
+                                // Specific Club Logo Container
+                                Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.015),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  padding: const EdgeInsets.all(6),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: (isOfficer && managedClub != null && managedClub.imageAsset.isNotEmpty)
+                                        ? (managedClub.imageAsset.startsWith('http')
+                                            ? Image.network(managedClub.imageAsset, fit: BoxFit.contain)
+                                            : Image.asset(
+                                                managedClub.imageAsset.startsWith('/')
+                                                    ? 'assets/images${managedClub.imageAsset}'
+                                                    : managedClub.imageAsset,
+                                                fit: BoxFit.contain,
+                                                errorBuilder: (_, __, ___) => const Icon(Icons.groups_rounded, color: AppTheme.blue),
+                                              ))
+                                        : const Icon(Icons.groups_rounded, color: AppTheme.blue, size: 28),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                // Indigo/blue pill button
+                                InkWell(
+                                  borderRadius: BorderRadius.circular(24),
+                                  onTap: () => _handleManagementTap(session, managedClub),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF4F46E5),
+                                      borderRadius: BorderRadius.circular(24),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFF4F46E5).withOpacity(0.2),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 3),
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          'Go to Club Management',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                        SizedBox(width: 8),
+                                        Icon(
+                                          Icons.chevron_right_rounded,
+                                          color: Colors.white,
+                                          size: 16,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const Spacer(),
+                                Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: Colors.grey.shade400,
+                                  size: 20,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],

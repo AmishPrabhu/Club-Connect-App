@@ -14,9 +14,16 @@ import 'post_detail_screen.dart';
 import 'profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key, required this.appState});
+  const DashboardScreen({
+    super.key,
+    required this.appState,
+    this.initialClub,
+    this.initialRole,
+  });
 
   final AppState appState;
+  final Club? initialClub;
+  final String? initialRole;
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -71,12 +78,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
 
       final session = widget.appState.session;
-      if (session != null) {
-        if (session.role == 'president' ||
-            session.role == 'club-secretary' ||
-            session.role == 'treasurer' ||
-            session.role == 'advisor') {
-          _selectedClub = _resolveManagedClub(session);
+      final activeRole = widget.initialRole ?? session?.role;
+      if (session != null && activeRole != null) {
+        if (activeRole == 'president' ||
+            activeRole == 'club-secretary' ||
+            activeRole == 'treasurer' ||
+            activeRole == 'advisor') {
+          if (widget.initialClub == null) {
+            _selectedClub = _resolveManagedClub(session);
+          }
         }
       }
     });
@@ -116,14 +126,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _initializeDashboard() async {
     final session = widget.appState.session!;
+    final activeRole = widget.initialRole ?? session.role;
     
     // Resolve managed club for officers
-    if (session.role == 'president' ||
-        session.role == 'club-secretary' ||
-        session.role == 'treasurer' ||
-        session.role == 'advisor') {
+    if (widget.initialClub != null) {
+      _selectedClub = widget.initialClub;
+    } else if (activeRole == 'president' ||
+        activeRole == 'club-secretary' ||
+        activeRole == 'treasurer' ||
+        activeRole == 'advisor') {
       _selectedClub = _resolveManagedClub(session);
-    } else if (session.role == 'teacher') {
+    } else if (activeRole == 'teacher') {
       setState(() => _isLoadingMonitored = true);
       try {
         final monitored = await widget.appState.fetchTeacherClubs();
@@ -144,7 +157,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       } finally {
         setState(() => _isLoadingMonitored = false);
       }
-    } else if (session.role == 'admin') {
+    } else if (activeRole == 'admin') {
       if (widget.appState.clubs.isNotEmpty) {
         _selectedClub = widget.appState.clubs.first;
       }
@@ -180,12 +193,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final session = widget.appState.session!;
-    final isAdmin = session.role == 'admin';
-    final isTeacher = session.role == 'teacher';
-    final isOfficer = session.role == 'president' ||
-        session.role == 'club-secretary' ||
-        session.role == 'treasurer' ||
-        session.role == 'advisor';
+    final activeRole = widget.initialRole ?? session.role;
+    final isAdmin = activeRole == 'admin';
+    final isTeacher = activeRole == 'teacher';
+    final isOfficer = activeRole == 'president' ||
+        activeRole == 'club-secretary' ||
+        activeRole == 'treasurer' ||
+        activeRole == 'advisor';
 
     return Scaffold(
       appBar: isAdmin
