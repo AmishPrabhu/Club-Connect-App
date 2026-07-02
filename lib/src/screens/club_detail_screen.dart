@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../models/club.dart';
 import '../models/post_item.dart';
@@ -902,11 +903,19 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                           if (canManageMembers)
                             Row(
                               children: [
-                                IconButton(
+                                 IconButton(
                                   onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Exporting members to CSV...')),
-                                    );
+                                    if (members.isEmpty) {
+                                      _showErrorSnackBar('No members available to export.');
+                                      return;
+                                    }
+                                    final csv = StringBuffer();
+                                    csv.writeln('Name,Email,Role,Board Type,Academic Year');
+                                    for (final m in members) {
+                                      csv.writeln('"${m['name'] ?? ''}","${m['email'] ?? ''}","${m['role'] ?? ''}","${m['boardType'] ?? ''}","${m['academicYear'] ?? ''}"');
+                                    }
+                                    Share.share(csv.toString(), subject: '${_club.name} Member Roster');
+                                    _showSuccessSnackBar('Roster CSV generated. Opening sharing options...');
                                   },
                                   icon: const Icon(Icons.download_rounded, color: AppTheme.blue),
                                   tooltip: 'Export Members',
