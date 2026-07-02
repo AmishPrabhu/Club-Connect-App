@@ -15,6 +15,11 @@ class PostItem {
     this.rsvps,
     this.budgetImageUrl,
     this.budgetVerified,
+    this.reportUrl,
+    this.reportSubmittedByName,
+    this.reportSubmittedAt,
+    this.totalSessions = 1,
+    this.certificateTemplate,
   });
 
   final String id;
@@ -38,6 +43,21 @@ class PostItem {
 
   /// Whether the advisor has verified the budget
   final bool? budgetVerified;
+
+  /// Event activity report URL
+  final String? reportUrl;
+
+  /// Name of officer who submitted the report
+  final String? reportSubmittedByName;
+
+  /// Timestamp of report submission
+  final DateTime? reportSubmittedAt;
+
+  /// Total number of attendance sessions (default is 1)
+  final int totalSessions;
+
+  /// Certificate template positioning variables
+  final Map<String, dynamic>? certificateTemplate;
 
   bool get isEvent => type == 'event';
   bool get isUpcoming =>
@@ -81,6 +101,13 @@ class PostItem {
       rsvps: rsvpsCount,
       budgetImageUrl: json['budgetImage']?.toString(),
       budgetVerified: json['budgetVerified'] as bool?,
+      reportUrl: json['reportUrl']?.toString(),
+      reportSubmittedByName: json['reportSubmittedByName']?.toString(),
+      reportSubmittedAt: json['reportSubmittedAt'] != null
+          ? DateTime.tryParse(json['reportSubmittedAt'].toString())
+          : null,
+      totalSessions: (json['totalSessions'] as num?)?.toInt() ?? 1,
+      certificateTemplate: json['certificateTemplate'] as Map<String, dynamic>?,
     );
   }
 }

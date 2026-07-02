@@ -347,6 +347,19 @@ class AppState extends ChangeNotifier {
     );
   }
 
+  Future<void> cancelRsvp(String eventId, String rsvpId) async {
+    await _apiClient.delete('/posts/$eventId/rsvps/$rsvpId');
+    await refreshAll();
+  }
+
+  Future<void> submitEventReport(String postId, String reportUrl, String reportFilename) async {
+    await _apiClient.put(
+      '/posts/$postId/report',
+      body: {'reportUrl': reportUrl, 'reportFilename': reportFilename},
+    );
+    await refreshAll();
+  }
+
   Future<List<Map<String, dynamic>>> fetchClubTasks(String clubId) async {
     final response =
         await _apiClient.get('/tasks?clubId=$clubId') as List<dynamic>;
@@ -658,6 +671,7 @@ class AppState extends ChangeNotifier {
   Future<void> updateProfile({
     required String name,
     String? profileImage,
+    String? bio,
   }) async {
     final current = session;
     if (current == null || current.id == null) {
@@ -666,6 +680,9 @@ class AppState extends ChangeNotifier {
     final body = <String, dynamic>{'name': name};
     if (profileImage != null) {
       body['profileImage'] = profileImage;
+    }
+    if (bio != null) {
+      body['bio'] = bio;
     }
     await _apiClient.put('/users/${current.id}', body: body);
     session = await _fetchCurrentUser();
@@ -726,5 +743,46 @@ class AppState extends ChangeNotifier {
   Future<List<Map<String, dynamic>>> fetchUserRsvps() async {
     final response = await _apiClient.get('/posts/user/rsvps') as List<dynamic>;
     return response.cast<Map<String, dynamic>>();
+  }
+
+  Future<List<Map<String, dynamic>>> fetchEventRsvps(String eventId) async {
+    final response = await _apiClient.get('/posts/$eventId/rsvps') as List<dynamic>;
+    return response.cast<Map<String, dynamic>>();
+  }
+
+  Future<void> updateRsvpAttendance(String eventId, String rsvpId, String status, int session) async {
+    await _apiClient.patch(
+      '/posts/$eventId/rsvps/$rsvpId',
+      body: {'status': status, 'session': session},
+    );
+  }
+
+  Future<void> addEventParticipant(String eventId, String name, String email) async {
+    await _apiClient.post(
+      '/posts/$eventId/rsvps/add',
+      body: {'name': name, 'email': email},
+    );
+  }
+
+  Future<void> deleteEventParticipant(String eventId, String rsvpId) async {
+    await _apiClient.delete('/posts/$eventId/rsvps/$rsvpId');
+  }
+
+  Future<void> saveCertificateTemplate(String eventId, String templateUrl, Map<String, dynamic> namePosition) async {
+    await _apiClient.put(
+      '/posts/$eventId/certificate-template',
+      body: {'templateUrl': templateUrl, 'namePosition': namePosition},
+    );
+  }
+
+  Future<void> updateParticipantCertificate(String eventId, String rsvpId, String certificateUrl) async {
+    await _apiClient.patch(
+      '/posts/$eventId/rsvps/$rsvpId/certificate',
+      body: {'certificateUrl': certificateUrl},
+    );
+  }
+
+  Future<dynamic> bulkImportMembers(String clubId, String filePath) async {
+    return await _apiClient.uploadFile('/clubs/$clubId/members/bulk-import', filePath);
   }
 }

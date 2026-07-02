@@ -144,18 +144,34 @@ class _ProfileBodyState extends State<_ProfileBody> {
     }
   }
 
-  void _showEditNameDialog(String currentName) {
-    final controller = TextEditingController(text: currentName);
+  void _showEditProfileDialog(String currentName, String? currentBio) {
+    final nameController = TextEditingController(text: currentName);
+    final bioController = TextEditingController(text: currentBio ?? '');
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Edit Name', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy)),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(
-              hintText: 'Enter your name',
-            ),
+          title: const Text('Edit Profile Details', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Name',
+                  hintText: 'Enter your name',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: bioController,
+                decoration: const InputDecoration(
+                  labelText: 'Biography',
+                  hintText: 'Enter a short bio',
+                ),
+                maxLines: 3,
+              ),
+            ],
           ),
           actions: [
             TextButton(
@@ -164,12 +180,14 @@ class _ProfileBodyState extends State<_ProfileBody> {
             ),
             FilledButton(
               onPressed: () async {
-                final newName = controller.text.trim();
+                final newName = nameController.text.trim();
+                final newBio = bioController.text.trim();
                 if (newName.isNotEmpty) {
                   try {
                     await widget.appState.updateProfile(
                       name: newName,
                       profileImage: widget.appState.session!.profileImage,
+                      bio: newBio,
                     );
                     if (mounted) {
                       Navigator.of(context).pop();
@@ -266,6 +284,21 @@ class _ProfileBodyState extends State<_ProfileBody> {
                 color: AppTheme.muted,
               ),
             ),
+            if (session.bio != null && session.bio!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  session.bio!,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
             const SizedBox(height: 32),
             _buildProfileLinkTile(
               title: 'Edit Profile',
@@ -273,7 +306,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
               icon: Icons.person_outline_rounded,
               iconColor: const Color(0xFF7C3AED),
               bgColor: const Color(0xFFF5F3FF),
-              onTap: () => _showEditNameDialog(session.name),
+              onTap: () => _showEditProfileDialog(session.name, session.bio),
             ),
             const SizedBox(height: 16),
             _buildProfileLinkTile(

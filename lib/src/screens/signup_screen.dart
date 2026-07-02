@@ -210,7 +210,14 @@ class _SignupScreenState extends State<SignupScreen> {
 
     try {
       if (_step == 0) {
-        await widget.appState.sendOtp(_emailController.text.trim());
+        final email = _emailController.text.trim();
+        if (email.isEmpty) {
+          throw Exception('Please enter your email');
+        }
+        if (!email.endsWith('@walchandsangli.ac.in')) {
+          throw Exception('Only @walchandsangli.ac.in email addresses are allowed');
+        }
+        await widget.appState.sendOtp(email);
         setState(() => _step = 1);
       } else if (_step == 1) {
         await widget.appState.verifyOtp(
@@ -262,6 +269,12 @@ class _SignupScreenState extends State<SignupScreen> {
       }
 
       if (result.needsSignup && result.googleData != null) {
+        if (!result.googleData!.email.endsWith('@walchandsangli.ac.in')) {
+          setState(() {
+            _error = 'Only @walchandsangli.ac.in email addresses are allowed';
+          });
+          return;
+        }
         setState(() {
           _googleData = result.googleData;
           _nameController.text = result.googleData!.name;

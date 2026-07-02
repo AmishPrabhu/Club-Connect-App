@@ -56,6 +56,43 @@ class ApiClient {
   Future<dynamic> delete(String path, {Object? body}) =>
       _request('DELETE', path, body: body);
 
+  Future<dynamic> uploadFile(String path, String filePath) async {
+    final uri = Uri.parse('$baseUrl$path');
+    final request = http.MultipartRequest('POST', uri);
+    if (_token != null && _token!.isNotEmpty) {
+      request.headers['Authorization'] = 'Bearer $_token';
+    }
+    request.files.add(await http.MultipartFile.fromPath('file', filePath));
+
+    try {
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      dynamic payload;
+      if (response.body.isNotEmpty) {
+        try {
+          payload = jsonDecode(response.body);
+        } catch (_) {}
+      }
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        final payloadMap = payload is Map<String, dynamic> ? payload : null;
+        final message = payloadMap?['message']?.toString() ??
+            'Upload failed (${response.statusCode})';
+        throw ApiException(
+          message,
+          statusCode: response.statusCode,
+          payload: payloadMap,
+        );
+      }
+      return payload;
+    } catch (_) {
+      throw ApiException(
+        'Could not connect to the backend during upload. Check that the server is running.',
+      );
+    }
+  }
+
   Future<dynamic> _request(String method, String path, {Object? body}) async {
     final uri = Uri.parse('$baseUrl$path');
     final headers = <String, String>{

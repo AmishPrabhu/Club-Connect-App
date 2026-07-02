@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/post_item.dart';
 import '../state/app_state.dart';
 import '../widgets/glass_card.dart';
+import 'event_participants_screen.dart';
 
 class PostDetailScreen extends StatefulWidget {
   const PostDetailScreen({
@@ -116,7 +119,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                 label: post.location!,
                               ),
                             ],
-                            if (post.isEvent) ...[
+                             if (post.isEvent) ...[
+                              _buildReportSection(post),
                               const SizedBox(height: 18),
                               SizedBox(
                                 width: double.infinity,
@@ -129,6 +133,41 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                   ),
                                 ),
                               ),
+                              if (widget.appState.session != null) ...[
+                                Builder(
+                                  builder: (ctx) {
+                                    final sess = widget.appState.session!;
+                                    final isOfficer = sess.clubId == post.clubId &&
+                                        (sess.role == 'club-secretary' || sess.role == 'president');
+                                    final isSupervisor = sess.role == 'advisor' ||
+                                        sess.role == 'teacher' ||
+                                        sess.role == 'admin';
+                                    if (isOfficer || isSupervisor) {
+                                      return Padding(
+                                        padding: const EdgeInsets.only(top: 12.0),
+                                        child: SizedBox(
+                                          width: double.infinity,
+                                          child: OutlinedButton.icon(
+                                            icon: const Icon(Icons.people_outline_rounded),
+                                            label: const Text('Manage Attendance & Certificates'),
+                                            onPressed: () {
+                                              Navigator.of(context).push(
+                                                MaterialPageRoute(
+                                                  builder: (_) => EventParticipantsScreen(
+                                                    appState: widget.appState,
+                                                    event: post,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                    return const SizedBox.shrink();
+                                  },
+                                ),
+                              ],
                             ],
                             if (_message != null) ...[
                               const SizedBox(height: 12),
@@ -202,6 +241,222 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  Widget _buildReportSection(PostItem post) {
+    final session = widget.appState.session;
+    if (session == null) return const SizedBox.shrink();
+
+    final isClubOfficer = session.clubId == post.clubId &&
+        (session.role == 'club-secretary' || session.role == 'president');
+
+    final isSupervisor = session.role == 'advisor' ||
+        session.role == 'teacher' ||
+        session.role == 'admin';
+
+    final hasReport = post.reportUrl != null && post.reportUrl!.isNotEmpty;
+
+    if (!isClubOfficer && !isSupervisor && !hasReport) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.file_copy_rounded, size: 16, color: Colors.blue),
+              SizedBox(width: 8),
+              Text(
+                'ACTIVITY REPORT',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (hasReport) ...[
+            Text(
+              'Report submitted by ${post.reportSubmittedByName ?? "Club Officer"}',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+            ),
+            if (post.reportSubmittedAt != null)
+              Text(
+                'Submitted on: ${post.reportSubmittedAt!.toLocal().toString().split(' ')[0]}',
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.open_in_new_rounded, size: 14),
+                    label: const Text('Open Report', style: TextStyle(fontSize: 12)),
+                    onPressed: () {
+                      _openPdfUrl(post.reportUrl!);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.copy_rounded, size: 14),
+                    label: const Text('Copy Link', style: TextStyle(fontSize: 12)),
+                    onPressed: () {
+                      _copyReportLink(post.reportUrl!);
+                    },
+                  ),
+                ),
+                if (isClubOfficer) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                    onPressed: () => _confirmRemoveReport(post.id),
+                  ),
+                ],
+              ],
+            ),
+          ] else ...[
+            const Text(
+              'No report uploaded yet.',
+              style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
+            ),
+            if (isClubOfficer) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  icon: const Icon(Icons.upload_file_rounded, size: 16),
+                  label: const Text('Upload/Submit Report'),
+                  onPressed: () => _showSubmitReportDialog(post.id),
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _copyReportLink(String link) {
+    Clipboard.setData(ClipboardData(text: link));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Report link copied to clipboard!')),
+    );
+  }
+
+  Future<void> _openPdfUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      Clipboard.setData(ClipboardData(text: url));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open link. Copied to clipboard instead.')),
+        );
+      }
+    }
+  }
+
+  void _confirmRemoveReport(String postId) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove Report'),
+        content: const Text('Are you sure you want to delete the submitted activity report?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              setState(() => _submitting = true);
+              try {
+                await widget.appState.submitEventReport(postId, '', '');
+                setState(() => _message = 'Report removed successfully.');
+              } catch (e) {
+                setState(() => _message = 'Failed to remove report: $e');
+              } finally {
+                setState(() => _submitting = false);
+              }
+            },
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSubmitReportDialog(String postId) {
+    final urlController = TextEditingController();
+    final filenameController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Submit Activity Report'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: urlController,
+              decoration: const InputDecoration(
+                labelText: 'Report PDF URL',
+                hintText: 'Enter PDF document URL',
+              ),
+              keyboardType: TextInputType.url,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: filenameController,
+              decoration: const InputDecoration(
+                labelText: 'Filename / Label',
+                hintText: 'e.g. event_report.pdf',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () async {
+              final url = urlController.text.trim();
+              final filename = filenameController.text.trim();
+              if (url.isEmpty || filename.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please fill in both fields.')),
+                );
+                return;
+              }
+              Navigator.pop(ctx);
+              setState(() => _submitting = true);
+              try {
+                await widget.appState.submitEventReport(postId, url, filename);
+                setState(() => _message = 'Report submitted successfully.');
+              } catch (e) {
+                setState(() => _message = 'Failed to submit report: $e');
+              } finally {
+                setState(() => _submitting = false);
+              }
+            },
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

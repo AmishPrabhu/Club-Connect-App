@@ -1123,6 +1123,9 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                     separatorBuilder: (_, __) => const Divider(),
                     itemBuilder: (context, index) {
                       final ev = items[index]['event'] as PostItem;
+                      final rsvp = items[index]['rsvp'] as Map<String, dynamic>;
+                      final rsvpId = (rsvp['id'] ?? rsvp['_id'])?.toString() ?? '';
+
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
                         title: Text(
@@ -1134,7 +1137,20 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                           '${ev.clubName} • ${ev.date != null ? "${ev.date!.day}/${ev.date!.month}/${ev.date!.year}" : "TBD"}',
                           style: const TextStyle(fontSize: 12),
                         ),
-                        trailing: const Icon(Icons.chevron_right_rounded),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (title.toLowerCase().contains('upcoming') && rsvpId.isNotEmpty)
+                              IconButton(
+                                icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent, size: 20),
+                                tooltip: 'Cancel RSVP',
+                                onPressed: () {
+                                  _confirmCancelRsvp(ev, rsvpId);
+                                },
+                              ),
+                            const Icon(Icons.chevron_right_rounded),
+                          ],
+                        ),
                         onTap: () {
                           Navigator.of(context).pop();
                           Navigator.of(context).push(
@@ -1155,6 +1171,42 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _confirmCancelRsvp(PostItem event, String rsvpId) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancel RSVP'),
+        content: Text('Are you sure you want to cancel your RSVP for "${event.title}"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(ctx); // Close dialog
+              Navigator.pop(context); // Close bottom sheet to trigger fresh reload
+              try {
+                await widget.appState.cancelRsvp(event.id, rsvpId);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('RSVP cancelled successfully.')),
+                  );
+                }
+                _loadUserRsvps();
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to cancel RSVP: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Cancel RSVP'),
+          ),
+        ],
+      ),
     );
   }
 

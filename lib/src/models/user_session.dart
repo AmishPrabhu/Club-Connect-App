@@ -7,6 +7,7 @@ class UserSession {
     this.clubId,
     this.clubName,
     this.profileImage,
+    this.bio,
     List<String>? likedClubs,
     List<String>? roles,
   })  : likedClubs = likedClubs ?? [],
@@ -19,6 +20,7 @@ class UserSession {
   final String? clubId;
   final String? clubName;
   final String? profileImage;
+  final String? bio;
   final List<String> likedClubs;
   final List<String> roles;
 
@@ -37,6 +39,7 @@ class UserSession {
       clubId: json['clubId']?.toString(),
       clubName: json['clubName']?.toString(),
       profileImage: json['profileImage']?.toString(),
+      bio: json['bio']?.toString(),
       likedClubs: liked,
       roles: rolesList,
     );

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:share_plus/share_plus.dart';
 import '../services/cloudinary_service.dart';
 import 'dart:io';
 
@@ -12,6 +14,9 @@ import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import 'post_detail_screen.dart';
 import 'profile_screen.dart';
+import 'notification_detail_screen.dart';
+import 'institution_settings_screen.dart';
+import 'event_participants_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({
@@ -31,6 +36,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   String _selectedSection = 'Overview';
+  String _advisorActiveTab = 'Events';
   Club? _selectedClub;
   List<Club> _monitoredClubs = [];
   bool _isLoadingMonitored = false;
@@ -367,11 +373,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
 
   Widget _buildActiveSectionView(UserSession session) {
-    if (session.role != 'admin' && _selectedClub == null) return const SizedBox.shrink();
+    final activeRole = widget.initialRole ?? session.role;
+    if (activeRole != 'admin' && _selectedClub == null) return const SizedBox.shrink();
 
     switch (_selectedSection) {
       case 'Overview':
-        return session.role == 'admin' ? _buildAdminOverviewSection() : _buildOverviewView(session);
+        if (activeRole == 'admin') {
+          return _buildAdminOverviewSection();
+        } else if (activeRole == 'advisor') {
+          return _buildAdvisorDashboardView(session);
+        } else {
+          return _buildOverviewView(session);
+        }
       case 'Manage Clubs':
         return _buildManageClubsSection();
       case 'Manage Posts':
@@ -694,6 +707,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
             bgColor: const Color(0xFFFFFBEB),
             section: 'Notifications',
           ),
+          const SizedBox(height: 12),
+          _buildNewActionTile(
+            title: 'Institution Settings',
+            subtitle: 'Branding & communication defaults',
+            icon: Icons.business_rounded,
+            iconColor: const Color(0xFF6366F1),
+            bgColor: const Color(0xFFEEF2F6),
+            section: 'Institution Settings',
+          ),
         ],
       ),
     );
@@ -724,7 +746,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () => setState(() => _selectedSection = section),
+          onTap: () {
+            if (section == 'Institution Settings') {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const InstitutionSettingsScreen()),
+              );
+            } else {
+              setState(() => _selectedSection = section);
+            }
+          },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
@@ -1899,8 +1929,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildAdminNotificationCard(NotificationItem n) {
     final typeLabel = n.type.toUpperCase();
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => NotificationDetailScreen(
+              appState: widget.appState,
+              notification: n,
+            ),
+          ),
+        ).then((_) => setState(() {}));
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -2007,8 +2048,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildAdminTeachersSection() {
     return Column(
@@ -2738,6 +2780,732 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _buildAdvisorDashboardView(UserSession session) {
+    if (_selectedClub == null) return const SizedBox.shrink();
+
+    final clubPosts = widget.appState.posts.where((p) => p.clubId == _selectedClub!.id).toList();
+    final clubEvents = clubPosts.where((p) => p.isEvent).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 1. Advisor Header Card
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey.shade100, width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.015),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.all(6),
+                child: _selectedClub!.imageAsset.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: _selectedClub!.imageAsset.startsWith('http')
+                            ? Image.network(_selectedClub!.imageAsset, fit: BoxFit.contain)
+                            : Image.asset(
+                                _selectedClub!.imageAsset.startsWith('/')
+                                    ? 'assets/images${_selectedClub!.imageAsset}'
+                                    : _selectedClub!.imageAsset,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => const Icon(Icons.groups_rounded, color: AppTheme.blue),
+                              ),
+                      )
+                    : const Icon(Icons.groups_rounded, color: AppTheme.blue, size: 28),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Advisor Dashboard',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.navy,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Manage event posts, budgets, and team members for ${_selectedClub!.name}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.muted,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFBFDBFE), width: 1),
+                      ),
+                      child: const Text(
+                        'ADVISOR',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2563EB),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // 2. Segmented Pill Tab Bar
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: ['Events', 'Reports', 'Budgets', 'Team'].map((tab) {
+              final isActive = _advisorActiveTab == tab;
+              IconData tabIcon = Icons.event_rounded;
+              if (tab == 'Reports') tabIcon = Icons.file_copy_rounded;
+              if (tab == 'Budgets') tabIcon = Icons.account_balance_wallet_rounded;
+              if (tab == 'Team') tabIcon = Icons.people_rounded;
+
+              return Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: ChoiceChip(
+                  label: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        tabIcon,
+                        size: 16,
+                        color: isActive ? Colors.white : AppTheme.navy.withValues(alpha: 0.6),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(tab),
+                    ],
+                  ),
+                  labelStyle: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: isActive ? Colors.white : AppTheme.navy,
+                  ),
+                  selected: isActive,
+                  selectedColor: AppTheme.blue,
+                  backgroundColor: Colors.grey.shade100,
+                  onSelected: (selected) {
+                    if (selected) {
+                      setState(() {
+                        _advisorActiveTab = tab;
+                      });
+                    }
+                  },
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // 3. Tab Contents
+        if (_advisorActiveTab == 'Events')
+          _buildAdvisorEventsTab(clubEvents)
+        else if (_advisorActiveTab == 'Reports')
+          _buildAdvisorReportsTab()
+        else if (_advisorActiveTab == 'Budgets')
+          _buildAdvisorBudgetsTab(clubEvents)
+        else if (_advisorActiveTab == 'Team')
+          _buildAdvisorTeamTab(),
+      ],
+    );
+  }
+
+  Widget _buildAdvisorEventsTab(List<PostItem> clubEvents) {
+    final now = DateTime.now();
+    final totalEvents = clubEvents.length;
+    final upcomingEvents = clubEvents.where((e) => e.date != null && e.date!.isAfter(now)).length;
+    final pastEvents = clubEvents.where((e) => e.date != null && e.date!.isBefore(now)).length;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 1. Stats Row
+        Row(
+          children: [
+            Expanded(
+              child: _MiniStatCard(
+                icon: Icons.calendar_month_outlined,
+                iconColor: const Color(0xFF06B6D4),
+                bgColor: const Color(0xFFECFEFF),
+                value: '$totalEvents',
+                label: 'Total Events',
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _MiniStatCard(
+                icon: Icons.schedule_rounded,
+                iconColor: const Color(0xFF10B981),
+                bgColor: const Color(0xFFE6FDF5),
+                value: '$upcomingEvents',
+                label: 'Upcoming',
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _MiniStatCard(
+                icon: Icons.history_rounded,
+                iconColor: const Color(0xFF64748B),
+                bgColor: const Color(0xFFF1F5F9),
+                value: '$pastEvents',
+                label: 'Past',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        
+        // 2. Events List
+        const Text(
+          'Club Events',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navy),
+        ),
+        const SizedBox(height: 12),
+        if (clubEvents.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 40),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade100, width: 1.5),
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.event_busy_rounded, size: 48, color: Colors.grey.shade300),
+                const SizedBox(height: 8),
+                const Text('No events found for your club.', style: TextStyle(color: Colors.grey, fontSize: 13)),
+              ],
+            ),
+          )
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: clubEvents.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final event = clubEvents[index];
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            event.title,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Icon(Icons.calendar_month_rounded, size: 14, color: Colors.grey.shade400),
+                              const SizedBox(width: 4),
+                              Text(
+                                event.date != null ? event.date!.toLocal().toString().split(' ')[0] : 'N/A',
+                                style: const TextStyle(fontSize: 12, color: AppTheme.muted),
+                              ),
+                              const SizedBox(width: 16),
+                              Icon(Icons.people_alt_rounded, size: 14, color: Colors.grey.shade400),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${event.rsvps ?? 0} RSVPs',
+                                style: const TextStyle(fontSize: 12, color: AppTheme.muted),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.visibility_outlined, color: AppTheme.blue),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PostDetailScreen(
+                              appState: widget.appState,
+                              initialPost: event,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+      ],
+    );
+  }
+
+  Widget _buildAdvisorReportsTab() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _reportsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error loading reports: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
+        }
+        final reports = snapshot.data ?? [];
+        if (reports.isEmpty) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 40),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade100, width: 1.5),
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.file_copy_outlined, size: 48, color: Colors.grey.shade300),
+                const SizedBox(height: 8),
+                const Text('No reports available.', style: TextStyle(color: Colors.grey, fontSize: 13)),
+              ],
+            ),
+          );
+        }
+
+        return ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: reports.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final report = reports[index];
+            final submittedAt = report['reportSubmittedAt'] != null
+                ? DateTime.tryParse(report['reportSubmittedAt'].toString())
+                : null;
+            final eventDate = report['eventDate'] != null
+                ? DateTime.tryParse(report['eventDate'].toString())
+                : null;
+
+            return Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade100, width: 1.5),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          report['eventTitle']?.toString() ?? 'Untitled Event',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.copy_all_rounded, color: AppTheme.blue),
+                        onPressed: () {
+                          final url = report['reportUrl']?.toString() ?? '';
+                          if (url.isNotEmpty) {
+                            _copyLink('Report PDF', url);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            const Text('Submitted By: ', style: TextStyle(fontSize: 12, color: AppTheme.muted)),
+                            Text(
+                              report['reportSubmittedByName']?.toString() ?? 'Unknown',
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Text('Event Date: ', style: TextStyle(fontSize: 12, color: AppTheme.muted)),
+                            Text(
+                              eventDate != null ? eventDate.toLocal().toString().split(' ')[0] : 'N/A',
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Text('Submitted: ', style: TextStyle(fontSize: 12, color: AppTheme.muted)),
+                            Text(
+                              submittedAt != null ? submittedAt.toLocal().toString().split(' ')[0] : 'N/A',
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildAdvisorBudgetsTab(List<PostItem> clubEvents) {
+    final budgetedEvents = clubEvents.where((e) => e.budgetImageUrl != null && e.budgetImageUrl!.isNotEmpty).toList();
+
+    if (budgetedEvents.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.account_balance_wallet_outlined, size: 48, color: Colors.grey.shade300),
+            const SizedBox(height: 8),
+            const Text('No budgets have been submitted yet.', style: TextStyle(color: Colors.grey, fontSize: 13)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: budgetedEvents.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final event = budgetedEvents[index];
+        final isVerified = event.budgetVerified ?? false;
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade100, width: 1.5),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      event.title,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isVerified ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isVerified ? Icons.check_circle_rounded : Icons.pending_rounded,
+                          size: 12,
+                          color: isVerified ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          isVerified ? 'Verified' : 'Pending',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: isVerified ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.remove_red_eye_outlined, size: 16),
+                      label: const Text('View Receipt'),
+                      onPressed: () {
+                        if (event.budgetImageUrl != null) {
+                          _copyLink('Budget Receipt', event.budgetImageUrl!);
+                        }
+                      },
+                    ),
+                  ),
+                  if (!isVerified) ...[
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.check_circle_rounded, size: 16),
+                        label: const Text('Verify'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF16A34A),
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () async {
+                          final success = await widget.appState.verifyEventBudget(event.id);
+                          if (success) {
+                            _showSuccessSnackBar('Budget verified successfully!');
+                            await widget.appState.refreshAll();
+                            _reloadSectionData();
+                          } else {
+                            _showErrorSnackBar('Failed to verify budget.');
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAdvisorTeamTab() {
+    if (_selectedClub == null) return const SizedBox.shrink();
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Club Officers',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navy),
+        ),
+        const SizedBox(height: 12),
+        
+        _buildOfficerCard('President', _selectedClub!.presidentEmail),
+        const SizedBox(height: 12),
+        _buildOfficerCard('Secretary', _selectedClub!.secretaryEmail),
+        const SizedBox(height: 12),
+        _buildOfficerCard('Treasurer', _selectedClub!.treasurerEmail),
+      ],
+    );
+  }
+
+  Widget _buildOfficerCard(String role, String email) {
+    final isAssigned = email.isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
+              color: Color(0xFFEFF6FF),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.person_rounded, color: Color(0xFF2563EB), size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  role,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isAssigned ? email : 'Not Assigned',
+                  style: TextStyle(fontSize: 12, color: isAssigned ? AppTheme.muted : Colors.red.shade400),
+                ),
+              ],
+            ),
+          ),
+          if (isAssigned)
+            IconButton(
+              icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+              onPressed: () => _confirmRemoveOfficer(role),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.person_add_alt_1_rounded, color: AppTheme.blue),
+              onPressed: () => _showAssignOfficerDialog(role),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmRemoveOfficer(String role) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Remove $role'),
+          content: Text('Are you sure you want to remove the $role? This will unlink their account from the club.'),
+          actions: [
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.pop(context),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Remove'),
+              onPressed: () async {
+                Navigator.pop(context);
+                try {
+                  await widget.appState.removeClubOfficer(_selectedClub!.id, role.toLowerCase());
+                  _showSuccessSnackBar('$role removed successfully!');
+                  await widget.appState.refreshAll();
+                  _reloadSectionData();
+                } catch (e) {
+                  _showErrorSnackBar('Failed to remove officer: $e');
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAssignOfficerDialog(String role) {
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Assign $role'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Full Name',
+                  hintText: 'Enter officer\'s full name',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email Address',
+                  hintText: 'Enter officer\'s college email',
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.pop(context),
+            ),
+            TextButton(
+              child: const Text('Assign'),
+              onPressed: () async {
+                final name = nameController.text.trim();
+                final email = emailController.text.trim();
+                if (name.isEmpty || email.isEmpty) {
+                  _showErrorSnackBar('Please fill in all fields.');
+                  return;
+                }
+                Navigator.pop(context);
+                try {
+                  await widget.appState.assignOfficer(
+                    clubId: _selectedClub!.id,
+                    email: email,
+                    name: name,
+                    role: role.toLowerCase() == 'secretary' ? 'club-secretary' : role.toLowerCase(),
+                  );
+                  _showSuccessSnackBar('$role assigned successfully!');
+                  await widget.appState.refreshAll();
+                  _reloadSectionData();
+                } catch (e) {
+                  _showErrorSnackBar('Failed to assign officer: $e');
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _showLinkDialog({required String title, required String fieldKey, required String currentValue}) async {
     final controller = TextEditingController(text: currentValue);
     final confirm = await showDialog<bool>(
@@ -3072,6 +3840,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
               ],
             ),
+            if (canEdit) ...[
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.file_upload_outlined, size: 16),
+                      label: const Text('Import Excel/CSV', style: TextStyle(fontSize: 12)),
+                      onPressed: () => _importRoster(),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.file_download_outlined, size: 16),
+                      label: const Text('Export Roster', style: TextStyle(fontSize: 12)),
+                      onPressed: () => _exportRoster(members),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 12),
             if (members.isEmpty)
               const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('No members found.')))
@@ -3144,6 +3934,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
       },
     );
+  }
+
+  Future<void> _importRoster() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx', 'xls', 'csv'],
+      );
+      if (result == null || result.files.isEmpty) return;
+      final path = result.files.first.path;
+      if (path == null) return;
+
+      _showSuccessSnackBar('Importing spreadsheet roster...');
+      final response = await widget.appState.bulkImportMembers(_selectedClub!.id, path);
+
+      _reloadSectionData();
+
+      if (response != null && response['summary'] != null) {
+        final summary = response['summary'];
+        _showSuccessSnackBar('Import complete! Added: ${summary['added']}, Failed: ${summary['failed']}.');
+      } else {
+        _showSuccessSnackBar('Roster bulk imported successfully.');
+      }
+    } catch (e) {
+      _showErrorSnackBar('Failed to import roster: $e');
+    }
+  }
+
+  void _exportRoster(List<Map<String, dynamic>> members) {
+    if (members.isEmpty) {
+      _showErrorSnackBar('Roster is empty.');
+      return;
+    }
+    final csv = StringBuffer();
+    csv.writeln('Name,Email,Role,Board Type,Academic Year');
+    for (final m in members) {
+      csv.writeln('"${m['name'] ?? ''}","${m['email'] ?? ''}","${m['role'] ?? ''}","${m['boardType'] ?? ''}","${m['academicYear'] ?? ''}"');
+    }
+
+    Share.share(csv.toString(), subject: '${_selectedClub?.name ?? 'Club'} Member Roster');
+    _showSuccessSnackBar('Roster CSV generated. Opening sharing options...');
   }
 
   // ─── DRAFTS & POSTS TAB ────────────────────────────────────────────────────
@@ -3623,6 +4454,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: ListTile(
                   title: Text(n.title, style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text(n.message),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => NotificationDetailScreen(
+                          appState: widget.appState,
+                          notification: n,
+                        ),
+                      ),
+                    ).then((_) => setState(() {}));
+                  },
                   trailing: !n.isRead
                       ? TextButton(
                           onPressed: () async {
@@ -3761,6 +4602,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       maxLines: 4,
                       decoration: const InputDecoration(labelText: 'Message'),
                     ),
+                    _buildMarkdownToolbar(messageController, setStateDialog),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       value: type,
@@ -3832,6 +4674,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       maxLines: 4,
                       decoration: const InputDecoration(labelText: 'Description'),
                     ),
+                    _buildMarkdownToolbar(contentController, setStateDialog),
                     if (isEvent) ...[
                       const SizedBox(height: 12),
                       TextField(
@@ -4336,6 +5179,65 @@ class _DashboardScreenState extends State<DashboardScreen> {
               );
             },
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMarkdownToolbar(TextEditingController controller, StateSetter setStateDialog) {
+    void insertText(String template) {
+      final text = controller.text;
+      final selection = controller.selection;
+
+      int start = selection.start;
+      int end = selection.end;
+
+      if (start < 0 || end < 0) {
+        start = text.length;
+        end = text.length;
+      }
+
+      final selectedText = text.substring(start, end);
+      final newText = text.replaceRange(start, end, template.replaceAll('text', selectedText));
+
+      setStateDialog(() {
+        controller.value = TextEditingValue(
+          text: newText,
+          selection: TextSelection.collapsed(offset: start + template.indexOf('text') + selectedText.length),
+        );
+      });
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 6.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          _buildToolbarBtn('B', () => insertText('**text**')),
+          const SizedBox(width: 6),
+          _buildToolbarBtn('I', () => insertText('_text_')),
+          const SizedBox(width: 6),
+          _buildToolbarBtn('H1', () => insertText('# text')),
+          const SizedBox(width: 6),
+          _buildToolbarBtn('List', () => insertText('- text')),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToolbarBtn(String label, VoidCallback onPressed) {
+    return InkWell(
+      onTap: onPressed,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.navy),
         ),
       ),
     );
