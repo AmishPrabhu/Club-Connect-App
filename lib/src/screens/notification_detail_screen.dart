@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/notification_item.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 class NotificationDetailScreen extends StatelessWidget {
   const NotificationDetailScreen({
@@ -105,12 +106,14 @@ class NotificationDetailScreen extends StatelessWidget {
                   const SizedBox(height: 12),
 
                   // Notification Body Message
-                  Text(
-                    notification.message,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black87,
-                      height: 1.6,
+                  MarkdownBody(
+                    data: notification.message,
+                    styleSheet: MarkdownStyleSheet(
+                      p: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black87,
+                        height: 1.6,
+                      ),
                     ),
                   ),
                 ],

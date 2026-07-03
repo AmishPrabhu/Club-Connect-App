@@ -275,7 +275,8 @@ class _ProfileBodyState extends State<_ProfileBody> {
               ),
             ),
             const SizedBox(height: 6),
-            _buildCenteredRoleBadge(session.role),
+            if (session.role.isNotEmpty && session.role.toLowerCase() != 'user')
+              _buildCenteredRoleBadge(session.role),
             const SizedBox(height: 8),
             Text(
               session.email,

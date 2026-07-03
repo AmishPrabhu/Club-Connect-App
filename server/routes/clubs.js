@@ -726,10 +726,12 @@ router.post('/:id/messages', verifyClubOfficer, async (req, res) => {
         } else {
             const member = await ClubMember.findOne({
                 clubId,
-                userId,
-                role: { $in: ['Secretary', 'President', 'Treasurer', 'Advisor'] }
+                $or: [
+                    { userId },
+                    { email: { $regex: new RegExp(`^${req.user.email}$`, 'i') } }
+                ]
             });
-            officerRole = member.role;
+            officerRole = member ? member.role : 'Officer';
         }
 
         // Fetch club name for the message record

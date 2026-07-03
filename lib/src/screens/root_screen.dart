@@ -181,18 +181,36 @@ class _TopBar extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           else
-            IconButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => Scaffold(
-                      appBar: AppBar(elevation: 0, backgroundColor: Colors.transparent),
-                      body: NotificationsScreen(appState: appState),
+            Stack(
+              children: [
+                IconButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => Scaffold(
+                          appBar: AppBar(elevation: 0, backgroundColor: Colors.transparent),
+                          body: NotificationsScreen(appState: appState),
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.notifications_none_rounded, color: AppTheme.navy, size: 26),
+                ),
+                if (appState.notifications.any((n) => !n.isRead))
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
                     ),
                   ),
-                );
-              },
-              icon: const Icon(Icons.notifications_none_rounded, color: AppTheme.navy, size: 26),
+              ],
             ),
           const SizedBox(width: 8),
           GestureDetector(

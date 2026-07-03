@@ -349,7 +349,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 items: clubs.map((c) {
                   return DropdownMenuItem<Club>(
                     value: c,
-                    child: Text(c.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    child: Text(c.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), overflow: TextOverflow.ellipsis),
                   );
                 }).toList(),
                 onChanged: (club) {
@@ -2370,7 +2370,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             border: Border.all(color: const Color(0xFFDDD6FE), width: 1),
                           ),
                           child: Text(
-                            session.role.toUpperCase(),
+                            (widget.initialRole ?? session.role).toUpperCase(),
                             style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -2447,7 +2447,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 12),
 
             // Action Tiles List depending on user roles
-            if (session.role == 'treasurer') ...[
+            if (activeRole == 'treasurer') ...[
               _QuickActionTile(
                 title: 'Member',
                 subtitle: 'View and manage club members',
@@ -4333,7 +4333,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  msg['senderName']?.toString() ?? 'Officer',
+                                  "${msg['senderName'] ?? 'Officer'} (${msg['senderRole'] ?? ''})",
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 10,
@@ -4473,17 +4473,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ─── BUDGET TAB ────────────────────────────────────────────────────────────
   Widget _buildBudgetView(UserSession session) {
-    final events = widget.appState.posts
-        .where((p) => p.clubId == _selectedClub!.id && p.isEvent && (p.budgetImageUrl?.isNotEmpty ?? false))
+    final allEvents = widget.appState.posts.where((p) => p.clubId == _selectedClub!.id && p.isEvent).toList();
+    final events = allEvents
+        .where((p) => (p.budgetImageUrl?.isNotEmpty ?? false))
         .toList();
 
     final isVerifier = session.role == 'admin' || session.role == 'advisor';
 
     return Column(
       children: [
-        const Align(
-          alignment: Alignment.centerLeft,
-          child: Text('Budget Approvals', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Budget Approvals', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            if (session.role == 'treasurer')
+              TextButton.icon(
+                onPressed: () => _showUploadBudgetDialog(allEvents),
+                icon: const Icon(Icons.upload_file),
+                label: const Text('Upload Budget'),
+              ),
+          ],
         ),
         const SizedBox(height: 12),
         if (events.isEmpty)
@@ -4565,6 +4574,103 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // ─── DIALOGS & POPUPS ──────────────────────────────────────────────────────
+
+  Future<void> _showUploadBudgetDialog(List<PostItem> events) async {
+    String? selectedEventId;
+    String? uploadedImageUrl;
+    bool isUploading = false;
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        final navigator = Navigator.of(context);
+        return AlertDialog(
+          title: const Text('Upload Budget'),
+          content: StatefulBuilder(
+            builder: (context, setStateDialog) {
+              return SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      value: selectedEventId,
+                      hint: const Text('Select Event'),
+                      isExpanded: true,
+                      items: events.map((ev) {
+                        return DropdownMenuItem<String>(
+                          value: ev.id,
+                          child: Text(ev.title, overflow: TextOverflow.ellipsis),
+                        );
+                      }).toList(),
+                      onChanged: (val) => setStateDialog(() => selectedEventId = val),
+                    ),
+                    const SizedBox(height: 16),
+                    if (uploadedImageUrl != null)
+                      Container(
+                        height: 100,
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          image: DecorationImage(image: NetworkImage(uploadedImageUrl!), fit: BoxFit.cover),
+                        ),
+                      ),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: isUploading
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.image),
+                        label: Text(isUploading ? 'Uploading...' : 'Select Budget Image'),
+                        onPressed: isUploading
+                            ? null
+                            : () async {
+                                final picker = ImagePicker();
+                                final picked = await picker.pickImage(source: ImageSource.gallery);
+                                if (picked != null) {
+                                  setStateDialog(() => isUploading = true);
+                                  final url = await CloudinaryService.uploadImage(File(picked.path));
+                                  setStateDialog(() {
+                                    uploadedImageUrl = url;
+                                    isUploading = false;
+                                  });
+                                }
+                              },
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => navigator.pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                if (selectedEventId == null || uploadedImageUrl == null) {
+                  _showErrorSnackBar('Please select an event and upload an image.');
+                  return;
+                }
+                try {
+                  await widget.appState.uploadEventBudget(selectedEventId!, uploadedImageUrl!);
+                  _showSuccessSnackBar('Budget uploaded successfully!');
+                  navigator.pop();
+                  _reloadSectionData();
+                } catch (e) {
+                  _showErrorSnackBar('Failed to upload budget: $e');
+                }
+              },
+              child: const Text('Upload'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _showNotificationDialog() async {
     final titleController = TextEditingController();
     final messageController = TextEditingController();

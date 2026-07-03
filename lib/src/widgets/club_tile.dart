@@ -151,7 +151,7 @@ class ClubTile extends StatelessWidget {
               const SizedBox(height: 10),
               Expanded(
                 child: Text(
-                  club.description,
+                  club.fullForm,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(

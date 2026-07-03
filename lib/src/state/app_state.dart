@@ -644,7 +644,20 @@ class AppState extends ChangeNotifier {
 
   Future<bool> verifyEventBudget(String postId) async {
     try {
-      await _apiClient.post('/posts/$postId/verify-budget');
+      await _apiClient.put('/posts/$postId/budget/verify');
+      await refreshAll();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> uploadEventBudget(String postId, String budgetImageUrl) async {
+    try {
+      await _apiClient.put(
+        '/posts/$postId/budget',
+        body: {'budgetImage': budgetImageUrl},
+      );
       await refreshAll();
       return true;
     } catch (_) {
