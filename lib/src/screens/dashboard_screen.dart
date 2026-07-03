@@ -2280,6 +2280,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final members = data != null ? data[0] as List<dynamic> : [];
         final tasks = data != null ? data[1] as List<dynamic> : [];
         final canEdit = session.role == 'admin' || session.role == 'advisor' || session.role == 'president' || session.role == 'club-secretary';
+        final activeRole = widget.initialRole ?? session.role;
 
         // Find next upcoming club event
         PostItem? nextUpcoming;
