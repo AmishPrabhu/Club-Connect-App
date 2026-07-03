@@ -71,6 +71,7 @@ class _RootScreenState extends State<RootScreen> {
         appState: appState,
         onOpenClubs: () => setState(() => _index = 1),
         onOpenEvents: () => setState(() => _index = 2),
+        onOpenProfile: () => setState(() => _index = 3),
       ),
       ClubsScreen(appState: appState),
       EventsScreen(appState: appState),
@@ -84,9 +85,11 @@ class _RootScreenState extends State<RootScreen> {
           SafeArea(
             child: Column(
               children: [
-                _TopBar(
-                  appState: appState,
-                ),
+                if (_index != 0)
+                  _TopBar(
+                    appState: appState,
+                    onProfileTap: () => setState(() => _index = 3),
+                  ),
                 Expanded(
                   child: IndexedStack(index: _index, children: screens),
                 ),
@@ -132,9 +135,13 @@ class _RootScreenState extends State<RootScreen> {
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.appState});
+  const _TopBar({
+    required this.appState,
+    required this.onProfileTap,
+  });
 
   final AppState appState;
+  final VoidCallback onProfileTap;
 
   @override
   Widget build(BuildContext context) {
@@ -151,12 +158,18 @@ class _TopBar extends StatelessWidget {
               children: [
                 Text(
                   'Club Connect',
-                  style: Theme.of(context).textTheme.titleLarge,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.blue,
+                      ),
                 ),
                 if (session != null)
                   Text(
                     'Signed in as ${session.name}',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          color: AppTheme.muted,
+                        ),
                   ),
               ],
             ),
@@ -166,24 +179,42 @@ class _TopBar extends StatelessWidget {
               width: 20,
               height: 20,
               child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          if (!appState.isLoading)
+            )
+          else
             IconButton(
-              onPressed: appState.refreshAll,
-              icon: const Icon(Icons.refresh_rounded),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => Scaffold(
+                      appBar: AppBar(elevation: 0, backgroundColor: Colors.transparent),
+                      body: NotificationsScreen(appState: appState),
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.notifications_none_rounded, color: AppTheme.navy, size: 26),
             ),
-          IconButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => Scaffold(
-                    appBar: AppBar(elevation: 0, backgroundColor: Colors.transparent),
-                    body: NotificationsScreen(appState: appState),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: onProfileTap,
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: const BoxDecoration(
+                color: Color(0xFFE0E7FF), // Light Indigo background matching screenshot
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  session?.name.isNotEmpty == true ? session!.name[0].toUpperCase() : 'A',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF312E81), // Dark indigo text color
                   ),
                 ),
-              );
-            },
-            icon: const Icon(Icons.notifications_none_rounded),
+              ),
+            ),
           ),
         ],
       ),
