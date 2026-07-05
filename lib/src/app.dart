@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'screens/root_screen.dart';
+import 'services/push_notifications_manager.dart';
 import 'state/app_state.dart';
 import 'theme/app_theme.dart';
 
@@ -24,6 +25,7 @@ class _ClubConnectAppState extends State<ClubConnectApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Club Connect',
+      scaffoldMessengerKey: scaffoldMessengerKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       builder: (context, child) {

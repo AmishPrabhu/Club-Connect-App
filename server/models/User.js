@@ -48,6 +48,10 @@ const userSchema = new mongoose.Schema({
     likedClubs: [{
         type: String, // Club IDs
     }],
+    fcmTokens: {
+        type: [String],
+        default: []
+    },
     createdAt: {
         type: Date,
         default: Date.now,

@@ -4723,14 +4723,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             FilledButton(
               onPressed: () async {
-                await widget.appState.createNotification(
-                  title: titleController.text.trim(),
-                  message: messageController.text.trim(),
-                  type: type,
-                  clubId: type == 'club' ? _selectedClub?.id : null,
-                );
-                navigator.pop();
-                _reloadSectionData();
+                try {
+                  await widget.appState.createNotification(
+                    title: titleController.text.trim(),
+                    message: messageController.text.trim(),
+                    type: type,
+                    clubId: type == 'club' ? _selectedClub?.id : null,
+                  );
+                  _showSuccessSnackBar('Broadcast notification sent successfully!');
+                  navigator.pop();
+                  _reloadSectionData();
+                } catch (e) {
+                  _showErrorSnackBar('Failed to send notification: $e');
+                }
               },
               child: const Text('Send'),
             ),
@@ -4835,20 +4840,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             FilledButton(
               onPressed: () async {
-                await widget.appState.createPost(
-                  clubId: club.id,
-                  clubName: club.name,
-                  title: titleController.text.trim(),
-                  content: contentController.text.trim(),
-                  type: isEvent ? 'event' : 'announcement',
-                  status: 'published',
-                  date: isEvent ? dateController.text.trim() : null,
-                  time: isEvent ? timeController.text.trim() : null,
-                  location: isEvent ? locationController.text.trim() : null,
-                  coverImage: coverImageUrl,
-                );
-                _reloadSectionData();
-                navigator.pop();
+                try {
+                  await widget.appState.createPost(
+                    clubId: club.id,
+                    clubName: club.name,
+                    title: titleController.text.trim(),
+                    content: contentController.text.trim(),
+                    type: isEvent ? 'event' : 'announcement',
+                    status: 'published',
+                    date: isEvent ? dateController.text.trim() : null,
+                    time: isEvent ? timeController.text.trim() : null,
+                    location: isEvent ? locationController.text.trim() : null,
+                    coverImage: coverImageUrl,
+                  );
+                  _showSuccessSnackBar(isEvent ? 'Event created successfully!' : 'Announcement created successfully!');
+                  _reloadSectionData();
+                  navigator.pop();
+                } catch (e) {
+                  _showErrorSnackBar('Failed to create ${isEvent ? 'event' : 'announcement'}: $e');
+                }
               },
               child: const Text('Create'),
             ),

@@ -3,8 +3,10 @@ import Post from '../models/Post.js';
 import Task from '../models/Task.js';
 import ClubMember from '../models/ClubMember.js';
 import Club from '../models/Club.js';
+import Notification from '../models/Notification.js';
 import { verifyToken, verifyClubOfficer } from '../middleware/auth.js';
 import { sendEventUpdateEmail } from '../services/emailService.js';
+import { sendPushToClubMembers } from '../services/pushService.js';
 
 const router = express.Router();
 
@@ -214,6 +216,35 @@ router.post('/', verifyClubOfficer, async (req, res) => {
 
         const newPost = new Post(postData);
         const savedPost = await newPost.save();
+
+        // Create a database notification and trigger FCM push notification to club members
+        try {
+            const newNotification = new Notification({
+                title: savedPost.title,
+                message: savedPost.type === 'event'
+                    ? `New event scheduled: "${savedPost.title}" at ${savedPost.location || 'campus'}`
+                    : `New announcement: "${savedPost.title}"`,
+                type: savedPost.type || 'info',
+                clubId: savedPost.clubId,
+                relatedId: savedPost._id.toString(),
+            });
+            const savedNotification = await newNotification.save();
+
+            sendPushToClubMembers(
+                savedPost.clubId,
+                savedNotification.title,
+                savedNotification.message,
+                {
+                    type: savedNotification.type,
+                    notificationId: savedNotification._id.toString(),
+                    clubId: savedPost.clubId.toString(),
+                    relatedId: savedPost._id.toString(),
+                }
+            ).catch(err => console.error("FCM post creation error:", err));
+        } catch (notifError) {
+            console.error("Failed to create notification for new post:", notifError);
+        }
+
         res.status(201).json(savedPost);
     } catch (error) {
         console.error("Error creating post", error);
@@ -359,8 +390,6 @@ router.put('/:id', verifyToken, async (req, res) => {
 })
 
 
-import Notification from '../models/Notification.js';
-
 // Delete post (Protected)
 // Delete post (Protected)
 router.delete('/:id', verifyToken, async (req, res) => {
@@ -421,6 +450,17 @@ router.delete('/:id', verifyToken, async (req, res) => {
         await Post.findByIdAndDelete(req.params.id);
         // Delete associated notifications
         await Notification.deleteMany({ relatedId: req.params.id });
+
+        // Trigger silent push notification to club members to sync deletions
+        sendPushToClubMembers(
+            post.clubId,
+            "",
+            "",
+            {
+                action: "delete_post",
+                relatedId: req.params.id
+            }
+        ).catch(err => console.error("FCM delete broadcast error:", err));
 
         res.json({ message: 'Post deleted' });
     } catch (error) {

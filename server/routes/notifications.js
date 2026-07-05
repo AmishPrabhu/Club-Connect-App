@@ -1,6 +1,7 @@
 import express from 'express';
 import Notification from '../models/Notification.js';
 import { verifyToken, verifyTokenOptional } from '../middleware/auth.js';
+import { sendPushToUsers, sendPushToClubMembers, sendPushGlobal } from '../services/pushService.js';
 
 const router = express.Router();
 
@@ -32,8 +33,33 @@ router.post('/', verifyToken, async (req, res) => {
     try {
         const newNotification = new Notification(req.body);
         const savedNotification = await newNotification.save();
+        
+        // Trigger push notification asynchronously (fire-and-forget)
+        const { title, message: body, userId, clubId, type, relatedId } = savedNotification;
+        const dataPayload = {
+            type: type || 'info',
+            notificationId: savedNotification._id.toString(),
+        };
+        if (clubId) dataPayload.clubId = clubId.toString();
+        if (relatedId) dataPayload.relatedId = relatedId.toString();
+
+        if (userId) {
+            sendPushToUsers([userId], title, body, dataPayload).catch(err => 
+                console.error("FCM async user error:", err)
+            );
+        } else if (clubId) {
+            sendPushToClubMembers(clubId, title, body, dataPayload).catch(err => 
+                console.error("FCM async club error:", err)
+            );
+        } else {
+            sendPushGlobal(title, body, dataPayload).catch(err => 
+                console.error("FCM async global error:", err)
+            );
+        }
+
         res.status(201).json(savedNotification);
     } catch (error) {
+        console.error("Create notification error:", error);
         res.status(500).json({ message: 'Server error' });
     }
 });

@@ -10,6 +10,7 @@ class NotificationItem {
     required this.isRead,
     required this.icon,
     required this.color,
+    this.relatedId,
   });
 
   final String id;
@@ -20,6 +21,7 @@ class NotificationItem {
   final bool isRead;
   final IconData icon;
   final Color color;
+  final String? relatedId;
 
   factory NotificationItem.fromJson(Map<String, dynamic> json) {
     final type = json['type']?.toString() ?? 'system';
@@ -32,6 +34,7 @@ class NotificationItem {
       isRead: json['read'] == true,
       icon: _iconForType(type),
       color: _colorForType(type),
+      relatedId: json['relatedId']?.toString(),
     );
   }
 
@@ -45,6 +48,7 @@ class NotificationItem {
       isRead: isRead ?? this.isRead,
       icon: icon,
       color: color,
+      relatedId: relatedId,
     );
   }
 

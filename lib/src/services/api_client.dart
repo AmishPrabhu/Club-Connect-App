@@ -27,7 +27,7 @@ class ApiClient {
     }
     if (kDebugMode) {
       if (!kIsWeb && Platform.isAndroid) {
-        return 'https://club-connect-7fwy.onrender.com/api';
+        return 'http://10.0.2.2:5001/api';
       }
       return 'http://localhost:5001/api';
     }

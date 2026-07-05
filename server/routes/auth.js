@@ -974,4 +974,36 @@ router.post('/setup-admin', authLimiter, async (req, res) => {
     }
 });
 
+// Register FCM Token
+router.post('/fcm-token', verifyToken, async (req, res) => {
+    try {
+        const { token } = req.body;
+        if (!token) return res.status(400).json({ message: 'Token is required' });
+
+        await User.findByIdAndUpdate(req.user.id, {
+            $addToSet: { fcmTokens: token }
+        });
+        res.json({ message: 'FCM token registered successfully' });
+    } catch (error) {
+        console.error('FCM Token registration error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Remove FCM Token (On Logout)
+router.delete('/fcm-token', verifyToken, async (req, res) => {
+    try {
+        const { token } = req.body;
+        if (!token) return res.status(400).json({ message: 'Token is required' });
+
+        await User.findByIdAndUpdate(req.user.id, {
+            $pull: { fcmTokens: token }
+        });
+        res.json({ message: 'FCM token removed successfully' });
+    } catch (error) {
+        console.error('FCM Token deletion error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 export default router;

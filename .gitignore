@@ -51,3 +51,4 @@ server/.env.local
 server/.env.development
 server/.env.production
 server/npm-debug.log*
+server/firebase-key.json

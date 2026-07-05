@@ -1,13 +1,12 @@
+import 'dotenv/config';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import hpp from 'hpp';
 
-// Load environment variables BEFORE importing routes
-dotenv.config();
+import './config/firebase.js';
 
 import authRoutes from './routes/auth.js';
 import clubRoutes from './routes/clubs.js';

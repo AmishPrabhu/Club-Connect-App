@@ -189,7 +189,10 @@ class _TopBar extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (_) => Scaffold(
                           appBar: AppBar(elevation: 0, backgroundColor: Colors.transparent),
-                          body: NotificationsScreen(appState: appState),
+                          body: AnimatedBuilder(
+                            animation: appState,
+                            builder: (context, _) => NotificationsScreen(appState: appState),
+                          ),
                         ),
                       ),
                     );

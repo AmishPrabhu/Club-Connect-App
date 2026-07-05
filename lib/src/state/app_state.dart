@@ -7,6 +7,7 @@ import '../models/notification_item.dart';
 import '../models/post_item.dart';
 import '../models/user_session.dart';
 import '../services/api_client.dart';
+import '../services/push_notifications_manager.dart';
 
 class GoogleSignupData {
   GoogleSignupData({
@@ -91,6 +92,9 @@ class AppState extends ChangeNotifier {
       _apiClient.setToken(token);
       try {
         session = await _fetchCurrentUser();
+        // Initialize push notifications manager and sync token
+        await PushNotificationsManager.instance.init(this);
+        await PushNotificationsManager.instance.syncToken();
       } catch (_) {
         await prefs.remove(_tokenKey);
         _apiClient.setToken(null);
@@ -203,6 +207,9 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    // Unregister FCM token on logout
+    await PushNotificationsManager.instance.unregisterToken();
+
     session = null;
     _apiClient.setToken(null);
     final prefs = await SharedPreferences.getInstance();
@@ -292,9 +299,23 @@ class AppState extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token);
     session = await _fetchCurrentUser();
+
+    // Initialize push notifications and sync token
+    await PushNotificationsManager.instance.init(this);
+    await PushNotificationsManager.instance.syncToken();
+
     await refreshAll();
     notifyListeners();
     return session!;
+  }
+
+  Future<void> registerFcmToken(String token) async {
+    if (session == null) return;
+    await _apiClient.post('/auth/fcm-token', body: {'token': token});
+  }
+
+  Future<void> unregisterFcmToken(String token) async {
+    await _apiClient.delete('/auth/fcm-token', body: {'token': token});
   }
 
   Future<List<Map<String, dynamic>>> fetchClubMembers(String clubId) async {
@@ -455,6 +476,8 @@ class AppState extends ChangeNotifier {
   Future<void> deletePost(String postId) async {
     await _apiClient.delete('/posts/$postId');
     posts = posts.where((post) => post.id != postId).toList();
+    notifications =
+        notifications.where((notif) => notif.relatedId != postId).toList();
     notifyListeners();
   }
 
