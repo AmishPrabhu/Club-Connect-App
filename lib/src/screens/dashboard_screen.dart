@@ -42,6 +42,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoadingMonitored = false;
   bool _isUploadingLogo = false;
   String _clubSearchQuery = '';
+  String _teacherActiveTab = 'Reports';
+  String _teacherYearFilter = '2026';
+  String _teacherBoardFilter = 'All Boards';
+  String _teacherReportYearFilter = 'All Years';
+  List<Map<String, dynamic>> _allReports = [];
 
   // Futures for asynchronous views
   Future<List<Map<String, dynamic>>>? _membersFuture;
@@ -146,6 +151,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       setState(() => _isLoadingMonitored = true);
       try {
         final monitored = await widget.appState.fetchTeacherClubs();
+        final reports = await widget.appState.fetchTeacherReports();
         final List<Club> loaded = [];
         for (final m in monitored) {
           final id = m['_id']?.toString() ?? m['id']?.toString() ?? '';
@@ -154,9 +160,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
         setState(() {
           _monitoredClubs = loaded;
-          if (_monitoredClubs.isNotEmpty) {
-            _selectedClub = _monitoredClubs.first;
-          }
+          _allReports = reports;
+          _selectedClub = null;
         });
       } catch (e) {
         print('Error loading teacher clubs: $e');
@@ -168,6 +173,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _selectedClub = widget.appState.clubs.first;
       }
       _teachersFuture = widget.appState.fetchTeachers();
+    }
+
+    if (activeRole == 'advisor') {
+      _selectedSection = 'Events';
+    } else if (activeRole == 'treasurer') {
+      _selectedSection = 'Overview';
+    } else if (activeRole == 'president' || activeRole == 'club-secretary') {
+      _selectedSection = 'Overview';
     }
 
     _reloadSectionData();
@@ -211,30 +224,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: isAdmin
           ? null
           : AppBar(
-              title: Text(_selectedSection == 'Overview' ? (isOfficer ? 'Club Dashboard' : 'Campus Dashboard') : _selectedSection),
+              title: isTeacher
+                  ? const Text(
+                      'WCE, Sangli',
+                      style: TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.w900, color: AppTheme.navy),
+                    )
+                  : Text(_selectedSection == 'Overview' ? (isOfficer ? 'Club Dashboard' : 'Campus Dashboard') : _selectedSection),
               backgroundColor: Colors.white,
               foregroundColor: AppTheme.navy,
               elevation: 0,
-              leading: _selectedSection != 'Overview'
-                  ? IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-                      onPressed: () => setState(() => _selectedSection = 'Overview'),
-                    )
-                  : (Navigator.of(context).canPop()
+              leading: isTeacher
+                  ? null
+                  : (_selectedSection != 'Overview'
                       ? IconButton(
                           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-                          onPressed: () => Navigator.of(context).pop(),
+                          onPressed: () => setState(() => _selectedSection = 'Overview'),
                         )
-                      : null),
+                      : (Navigator.of(context).canPop()
+                          ? IconButton(
+                              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                              onPressed: () => Navigator.of(context).pop(),
+                            )
+                          : null)),
+              actions: isTeacher
+                  ? [
+                      IconButton(
+                        icon: const Icon(Icons.dark_mode_outlined, color: AppTheme.navy, size: 20),
+                        onPressed: () {},
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.notifications_none_rounded, color: AppTheme.navy, size: 22),
+                        onPressed: () {},
+                      ),
+                      const SizedBox(width: 8),
+                    ]
+                  : null,
             ),
       body: _isLoadingMonitored
           ? const Center(child: CircularProgressIndicator())
           : SafeArea(
               child: Column(
                 children: [
-                  // Top Club Selector for Admin / Teacher
-                  if (!isAdmin && isTeacher)
-                    _buildClubSelectorHeader(_monitoredClubs, onAddMonitored: _showAddMonitoredClubDialog),
+
 
                   if (isAdmin)
                     Expanded(
@@ -270,33 +301,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   else ...[
                     if (_selectedClub == null)
                       Expanded(
-                        child: Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.shield_outlined, size: 64, color: Colors.grey),
-                                const SizedBox(height: 12),
-                                const Text('No Club Selected', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                const SizedBox(height: 6),
-                                Text(
-                                  isTeacher ? 'Please add a club to monitor first.' : 'No clubs available to manage.',
-                                  style: const TextStyle(color: Colors.grey),
-                                  textAlign: TextAlign.center,
+                        child: isTeacher
+                            ? _buildTeacherDashboardOverview(session)
+                            : Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(24),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.shield_outlined, size: 64, color: Colors.grey),
+                                      const SizedBox(height: 12),
+                                      const Text('No Club Selected', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        isTeacher ? 'Please add a club to monitor first.' : 'No clubs available to manage.',
+                                        style: const TextStyle(color: Colors.grey),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      if (isTeacher) ...[
+                                        const SizedBox(height: 16),
+                                        FilledButton.icon(
+                                          onPressed: _showAddMonitoredClubDialog,
+                                          icon: const Icon(Icons.add),
+                                          label: const Text('Add Club to Monitor'),
+                                        )
+                                      ],
+                                    ],
+                                  ),
                                 ),
-                                if (isTeacher) ...[
-                                  const SizedBox(height: 16),
-                                  FilledButton.icon(
-                                    onPressed: _showAddMonitoredClubDialog,
-                                    icon: const Icon(Icons.add),
-                                    label: const Text('Add Club to Monitor'),
-                                  )
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
+                              ),
                       )
                     else ...[
                       // Active view body
@@ -309,7 +342,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           child: SingleChildScrollView(
                             physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                            child: _buildActiveSectionView(session),
+                            child: isTeacher && _selectedSection == 'Overview'
+                                ? _buildTeacherClubDetailsView(session)
+                                : (isOfficer
+                                    ? _buildOfficerClubDetailsView(session)
+                                    : _buildActiveSectionView(session)),
                           ),
                         ),
                       ),
@@ -321,55 +358,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildClubSelectorHeader(List<Club> clubs, {VoidCallback? onAddMonitored}) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 6,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.hub_outlined, color: AppTheme.blue, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<Club>(
-                value: _selectedClub,
-                hint: const Text('Select Club to Manage'),
-                isExpanded: true,
-                items: clubs.map((c) {
-                  return DropdownMenuItem<Club>(
-                    value: c,
-                    child: Text(c.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), overflow: TextOverflow.ellipsis),
-                  );
-                }).toList(),
-                onChanged: (club) {
-                  setState(() {
-                    _selectedClub = club;
-                  });
-                  _reloadSectionData();
-                },
-              ),
-            ),
-          ),
-          if (onAddMonitored != null)
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline, color: AppTheme.blue, size: 20),
-              onPressed: onAddMonitored,
-            ),
-        ],
-      ),
-    );
-  }
+
 
 
   Widget _buildActiveSectionView(UserSession session) {
@@ -380,8 +369,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 'Overview':
         if (activeRole == 'admin') {
           return _buildAdminOverviewSection();
-        } else if (activeRole == 'advisor') {
-          return _buildAdvisorDashboardView(session);
         } else {
           return _buildOverviewView(session);
         }
@@ -390,24 +377,209 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 'Manage Posts':
         return _buildManagePostsSection();
       case 'Notifications':
-        return session.role == 'admin' ? _buildAdminNotificationsSection() : _buildNotificationsView(session);
+        return activeRole == 'admin' ? _buildAdminNotificationsSection() : _buildNotificationsView(session);
       case 'Teachers':
-        return session.role == 'admin' ? _buildAdminTeachersSection() : const SizedBox.shrink();
+        return activeRole == 'admin' ? _buildAdminTeachersSection() : const SizedBox.shrink();
       case 'Members':
         return _buildMembersView(session);
+      case 'Drafts & Posts':
       case 'Posts & Announcements':
         return _buildPostsView(session);
       case 'Events':
+        if (activeRole == 'advisor') {
+          final clubPosts = widget.appState.posts.where((p) => p.clubId == _selectedClub!.id).toList();
+          final clubEvents = clubPosts.where((p) => p.isEvent).toList();
+          return _buildAdvisorEventsTab(clubEvents);
+        }
         return _buildEventsView(session);
       case 'Tasks':
         return _buildTasksView(session);
       case 'Live Chat':
         return _buildMessagesView(session);
       case 'Budgets':
+      case 'Budget':
+        if (activeRole == 'advisor') {
+          final clubPosts = widget.appState.posts.where((p) => p.clubId == _selectedClub!.id).toList();
+          final clubEvents = clubPosts.where((p) => p.isEvent).toList();
+          return _buildAdvisorBudgetsTab(clubEvents);
+        }
         return _buildBudgetView(session);
+      case 'Reports':
+        if (activeRole == 'advisor') {
+          return _buildAdvisorReportsTab();
+        }
+        return const SizedBox.shrink();
+      case 'Team':
+        if (activeRole == 'advisor') {
+          return _buildAdvisorTeamTab();
+        }
+        return const SizedBox.shrink();
       default:
         return const SizedBox.shrink();
     }
+  }
+
+  List<String> _getSectionsForRole(String activeRole) {
+    if (activeRole == 'advisor') {
+      return ['Events', 'Reports', 'Budgets', 'Team'];
+    } else if (activeRole == 'treasurer') {
+      return ['Overview', 'Members', 'Tasks', 'Messages', 'Budgets'];
+    } else if (activeRole == 'president' || activeRole == 'club-secretary') {
+      return ['Overview', 'Members', 'Drafts & Posts', 'Events', 'Tasks', 'Messages', 'Notifications', 'Budget'];
+    }
+    return ['Overview'];
+  }
+
+  void _showOfficerTabSelector(String activeRole) {
+    final sections = _getSectionsForRole(activeRole);
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: sections.map((sec) {
+            IconData icon = Icons.bookmark_outline_rounded;
+            Color iconColor = AppTheme.blue;
+            if (sec == 'Overview') {
+              icon = Icons.trending_up_rounded;
+              iconColor = Colors.blue;
+            } else if (sec == 'Members') {
+              icon = Icons.people_outline_rounded;
+              iconColor = Colors.purple;
+            } else if (sec == 'Drafts & Posts') {
+              icon = Icons.edit_note_rounded;
+              iconColor = Colors.orange;
+            } else if (sec == 'Events') {
+              icon = Icons.calendar_month_outlined;
+              iconColor = Colors.green;
+            } else if (sec == 'Tasks') {
+              icon = Icons.checklist_rtl_rounded;
+              iconColor = Colors.teal;
+            } else if (sec == 'Messages') {
+              icon = Icons.chat_bubble_outline_rounded;
+              iconColor = Colors.indigo;
+            } else if (sec == 'Notifications') {
+              icon = Icons.notifications_none_rounded;
+              iconColor = Colors.red;
+            } else if (sec == 'Budget' || sec == 'Budgets') {
+              icon = Icons.account_balance_wallet_outlined;
+              iconColor = Colors.cyan;
+            } else if (sec == 'Reports') {
+              icon = Icons.file_copy_outlined;
+              iconColor = Colors.amber;
+            } else if (sec == 'Team') {
+              icon = Icons.groups_3_outlined;
+              iconColor = Colors.deepOrange;
+            }
+
+            return ListTile(
+              leading: Icon(icon, color: iconColor),
+              title: Text(sec, style: const TextStyle(fontWeight: FontWeight.bold)),
+              onTap: () {
+                setState(() => _selectedSection = sec);
+                Navigator.pop(ctx);
+              },
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOfficerClubDetailsView(UserSession session) {
+    final activeRole = widget.initialRole ?? session.role;
+    String titleText = '';
+    String subtitleText = '';
+    
+    if (activeRole == 'advisor') {
+      titleText = 'Advisor Dashboard';
+      subtitleText = 'Manage event posts, budgets, and team members for ';
+    } else if (activeRole == 'president') {
+      titleText = 'President Portal';
+      subtitleText = 'Manage members, posts, and budget for ';
+    } else if (activeRole == 'club-secretary') {
+      titleText = 'Secretary Portal';
+      subtitleText = 'Manage members, posts, and budget for ';
+    } else if (activeRole == 'treasurer') {
+      titleText = 'Treasurer Portal';
+      subtitleText = 'Manage members, posts, and budget for ';
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey.shade100, width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.015),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                titleText,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.navy,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(text: subtitleText, style: const TextStyle(fontSize: 12, color: AppTheme.muted)),
+                    TextSpan(
+                      text: _selectedClub!.name,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.cyan),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        GestureDetector(
+          onTap: () => _showOfficerTabSelector(activeRole),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.menu_rounded, color: AppTheme.navy, size: 20),
+                const SizedBox(width: 12),
+                Text(
+                  _selectedSection,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy),
+                ),
+                const Spacer(),
+                const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 16),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        _buildActiveSectionView(session),
+      ],
+    );
   }
 
   // ─── ADMIN DASHBOARD HELPER METHODS ────────────────────────────────────────
@@ -2279,8 +2451,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final data = snapshot.data;
         final members = data != null ? data[0] as List<dynamic> : [];
         final tasks = data != null ? data[1] as List<dynamic> : [];
-        final canEdit = session.role == 'admin' || session.role == 'advisor' || session.role == 'president' || session.role == 'club-secretary';
         final activeRole = widget.initialRole ?? session.role;
+        final canEdit = activeRole == 'admin' || activeRole == 'advisor' || activeRole == 'president' || activeRole == 'club-secretary';
+        final isOfficer = activeRole == 'president' || activeRole == 'club-secretary' || activeRole == 'treasurer';
 
         // Find next upcoming club event
         PostItem? nextUpcoming;
@@ -2296,98 +2469,99 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Club Header Block (Image 2 layout)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.shade100, width: 1.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.015),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  // Club Logo
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(12),
+            if (!isOfficer) ...[
+              // 1. Club Header Block (Image 2 layout)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.015),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
-                    padding: const EdgeInsets.all(6),
-                    child: _selectedClub!.imageAsset.isNotEmpty
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: _selectedClub!.imageAsset.startsWith('http')
-                                ? Image.network(_selectedClub!.imageAsset, fit: BoxFit.contain)
-                                : Image.asset(
-                                    _selectedClub!.imageAsset.startsWith('/')
-                                        ? 'assets/images${_selectedClub!.imageAsset}'
-                                        : _selectedClub!.imageAsset,
-                                    fit: BoxFit.contain,
-                                    errorBuilder: (_, __, ___) => const Icon(Icons.groups_rounded, color: AppTheme.blue),
-                                  ),
-                          )
-                        : const Icon(Icons.groups_rounded, color: AppTheme.blue, size: 28),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _selectedClub!.name,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.navy,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _selectedClub!.fullForm.isNotEmpty
-                              ? _selectedClub!.fullForm
-                              : _selectedClub!.description,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.muted,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF5F3FF),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFFDDD6FE), width: 1),
-                          ),
-                          child: Text(
-                            (widget.initialRole ?? session.role).toUpperCase(),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    // Club Logo
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.all(6),
+                      child: _selectedClub!.imageAsset.isNotEmpty
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: _selectedClub!.imageAsset.startsWith('http')
+                                  ? Image.network(_selectedClub!.imageAsset, fit: BoxFit.contain)
+                                  : Image.asset(
+                                      _selectedClub!.imageAsset.startsWith('/')
+                                          ? 'assets/images${_selectedClub!.imageAsset}'
+                                          : _selectedClub!.imageAsset,
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (_, __, ___) => const Icon(Icons.groups_rounded, color: AppTheme.blue),
+                                    ),
+                            )
+                          : const Icon(Icons.groups_rounded, color: AppTheme.blue, size: 28),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _selectedClub!.name,
                             style: const TextStyle(
-                              fontSize: 10,
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF7C3AED),
-                              letterSpacing: 0.5,
+                              color: AppTheme.navy,
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 2),
+                          Text(
+                            _selectedClub!.fullForm.isNotEmpty
+                                ? _selectedClub!.fullForm
+                                : _selectedClub!.description,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.muted,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F3FF),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: const Color(0xFFDDD6FE), width: 1),
+                            ),
+                            child: Text(
+                              (widget.initialRole ?? session.role).toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF7C3AED),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
+            ],
 
             // 2. Stat Counters Row (Image 2 layout)
             Row(
@@ -2434,122 +2608,122 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
 
-            const SizedBox(height: 24),
+            if (!isOfficer) ...[
+              const SizedBox(height: 24),
 
-            // 3. Quick Actions Section (Image 2 layout)
-            const Text(
-              'Quick Actions',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.navy,
+              // 3. Quick Actions Section (Image 2 layout)
+              const Text(
+                'Quick Actions',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.navy,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            // Action Tiles List depending on user roles
-            if (activeRole == 'treasurer') ...[
-              _QuickActionTile(
-                title: 'Member',
-                subtitle: 'View and manage club members',
-                icon: Icons.groups_outlined,
-                iconColor: const Color(0xFF6366F1),
-                bgColor: const Color(0xFFEEF2FF),
-                onTap: () => setState(() => _selectedSection = 'Members'),
-              ),
-              const SizedBox(height: 10),
-              _QuickActionTile(
-                title: 'Task',
-                subtitle: 'View and assign club tasks',
-                icon: Icons.playlist_add_check_rounded,
-                iconColor: const Color(0xFFF59E0B),
-                bgColor: const Color(0xFFFFFBEB),
-                onTap: () => setState(() => _selectedSection = 'Tasks'),
-              ),
-              const SizedBox(height: 10),
-              _QuickActionTile(
-                title: 'Messages',
-                subtitle: 'Chat with club members',
-                icon: Icons.chat_bubble_outline_rounded,
-                iconColor: const Color(0xFF06B6D4),
-                bgColor: const Color(0xFFECFEFF),
-                onTap: () => setState(() => _selectedSection = 'Live Chat'),
-              ),
-              const SizedBox(height: 10),
-              _QuickActionTile(
-                title: 'Budgets',
-                subtitle: 'Verify and view event budgets',
-                icon: Icons.account_balance_wallet_outlined,
-                iconColor: const Color(0xFFEF4444),
-                bgColor: const Color(0xFFFEF2F2),
-                onTap: () => setState(() => _selectedSection = 'Budgets'),
-              ),
-            ] else ...[
-              _QuickActionTile(
-                title: 'Members',
-                subtitle: 'View and manage club members',
-                icon: Icons.groups_outlined,
-                iconColor: const Color(0xFF6366F1),
-                bgColor: const Color(0xFFEEF2FF),
-                onTap: () => setState(() => _selectedSection = 'Members'),
-              ),
-              const SizedBox(height: 10),
-              _QuickActionTile(
-                title: 'Drafts & Posts',
-                subtitle: 'Manage and create announcements',
-                icon: Icons.edit_note_rounded,
-                iconColor: const Color(0xFFEC4899),
-                bgColor: const Color(0xFFFDF2F8),
-                onTap: () => setState(() => _selectedSection = 'Posts & Announcements'),
-              ),
-              const SizedBox(height: 10),
-              _QuickActionTile(
-                title: 'Events',
-                subtitle: 'Manage and schedule club events',
-                icon: Icons.calendar_month_rounded,
-                iconColor: const Color(0xFF10B981),
-                bgColor: const Color(0xFFE6FDF5),
-                onTap: () => setState(() => _selectedSection = 'Events'),
-              ),
-              const SizedBox(height: 10),
-              _QuickActionTile(
-                title: 'Tasks',
-                subtitle: 'Assign and track club tasks',
-                icon: Icons.playlist_add_check_rounded,
-                iconColor: const Color(0xFFF59E0B),
-                bgColor: const Color(0xFFFFFBEB),
-                onTap: () => setState(() => _selectedSection = 'Tasks'),
-              ),
-              const SizedBox(height: 10),
-              _QuickActionTile(
-                title: 'Messages',
-                subtitle: 'Chat with club members',
-                icon: Icons.chat_bubble_outline_rounded,
-                iconColor: const Color(0xFF06B6D4),
-                bgColor: const Color(0xFFECFEFF),
-                onTap: () => setState(() => _selectedSection = 'Live Chat'),
-              ),
-              const SizedBox(height: 10),
-              _QuickActionTile(
-                title: 'Notifications',
-                subtitle: 'Broadcast alerts and notices',
-                icon: Icons.notifications_none_rounded,
-                iconColor: const Color(0xFF8B5CF6),
-                bgColor: const Color(0xFFF5F3FF),
-                onTap: () => setState(() => _selectedSection = 'Notifications'),
-              ),
-              const SizedBox(height: 10),
-              _QuickActionTile(
-                title: 'Budget',
-                subtitle: 'Submit or verify event budgets',
-                icon: Icons.account_balance_wallet_outlined,
-                iconColor: const Color(0xFFEF4444),
-                bgColor: const Color(0xFFFEF2F2),
-                onTap: () => setState(() => _selectedSection = 'Budgets'),
-              ),
+              // Action Tiles List depending on user roles
+              if (activeRole == 'treasurer') ...[
+                _QuickActionTile(
+                  title: 'Member',
+                  subtitle: 'View and manage club members',
+                  icon: Icons.groups_outlined,
+                  iconColor: const Color(0xFF6366F1),
+                  bgColor: const Color(0xFFEEF2FF),
+                  onTap: () => setState(() => _selectedSection = 'Members'),
+                ),
+                const SizedBox(height: 10),
+                _QuickActionTile(
+                  title: 'Task',
+                  subtitle: 'View and assign club tasks',
+                  icon: Icons.playlist_add_check_rounded,
+                  iconColor: const Color(0xFFF59E0B),
+                  bgColor: const Color(0xFFFFFBEB),
+                  onTap: () => setState(() => _selectedSection = 'Tasks'),
+                ),
+                const SizedBox(height: 10),
+                _QuickActionTile(
+                  title: 'Messages',
+                  subtitle: 'Chat with club members',
+                  icon: Icons.chat_bubble_outline_rounded,
+                  iconColor: const Color(0xFF06B6D4),
+                  bgColor: const Color(0xFFECFEFF),
+                  onTap: () => setState(() => _selectedSection = 'Live Chat'),
+                ),
+                _QuickActionTile(
+                  title: 'Budgets',
+                  subtitle: 'Verify and view event budgets',
+                  icon: Icons.account_balance_wallet_outlined,
+                  iconColor: const Color(0xFFEF4444),
+                  bgColor: const Color(0xFFFEF2F2),
+                  onTap: () => setState(() => _selectedSection = 'Budgets'),
+                ),
+              ] else ...[
+                _QuickActionTile(
+                  title: 'Members',
+                  subtitle: 'View and manage club members',
+                  icon: Icons.groups_outlined,
+                  iconColor: const Color(0xFF6366F1),
+                  bgColor: const Color(0xFFEEF2FF),
+                  onTap: () => setState(() => _selectedSection = 'Members'),
+                ),
+                const SizedBox(height: 10),
+                _QuickActionTile(
+                  title: 'Drafts & Posts',
+                  subtitle: 'Manage and create announcements',
+                  icon: Icons.edit_note_rounded,
+                  iconColor: const Color(0xFFEC4899),
+                  bgColor: const Color(0xFFFDF2F8),
+                  onTap: () => setState(() => _selectedSection = 'Posts & Announcements'),
+                ),
+                const SizedBox(height: 10),
+                _QuickActionTile(
+                  title: 'Events',
+                  subtitle: 'Manage and schedule club events',
+                  icon: Icons.calendar_month_rounded,
+                  iconColor: const Color(0xFF10B981),
+                  bgColor: const Color(0xFFE6FDF5),
+                  onTap: () => setState(() => _selectedSection = 'Events'),
+                ),
+                const SizedBox(height: 10),
+                _QuickActionTile(
+                  title: 'Tasks',
+                  subtitle: 'Assign and track club tasks',
+                  icon: Icons.playlist_add_check_rounded,
+                  iconColor: const Color(0xFFF59E0B),
+                  bgColor: const Color(0xFFFFFBEB),
+                  onTap: () => setState(() => _selectedSection = 'Tasks'),
+                ),
+                const SizedBox(height: 10),
+                _QuickActionTile(
+                  title: 'Messages',
+                  subtitle: 'Chat with club members',
+                  icon: Icons.chat_bubble_outline_rounded,
+                  iconColor: const Color(0xFF06B6D4),
+                  bgColor: const Color(0xFFECFEFF),
+                  onTap: () => setState(() => _selectedSection = 'Live Chat'),
+                ),
+                const SizedBox(height: 10),
+                _QuickActionTile(
+                  title: 'Notifications',
+                  subtitle: 'Broadcast alerts and notices',
+                  icon: Icons.notifications_none_rounded,
+                  iconColor: const Color(0xFF8B5CF6),
+                  bgColor: const Color(0xFFF5F3FF),
+                  onTap: () => setState(() => _selectedSection = 'Notifications'),
+                ),
+                const SizedBox(height: 10),
+                _QuickActionTile(
+                  title: 'Budget',
+                  subtitle: 'Submit or verify event budgets',
+                  icon: Icons.account_balance_wallet_outlined,
+                  iconColor: const Color(0xFFEF4444),
+                  bgColor: const Color(0xFFFEF2F2),
+                  onTap: () => setState(() => _selectedSection = 'Budgets'),
+                ),
+              ],
+              const SizedBox(height: 24),
             ],
-
-            const SizedBox(height: 24),
 
             // 4. Upcoming Event Section (Image 2 layout)
             Row(
@@ -2927,6 +3101,788 @@ class _DashboardScreenState extends State<DashboardScreen> {
         else if (_advisorActiveTab == 'Team')
           _buildAdvisorTeamTab(),
       ],
+    );
+  }
+
+  // ─── TEACHER DASHBOARD IMPLEMENTATION ─────────────────────────────────────
+  
+  void _downloadAllReports(String clubId) {
+    final clubReports = _allReports.where((r) => r['clubId'] == clubId).toList();
+    if (clubReports.isEmpty) {
+      _showErrorSnackBar('No reports available to download.');
+      return;
+    }
+    for (final report in clubReports) {
+      final url = report['reportUrl']?.toString() ?? '';
+      if (url.isNotEmpty) {
+        Share.share(url, subject: '${report['eventTitle'] ?? 'Event'} Report');
+      }
+    }
+    _showSuccessSnackBar('Sharing ${clubReports.length} report(s)...');
+  }
+
+  void _showTeacherTabSelector() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.file_copy_rounded, color: AppTheme.blue),
+              title: const Text('Event Reports', style: TextStyle(fontWeight: FontWeight.bold)),
+              onTap: () {
+                setState(() => _teacherActiveTab = 'Reports');
+                Navigator.pop(ctx);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.people_rounded, color: AppTheme.purple),
+              title: const Text('Members', style: TextStyle(fontWeight: FontWeight.bold)),
+              onTap: () {
+                setState(() => _teacherActiveTab = 'Members');
+                Navigator.pop(ctx);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTeacherDashboardOverview(UserSession session) {
+    return RefreshIndicator(
+      onRefresh: () async {
+        final monitored = await widget.appState.fetchTeacherClubs();
+        final reports = await widget.appState.fetchTeacherReports();
+        final List<Club> loaded = [];
+        for (final m in monitored) {
+          final id = m['_id']?.toString() ?? m['id']?.toString() ?? '';
+          final match = widget.appState.clubs.where((c) => c.id == id).toList();
+          if (match.isNotEmpty) loaded.add(match.first);
+        }
+        setState(() {
+          _monitoredClubs = loaded;
+          _allReports = reports;
+        });
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Teacher Dashboard',
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.navy,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Monitor club event reports and activities',
+                      style: TextStyle(fontSize: 12, color: AppTheme.muted),
+                    ),
+                  ],
+                ),
+                GestureDetector(
+                  onTap: _showAddMonitoredClubDialog,
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2563EB),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.add, color: Colors.white, size: 20),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            if (_monitoredClubs.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 60),
+                alignment: Alignment.center,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.shield_outlined, size: 48, color: Colors.grey),
+                    const SizedBox(height: 12),
+                    const Text('No Monitored Clubs', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 6),
+                    const Text('Please add a club to monitor first.', style: TextStyle(color: Colors.grey), textAlign: TextAlign.center),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: _showAddMonitoredClubDialog,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add Club to Monitor'),
+                    )
+                  ],
+                ),
+              )
+            else
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _monitoredClubs.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 14,
+                  childAspectRatio: 1.15,
+                ),
+                itemBuilder: (context, index) {
+                  final club = _monitoredClubs[index];
+                  final reportCount = _allReports.where((r) => r['clubId'] == club.id).length;
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.015),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              padding: const EdgeInsets.all(4),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: club.imageAsset.isNotEmpty
+                                    ? (club.imageAsset.startsWith('http')
+                                        ? Image.network(club.imageAsset, fit: BoxFit.contain)
+                                        : Image.asset(
+                                            club.imageAsset.startsWith('/')
+                                                ? 'assets/images${club.imageAsset}'
+                                                : club.imageAsset,
+                                            fit: BoxFit.contain,
+                                          ))
+                                    : const Icon(Icons.groups_rounded, color: AppTheme.blue, size: 16),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    club.name,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.file_copy_outlined, size: 10, color: Colors.cyan),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '$reportCount reports',
+                                        style: const TextStyle(fontSize: 10, color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () => _confirmRemoveMonitoredClub(club),
+                              child: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 18),
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: SizedBox(
+                                height: 28,
+                                child: FilledButton(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: const Color(0xFF0F172A),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _selectedClub = club;
+                                      _reloadSectionData();
+                                    });
+                                  },
+                                  child: const Text('View Details', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                                ),
+                              ),
+                            ),
+                            if (reportCount > 0) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEFF6FF),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: IconButton(
+                                  padding: EdgeInsets.zero,
+                                  icon: const Icon(Icons.download_rounded, size: 14, color: Color(0xFF2563EB)),
+                                  onPressed: () => _downloadAllReports(club.id),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTeacherClubDetailsView(UserSession session) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: () => setState(() => _selectedClub = null),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.arrow_back_ios_new_rounded, size: 12, color: AppTheme.blue),
+              SizedBox(width: 4),
+              Text(
+                'Back to Dashboard',
+                style: TextStyle(color: AppTheme.blue, fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey.shade100, width: 1.5),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _selectedClub!.name,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.navy,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Manage event reports and view club members',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.muted,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        GestureDetector(
+          onTap: _showTeacherTabSelector,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.menu_rounded, color: AppTheme.navy, size: 20),
+                const SizedBox(width: 12),
+                Text(
+                  _teacherActiveTab == 'Reports' ? 'Event Reports' : 'Members',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy),
+                ),
+                const Spacer(),
+                const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 16),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        _teacherActiveTab == 'Reports'
+            ? _buildTeacherReportsTab()
+            : _buildTeacherMembersTab(),
+      ],
+    );
+  }
+
+  Widget _buildTeacherReportsTab() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _reportsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: Padding(padding: EdgeInsets.all(24.0), child: CircularProgressIndicator()));
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Error loading reports: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
+        }
+        final reports = snapshot.data ?? [];
+        
+        var filteredReports = reports;
+        if (_teacherReportYearFilter != 'All Years') {
+          filteredReports = reports.where((r) {
+            final dateStr = r['eventDate']?.toString() ?? r['reportSubmittedAt']?.toString();
+            return dateStr != null && dateStr.startsWith(_teacherReportYearFilter);
+          }).toList();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Event Reports',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _teacherReportYearFilter,
+                          style: const TextStyle(fontSize: 12, color: AppTheme.navy, fontWeight: FontWeight.bold),
+                          items: ['All Years', '2026', '2027', '2028'].map((y) {
+                            return DropdownMenuItem(value: y, child: Text(y));
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) setState(() => _teacherReportYearFilter = val);
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF0F172A),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      onPressed: () => _downloadAllReports(_selectedClub!.id),
+                      icon: const Icon(Icons.download_rounded, size: 14),
+                      label: const Text('Download All', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (filteredReports.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 40),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.file_copy_outlined, size: 44, color: Colors.grey.shade300),
+                    const SizedBox(height: 8),
+                    const Text('No reports available.', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  ],
+                ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: filteredReports.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final report = filteredReports[index];
+                  final eventDate = report['eventDate'] != null ? DateTime.tryParse(report['eventDate'].toString()) : null;
+                  final submittedAt = report['reportSubmittedAt'] != null ? DateTime.tryParse(report['reportSubmittedAt'].toString()) : null;
+                  return Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE0F7FA),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.file_copy_rounded, color: Colors.cyan, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                report['eventTitle']?.toString() ?? 'Untitled Event',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy),
+                              ),
+                              const SizedBox(height: 2),
+                              const Text('ID: N/A', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 12,
+                                runSpacing: 4,
+                                children: [
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.calendar_month_outlined, size: 12, color: Colors.grey),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Event Date: ${eventDate != null ? eventDate.toLocal().toString().split(' ')[0] : '10/01/2026'}',
+                                        style: const TextStyle(fontSize: 10, color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.person_outline_rounded, size: 12, color: Colors.grey),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'By: ${report['reportSubmittedByName']?.toString() ?? 'Club Officer'}',
+                                        style: const TextStyle(fontSize: 10, color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.access_time_rounded, size: 12, color: Colors.grey),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Submitted: ${submittedAt != null ? submittedAt.toLocal().toString().split(' ')[0] : '26/02/2026'}',
+                                        style: const TextStyle(fontSize: 10, color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFF1F5F9),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            icon: const Icon(Icons.download_rounded, size: 16, color: Colors.grey),
+                            onPressed: () {
+                              final url = report['reportUrl']?.toString() ?? '';
+                              if (url.isNotEmpty) {
+                                Share.share(url, subject: '${report['eventTitle'] ?? 'Event'} Report');
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildTeacherMembersTab() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _membersFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: Padding(padding: EdgeInsets.all(24.0), child: CircularProgressIndicator()));
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Error loading members: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
+        }
+        final members = snapshot.data ?? [];
+
+        var filteredMembers = members;
+        if (_teacherYearFilter != 'All Years') {
+          filteredMembers = filteredMembers.where((m) {
+            final joined = m['joinedAt']?.toString() ?? '';
+            final acYear = m['academicYear']?.toString() ?? '';
+            return joined.contains(_teacherYearFilter) || acYear.contains(_teacherYearFilter);
+          }).toList();
+        }
+        if (_teacherBoardFilter != 'All Boards') {
+          String type = 'member';
+          if (_teacherBoardFilter.contains('Main')) type = 'main';
+          if (_teacherBoardFilter.contains('Executive')) type = 'executive';
+          
+          filteredMembers = filteredMembers.where((m) {
+            final bType = m['boardType']?.toString().toLowerCase() ?? 'member';
+            return bType == type;
+          }).toList();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${_selectedClub!.name} Members',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                  ),
+                ),
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  onPressed: () => _exportRoster(filteredMembers.cast<Map<String, dynamic>>()),
+                  icon: const Icon(Icons.download_rounded, size: 14),
+                  label: const Text('Export', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _teacherYearFilter,
+                        isExpanded: true,
+                        style: const TextStyle(fontSize: 12, color: AppTheme.navy, fontWeight: FontWeight.bold),
+                        items: ['All Years', '2026', '2027', '2028'].map((y) {
+                          return DropdownMenuItem(value: y, child: Text(y));
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => _teacherYearFilter = val);
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _teacherBoardFilter,
+                        isExpanded: true,
+                        style: const TextStyle(fontSize: 12, color: AppTheme.navy, fontWeight: FontWeight.bold),
+                        items: ['All Boards', 'Main Board (TY)', 'Executive Board (SY)', 'Member Board (FY)'].map((b) {
+                          return DropdownMenuItem(value: b, child: Text(b));
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => _teacherBoardFilter = val);
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (filteredMembers.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 40),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.groups_outlined, size: 44, color: Colors.grey.shade300),
+                    const SizedBox(height: 8),
+                    const Text('No members found matching filters.', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  ],
+                ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: filteredMembers.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final member = filteredMembers[index];
+                  final name = member['name']?.toString() ?? 'Member';
+                  final email = member['email']?.toString() ?? '';
+                  final role = member['role']?.toString() ?? 'Member';
+                  final boardType = member['boardType']?.toString() ?? 'member';
+                  
+                  String boardLabel = 'Member Board (FY)';
+                  if (boardType == 'main') boardLabel = 'Main Board (TY)';
+                  if (boardType == 'executive') boardLabel = 'Executive Board (SY)';
+
+                  return Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              name,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy),
+                            ),
+                            const SizedBox(width: 8),
+                            _buildPill(boardLabel),
+                            if (role != 'Member') ...[
+                              const SizedBox(width: 6),
+                              _buildPill(role),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Icon(Icons.email_outlined, size: 12, color: Colors.grey),
+                            const SizedBox(width: 6),
+                            Text(email, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.calendar_month_outlined, size: 12, color: Colors.grey),
+                            const SizedBox(width: 6),
+                            const Text('Joined: 06/02/2026', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPill(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFDBEAFE),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Color(0xFF1E40AF)),
+      ),
+    );
+  }
+
+  void _confirmRemoveMonitoredClub(Club club) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Stop Monitoring?'),
+        content: Text('Are you sure you want to remove "${club.name}" from your monitored clubs list?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await widget.appState.removeTeacherClub(club.id);
+                _showSuccessSnackBar('Club "${club.name}" removed successfully!');
+                _initializeDashboard(); // Reload monitored clubs list
+              } catch (e) {
+                _showErrorSnackBar('Failed to remove club: $e');
+              }
+            },
+            child: const Text('Remove', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -3801,7 +4757,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ─── MEMBERS TAB ───────────────────────────────────────────────────────────
   Widget _buildMembersView(UserSession session) {
-    final canEdit = session.role == 'admin' || session.role == 'advisor' || session.role == 'president' || session.role == 'club-secretary';
+    final activeRole = widget.initialRole ?? session.role;
+    final canEdit = activeRole == 'admin' || activeRole == 'advisor' || activeRole == 'president' || activeRole == 'club-secretary';
+    final isTreasurer = activeRole == 'treasurer';
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _membersFuture,
       builder: (context, snapshot) {
@@ -3831,18 +4789,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
               ],
             ),
-            if (canEdit) ...[
+            if (canEdit || isTreasurer) ...[
               const SizedBox(height: 10),
               Row(
                 children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.file_upload_outlined, size: 16),
-                      label: const Text('Import Excel/CSV', style: TextStyle(fontSize: 12)),
-                      onPressed: () => _importRoster(),
+                  if (canEdit) ...[
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.file_upload_outlined, size: 16),
+                        label: const Text('Import Excel/CSV', style: TextStyle(fontSize: 12)),
+                        onPressed: () => _importRoster(),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
+                    const SizedBox(width: 8),
+                  ],
                   Expanded(
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.file_download_outlined, size: 16),
@@ -3970,7 +4930,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ─── DRAFTS & POSTS TAB ────────────────────────────────────────────────────
   Widget _buildPostsView(UserSession session) {
-    final canEdit = session.role == 'admin' || session.role == 'advisor' || session.role == 'president' || session.role == 'club-secretary';
+    final activeRole = widget.initialRole ?? session.role;
+    final canEdit = activeRole == 'admin' || activeRole == 'advisor' || activeRole == 'president' || activeRole == 'club-secretary';
     final clubPosts = widget.appState.posts.where((p) => p.clubId == _selectedClub!.id).toList();
 
     return Column(
@@ -4072,7 +5033,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ─── EVENTS TAB ────────────────────────────────────────────────────────────
   Widget _buildEventsView(UserSession session) {
-    final canEdit = session.role == 'admin' || session.role == 'advisor' || session.role == 'president' || session.role == 'club-secretary';
+    final activeRole = widget.initialRole ?? session.role;
+    final canEdit = activeRole == 'admin' || activeRole == 'advisor' || activeRole == 'president' || activeRole == 'club-secretary';
     final clubEvents = widget.appState.posts.where((p) => p.clubId == _selectedClub!.id && p.isEvent).toList();
     final now = DateTime.now();
     final upcoming = clubEvents.where((e) => e.date != null && e.date!.isAfter(now)).toList();
@@ -4158,7 +5120,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ─── TASKS TAB ─────────────────────────────────────────────────────────────
   Widget _buildTasksView(UserSession session) {
-    final canEdit = session.role == 'admin' || session.role == 'advisor' || session.role == 'president' || session.role == 'club-secretary';
+    final activeRole = widget.initialRole ?? session.role;
+    final canEdit = activeRole == 'admin' || activeRole == 'advisor' || activeRole == 'president' || activeRole == 'club-secretary';
     final clubEvents = widget.appState.posts.where((p) => p.clubId == _selectedClub!.id && p.isEvent).toList();
 
     return FutureBuilder<List<Map<String, dynamic>>>(
@@ -4398,7 +5361,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ─── NOTIFICATIONS TAB ─────────────────────────────────────────────────────
   Widget _buildNotificationsView(UserSession session) {
-    final canEdit = session.role == 'admin' || session.role == 'advisor' || session.role == 'president' || session.role == 'club-secretary';
+    final activeRole = widget.initialRole ?? session.role;
+    final canEdit = activeRole == 'admin' || activeRole == 'advisor' || activeRole == 'president' || activeRole == 'club-secretary';
     final notifications = widget.appState.notifications;
 
     return Column(
@@ -4479,7 +5443,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         .where((p) => (p.budgetImageUrl?.isNotEmpty ?? false))
         .toList();
 
-    final isVerifier = session.role == 'admin' || session.role == 'advisor';
+    final activeRole = widget.initialRole ?? session.role;
+    final isVerifier = activeRole == 'admin' || activeRole == 'advisor';
 
     return Column(
       children: [
@@ -4487,7 +5452,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('Budget Approvals', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            if (session.role == 'treasurer')
+            if (activeRole == 'treasurer')
               TextButton.icon(
                 onPressed: () => _showUploadBudgetDialog(allEvents),
                 icon: const Icon(Icons.upload_file),
