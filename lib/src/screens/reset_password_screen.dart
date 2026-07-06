@@ -103,169 +103,152 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create New Password'),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF002147)),
-        titleTextStyle: const TextStyle(
-            color: Color(0xFF002147),
-            fontSize: 20,
-            fontWeight: FontWeight.bold),
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFF8FAFC),
-              Color(0xFFF1F5F9),
-            ],
-          ),
-        ),
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: GlassCard(
-              child: _success
-                  ? Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.check_circle,
-                            color: Colors.green, size: 64),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Password Reset Successful!',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              fontSize: 24, fontWeight: FontWeight.bold),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: GlassCard(
+            child: _success
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.check_circle,
+                          color: Colors.green, size: 64),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Password Reset Successful!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Your password has been updated successfully. You can now login.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: () {
+                            Navigator.of(context).popUntil((route) => route.isFirst);
+                          },
+                          child: const Text('Go to Login'),
                         ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Your password has been updated successfully. You can now login.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton(
-                            onPressed: () {
-                              // Pop twice to get back to login if navigated from there
-                              Navigator.of(context).popUntil((route) => route.isFirst);
-                            },
-                            child: const Text('Go to Login'),
+                      ),
+                    ],
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.key,
+                              size: 32, color: Theme.of(context).colorScheme.primary),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Reset Password',
+                            style: TextStyle(
+                                fontSize: 24, fontWeight: FontWeight.bold),
                           ),
-                        ),
-                      ],
-                    )
-                  : Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.key,
-                                size: 32, color: Color(0xFF002147)),
-                            SizedBox(width: 12),
-                            Text(
-                              'Reset Password',
-                              style: TextStyle(
-                                  fontSize: 24, fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        if (widget.initialToken == null) ...[
-                          TextField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            decoration: const InputDecoration(
-                              labelText: 'Email Address',
-                              prefixIcon: Icon(Icons.email_outlined),
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          TextField(
-                            controller: _tokenController,
-                            decoration: const InputDecoration(
-                              labelText: 'Reset Token (from email)',
-                              prefixIcon: Icon(Icons.vpn_key_outlined),
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                        ] else ...[
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Resetting password for:',
-                                    style: TextStyle(
-                                        fontSize: 12, color: Colors.grey)),
-                                Text(_emailController.text,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 20),
                         ],
+                      ),
+                      const SizedBox(height: 24),
+                      if (widget.initialToken == null) ...[
                         TextField(
-                          controller: _passwordController,
-                          obscureText: _obscurePassword,
-                          decoration: InputDecoration(
-                            labelText: 'New Password',
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            border: const OutlineInputBorder(),
-                            suffixIcon: IconButton(
-                              icon: Icon(_obscurePassword
-                                  ? Icons.visibility_off
-                                  : Icons.visibility),
-                              onPressed: () => setState(() =>
-                                  _obscurePassword = !_obscurePassword),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: _confirmPasswordController,
-                          obscureText: _obscurePassword,
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
                           decoration: const InputDecoration(
-                            labelText: 'Confirm Password',
-                            prefixIcon: Icon(Icons.lock_outline),
+                            labelText: 'Email Address',
+                            prefixIcon: Icon(Icons.email_outlined),
                             border: OutlineInputBorder(),
                           ),
                         ),
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: FilledButton(
-                            onPressed: _isLoading ? null : _submitReset,
-                            child: _isLoading
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Text('Reset Password'),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _tokenController,
+                          decoration: const InputDecoration(
+                            labelText: 'Reset Token (from email)',
+                            prefixIcon: Icon(Icons.vpn_key_outlined),
+                            border: OutlineInputBorder(),
                           ),
                         ),
+                        const SizedBox(height: 16),
+                      ] else ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Resetting password for:',
+                                  style: TextStyle(
+                                      fontSize: 12, color: isDark ? Colors.grey : Colors.grey.shade600)),
+                              Text(_emailController.text,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
                       ],
-                    ),
-            ),
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        decoration: InputDecoration(
+                          labelText: 'New Password',
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          border: const OutlineInputBorder(),
+                          suffixIcon: IconButton(
+                            icon: Icon(_obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility),
+                            onPressed: () => setState(() =>
+                                _obscurePassword = !_obscurePassword),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _confirmPasswordController,
+                        obscureText: _obscurePassword,
+                        decoration: const InputDecoration(
+                          labelText: 'Confirm Password',
+                          prefixIcon: Icon(Icons.lock_outline),
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: FilledButton(
+                          onPressed: _isLoading ? null : _submitReset,
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text('Reset Password'),
+                        ),
+                      ),
+                    ],
+                  ),
           ),
         ),
       ),

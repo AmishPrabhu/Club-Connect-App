@@ -10,6 +10,11 @@ class AppTheme {
   static const Color blue = Color(0xFF2563EB);
   static const Color purple = Color(0xFF7C3AED);
 
+  static const Color darkBackground = Color(0xFF0F172A);
+  static const Color darkSurface = Color(0xFF1E293B);
+  static const Color darkText = Color(0xFFF8FAFC);
+  static const Color darkMuted = Color(0xFF94A3B8);
+
   static ThemeData light() {
     final base = ThemeData(
       useMaterial3: true,
@@ -109,4 +114,108 @@ class AppTheme {
       ),
     );
   }
+
+  static ThemeData dark() {
+    final base = ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: blue,
+        primary: blue,
+        secondary: cyan,
+        surface: darkSurface,
+        brightness: Brightness.dark,
+      ),
+    );
+
+    return base.copyWith(
+      scaffoldBackgroundColor: darkBackground,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: darkText,
+      ),
+      textTheme: base.textTheme.apply(
+        bodyColor: darkText,
+        displayColor: darkText,
+      ).copyWith(
+        bodySmall: const TextStyle(fontSize: 12, color: darkMuted),
+      ),
+      cardTheme: CardThemeData(
+        color: darkSurface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: darkSurface,
+        hintStyle: const TextStyle(color: darkMuted),
+        prefixIconColor: darkMuted,
+        labelStyle: const TextStyle(color: darkMuted),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: blue, width: 1.4),
+        ),
+      ),
+      chipTheme: base.chipTheme.copyWith(
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: blue,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+      dividerColor: Colors.white.withValues(alpha: 0.1),
+    );
+  }
+
+  // ── Context-aware colour helpers ──────────────────────────────────────────
+
+  /// Primary text colour that adapts to light/dark mode.
+  static Color textColor(BuildContext context) =>
+      Theme.of(context).colorScheme.onSurface;
+
+  /// Secondary/muted text colour that adapts to light/dark mode.
+  static Color mutedColor(BuildContext context) =>
+      Theme.of(context).colorScheme.onSurfaceVariant;
+
+  /// Card/container background colour that adapts to light/dark mode.
+  static Color cardBg(BuildContext context) =>
+      Theme.of(context).cardColor;
+
+  /// Scaffold/page background colour that adapts to light/dark mode.
+  static Color surfaceBg(BuildContext context) =>
+      Theme.of(context).scaffoldBackgroundColor;
+
+  /// True when the current theme is dark mode.
+  static bool isDark(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark;
 }

@@ -225,13 +225,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ? null
           : AppBar(
               title: isTeacher
-                  ? const Text(
+                  ? Text(
                       'WCE, Sangli',
-                      style: TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.w900, color: AppTheme.navy),
+                      style: TextStyle(
+                        fontFamily: 'Outfit',
+                        fontWeight: FontWeight.w900,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     )
                   : Text(_selectedSection == 'Overview' ? (isOfficer ? 'Club Dashboard' : 'Campus Dashboard') : _selectedSection),
-              backgroundColor: Colors.white,
-              foregroundColor: AppTheme.navy,
               elevation: 0,
               leading: isTeacher
                   ? null
@@ -249,11 +251,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               actions: isTeacher
                   ? [
                       IconButton(
-                        icon: const Icon(Icons.dark_mode_outlined, color: AppTheme.navy, size: 20),
-                        onPressed: () {},
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.notifications_none_rounded, color: AppTheme.navy, size: 22),
+                        icon: const Icon(Icons.notifications_none_rounded, size: 22),
                         onPressed: () {},
                       ),
                       const SizedBox(width: 8),

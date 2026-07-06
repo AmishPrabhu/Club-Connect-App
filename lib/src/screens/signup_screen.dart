@@ -73,7 +73,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   'This is connected to the real signup and OTP routes from your backend.',
                   style: Theme.of(
                     context,
-                  ).textTheme.bodyLarge?.copyWith(color: AppTheme.muted),
+                  ).textTheme.bodyLarge?.copyWith(color: AppTheme.mutedColor(context)),
                 ),
                 const SizedBox(height: 24),
                 if (_step == 0 && !isGoogleSignup)
@@ -153,7 +153,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         child: Text(
                           'OR',
                           style: TextStyle(
-                            color: AppTheme.muted,
+                            color: AppTheme.mutedColor(context),
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                           ),
@@ -174,15 +174,19 @@ class _SignupScreenState extends State<SignupScreen> {
                           _googleSigningIn
                               ? 'Connecting...'
                               : 'Sign up with Google',
-                          style: const TextStyle(
-                            color: Colors.black87,
+                          style: TextStyle(
+                            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        side: BorderSide(color: Colors.grey.shade300),
+                        backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
+                        side: BorderSide(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white.withValues(alpha: 0.1)
+                              : Colors.grey.shade300,
+                        ),
                       ),
                     ),
                   ),

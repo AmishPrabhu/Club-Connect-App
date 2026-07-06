@@ -16,14 +16,12 @@ class NotificationDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notification Details'),
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.navy,
         elevation: 0,
       ),
-      backgroundColor: Colors.grey.shade50,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -34,12 +32,14 @@ class NotificationDetailScreen extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(
+                  color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200,
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
+                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -54,7 +54,7 @@ class NotificationDetailScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: notification.color.withOpacity(0.1),
+                          color: notification.color.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -67,7 +67,7 @@ class NotificationDetailScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
+                          color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -75,7 +75,7 @@ class NotificationDetailScreen extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade700,
+                            color: isDark ? Colors.white70 : Colors.grey.shade700,
                             letterSpacing: 0.8,
                           ),
                         ),
@@ -85,7 +85,7 @@ class NotificationDetailScreen extends StatelessWidget {
                         notification.timeAgo,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade500,
+                          color: AppTheme.mutedColor(context),
                         ),
                       ),
                     ],
@@ -95,10 +95,10 @@ class NotificationDetailScreen extends StatelessWidget {
                   // Notification Title
                   Text(
                     notification.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.navy,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -109,9 +109,9 @@ class NotificationDetailScreen extends StatelessWidget {
                   MarkdownBody(
                     data: notification.message,
                     styleSheet: MarkdownStyleSheet(
-                      p: const TextStyle(
+                      p: TextStyle(
                         fontSize: 14,
-                        color: Colors.black87,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.87),
                         height: 1.6,
                       ),
                     ),

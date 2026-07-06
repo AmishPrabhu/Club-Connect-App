@@ -55,25 +55,25 @@ class EventCard extends StatelessWidget {
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
                       children: [
                         Text(
                           month,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w800,
-                            color: AppTheme.muted,
+                            color: AppTheme.mutedColor(context),
                           ),
                         ),
                         Text(
                           '${date.day}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
-                            color: AppTheme.text,
+                            color: AppTheme.textColor(context),
                           ),
                         ),
                       ],
@@ -106,8 +106,8 @@ class EventCard extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: post.isUpcoming
-                              ? const Color(0xFFE8FAF1)
-                              : const Color(0xFFF0F4F8),
+                              ? const Color(0xFF15803D).withValues(alpha: 0.12)
+                              : AppTheme.mutedColor(context).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
@@ -117,7 +117,7 @@ class EventCard extends StatelessWidget {
                             fontWeight: FontWeight.w800,
                             color: post.isUpcoming
                                 ? const Color(0xFF15803D)
-                                : AppTheme.muted,
+                                : AppTheme.mutedColor(context),
                           ),
                         ),
                       ),
@@ -170,10 +170,10 @@ class EventCard extends StatelessWidget {
         width: double.infinity,
         color: const Color(0xFFE2E8F0),
         alignment: Alignment.center,
-        child: const Icon(
+        child: Icon(
           Icons.image_outlined,
           size: 40,
-          color: AppTheme.muted,
+          color: AppTheme.muted.withValues(alpha: 0.6),
         ),
       );
     }

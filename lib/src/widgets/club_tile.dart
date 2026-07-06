@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/club.dart';
+import '../theme/app_theme.dart';
 
 class ClubTile extends StatelessWidget {
   const ClubTile({
@@ -68,9 +69,13 @@ class ClubTile extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.08)),
+          border: Border.all(
+            color: AppTheme.isDark(context)
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.blueGrey.withValues(alpha: 0.08),
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -91,9 +96,15 @@ class ClubTile extends StatelessWidget {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
+                      color: AppTheme.isDark(context)
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.06)),
+                      border: Border.all(
+                        color: AppTheme.isDark(context)
+                            ? Colors.white.withValues(alpha: 0.06)
+                            : Colors.blueGrey.withValues(alpha: 0.06),
+                      ),
                     ),
                     padding: const EdgeInsets.all(6),
                     child: ClipRRect(
@@ -122,7 +133,7 @@ class ClubTile extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF1E293B),
+                  color: AppTheme.textColor(context),
                 ),
               ),
               const SizedBox(height: 6),
@@ -155,7 +166,7 @@ class ClubTile extends StatelessWidget {
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF64748B),
+                    color: AppTheme.mutedColor(context),
                     height: 1.3,
                   ),
                 ),

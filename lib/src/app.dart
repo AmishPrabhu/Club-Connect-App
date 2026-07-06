@@ -28,6 +28,8 @@ class _ClubConnectAppState extends State<ClubConnectApp> {
       scaffoldMessengerKey: scaffoldMessengerKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.system,
       builder: (context, child) {
         final screenWidth = MediaQuery.of(context).size.width;
         final baseTheme = Theme.of(context);

@@ -90,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Text(
                           'Use your existing Club Connect account.',
                           style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(color: AppTheme.muted),
+                              ?.copyWith(color: AppTheme.mutedColor(context)),
                         ),
                         const SizedBox(height: 26),
                         TextField(
@@ -168,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             const Expanded(child: Divider()),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 16),
-                              child: Text('OR', style: TextStyle(color: AppTheme.muted, fontWeight: FontWeight.bold, fontSize: 12)),
+                              child: Text('OR', style: TextStyle(color: AppTheme.mutedColor(context), fontWeight: FontWeight.bold, fontSize: 12)),
                             ),
                             const Expanded(child: Divider()),
                           ],
@@ -185,15 +185,19 @@ class _LoginScreenState extends State<LoginScreen> {
                                 _googleSigningIn
                                     ? 'Connecting...'
                                     : 'Sign in with Google',
-                                style: const TextStyle(
-                                  color: Colors.black87,
+                                style: TextStyle(
+                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
                             style: OutlinedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              side: BorderSide(color: Colors.grey.shade300),
+                              backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
+                              side: BorderSide(
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white.withValues(alpha: 0.1)
+                                    : Colors.grey.shade300,
+                              ),
                             ),
                           ),
                         ),

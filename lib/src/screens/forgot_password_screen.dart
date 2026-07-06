@@ -64,107 +64,90 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         title: const Text('Forgot Password'),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF002147)),
-        titleTextStyle: const TextStyle(
-            color: Color(0xFF002147),
-            fontSize: 20,
-            fontWeight: FontWeight.bold),
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFF8FAFC),
-              Color(0xFFF1F5F9),
-            ],
-          ),
-        ),
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: GlassCard(
-              child: _success
-                  ? Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.check_circle,
-                            color: Colors.green, size: 64),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Check your email',
-                          style: TextStyle(
-                              fontSize: 24, fontWeight: FontWeight.bold),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: GlassCard(
+            child: _success
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.check_circle,
+                          color: Colors.green, size: 64),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Check your email',
+                        style: TextStyle(
+                            fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'If an account exists with that email, we have sent a password reset link.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Back to Login'),
                         ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'If an account exists with that email, we have sent a password reset link.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Back to Login'),
+                      ),
+                    ],
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.lock_reset,
+                              size: 32, color: Theme.of(context).colorScheme.primary),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Reset Password',
+                            style: TextStyle(
+                                fontSize: 24, fontWeight: FontWeight.bold),
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Enter your email address and we will send you a link to reset your password.',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 24),
+                      TextField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          labelText: 'Email Address',
+                          prefixIcon: Icon(Icons.email_outlined),
+                          border: OutlineInputBorder(),
                         ),
-                      ],
-                    )
-                  : Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.lock_reset,
-                                size: 32, color: Color(0xFF002147)),
-                            SizedBox(width: 12),
-                            Text(
-                              'Reset Password',
-                              style: TextStyle(
-                                  fontSize: 24, fontWeight: FontWeight.bold),
-                            ),
-                          ],
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: FilledButton(
+                          onPressed: _isLoading ? null : _requestReset,
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text('Send Reset Link'),
                         ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Enter your email address and we will send you a link to reset your password.',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        const SizedBox(height: 24),
-                        TextField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(
-                            labelText: 'Email Address',
-                            prefixIcon: Icon(Icons.email_outlined),
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: FilledButton(
-                            onPressed: _isLoading ? null : _requestReset,
-                            child: _isLoading
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Text('Send Reset Link'),
-                          ),
-                        ),
-                      ],
-                    ),
-            ),
+                      ),
+                    ],
+                  ),
           ),
         ),
       ),

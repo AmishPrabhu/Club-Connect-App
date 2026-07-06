@@ -70,13 +70,10 @@ class ProfileSettingsScreen extends StatelessWidget {
         title: const Text(
           'Profile & Settings',
           style: TextStyle(
-            color: AppTheme.navy,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.navy,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
@@ -151,7 +148,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Edit Profile Details', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy)),
+          title: Text('Edit Profile Details', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -219,7 +216,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text('Notification Settings', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy)),
+              title: Text('Notification Settings', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -268,10 +265,10 @@ class _ProfileBodyState extends State<_ProfileBody> {
             const SizedBox(height: 16),
             Text(
               session.name,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.navy,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 6),
@@ -280,9 +277,9 @@ class _ProfileBodyState extends State<_ProfileBody> {
             const SizedBox(height: 8),
             Text(
               session.email,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppTheme.muted,
+                color: AppTheme.mutedColor(context),
               ),
             ),
             if (session.bio != null && session.bio!.isNotEmpty) ...[
@@ -291,10 +288,10 @@ class _ProfileBodyState extends State<_ProfileBody> {
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Text(
                   session.bio!,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontStyle: FontStyle.italic,
-                    color: Colors.black87,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -343,6 +340,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
   }
 
   Widget _buildCenteredAvatar(UserSession session) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: _isUploading ? null : _pickAndUploadImage,
       child: Stack(
@@ -352,7 +350,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
             width: 100,
             height: 100,
             decoration: BoxDecoration(
-              color: const Color(0xFFEDE9FE),
+              color: isDark ? const Color(0xFF2E1065) : const Color(0xFFEDE9FE),
               shape: BoxShape.circle,
               border: Border.all(color: const Color(0xFFC084FC), width: 2),
               image: session.profileImage != null && session.profileImage!.isNotEmpty
@@ -366,10 +364,10 @@ class _ProfileBodyState extends State<_ProfileBody> {
                 ? Center(
                     child: Text(
                       session.name.isNotEmpty ? session.name[0].toUpperCase() : 'U',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 36,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF6D28D9),
+                        color: isDark ? const Color(0xFFD8B4FE) : const Color(0xFF6D28D9),
                       ),
                     ),
                   )
@@ -400,7 +398,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
             child: Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
@@ -422,19 +420,20 @@ class _ProfileBodyState extends State<_ProfileBody> {
   }
 
   Widget _buildCenteredRoleBadge(String role) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F3FF),
+        color: isDark ? const Color(0xFF2E1065) : const Color(0xFFF5F3FF),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFDDD6FE), width: 1),
+        border: Border.all(color: isDark ? const Color(0xFF581C87) : const Color(0xFFDDD6FE), width: 1),
       ),
       child: Text(
         role.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.bold,
-          color: Color(0xFF7C3AED),
+          color: isDark ? const Color(0xFFD8B4FE) : const Color(0xFF7C3AED),
           letterSpacing: 0.5,
         ),
       ),
@@ -449,14 +448,18 @@ class _ProfileBodyState extends State<_ProfileBody> {
     required Color bgColor,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        border: Border.all(
+          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.015),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.015),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -475,7 +478,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: bgColor,
+                    color: isDark ? bgColor.withValues(alpha: 0.15) : bgColor,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(icon, color: iconColor, size: 22),
@@ -487,27 +490,27 @@ class _ProfileBodyState extends State<_ProfileBody> {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.navy,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         subtitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: AppTheme.muted,
+                          color: AppTheme.mutedColor(context),
                         ),
                       ),
                     ],
                   ),
                 ),
                 Icon(
-                  Icons.chevron_right_rounded,
-                  color: Colors.grey.shade400,
-                  size: 20,
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16,
+                  color: AppTheme.mutedColor(context),
                 ),
               ],
             ),
@@ -605,13 +608,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         title: const Text(
           'Account Settings',
           style: TextStyle(
-            color: AppTheme.navy,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.navy,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
@@ -672,14 +672,18 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     required Color bgColor,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        border: Border.all(
+          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.015),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.015),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -819,7 +823,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Privacy & Security', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy)),
+        title: Text('Privacy & Security', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
         content: const Text(
           'Your account security is our priority. We encrypt all data in transit and at rest. You can manage authorization states and view active devices from this device.',
           style: TextStyle(fontSize: 14, height: 1.4),
@@ -838,7 +842,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('App Information', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy)),
+        title: Text('App Information', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -885,18 +889,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: const Text(
           'Change Password',
           style: TextStyle(
-            color: AppTheme.navy,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.navy,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
@@ -909,12 +909,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Update Password',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.navy,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
@@ -946,10 +946,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 height: 52,
                 child: FilledButton(
                   onPressed: _isLoading ? null : _handleChangePassword,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppTheme.navy,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
                   child: _isLoading
                       ? const SizedBox(
                           width: 24,
@@ -1026,18 +1022,14 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: const Text(
           'Delete Account',
           style: TextStyle(
-            color: AppTheme.navy,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.navy,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
@@ -1086,9 +1078,9 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
               ),
               if (_otpSent) ...[
                 const SizedBox(height: 24),
-                const Text(
+                Text(
                   'Enter Verification Code',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
                 ),
                 const SizedBox(height: 8),
                 TextField(

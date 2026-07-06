@@ -212,11 +212,11 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -293,11 +293,11 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -384,11 +384,11 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -474,11 +474,11 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -515,7 +515,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
           Text(
             _club.fullForm.isNotEmpty ? _club.fullForm : 'No full form provided.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: _club.fullForm.isNotEmpty ? Colors.black87 : Colors.grey,
+                  color: _club.fullForm.isNotEmpty ? Theme.of(context).colorScheme.onSurface : Colors.grey,
                   fontStyle: _club.fullForm.isNotEmpty ? FontStyle.normal : FontStyle.italic,
                 ),
           ),
@@ -529,11 +529,11 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -571,7 +571,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
           Text(
             _club.description.isNotEmpty ? _club.description : 'No description provided.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: _club.description.isNotEmpty ? Colors.black87 : Colors.grey,
+                  color: _club.description.isNotEmpty ? Theme.of(context).colorScheme.onSurface : Colors.grey,
                   fontStyle: _club.description.isNotEmpty ? FontStyle.normal : FontStyle.italic,
                   height: 1.4,
                 ),
@@ -587,11 +587,11 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
       margin: const EdgeInsets.only(bottom: 24),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

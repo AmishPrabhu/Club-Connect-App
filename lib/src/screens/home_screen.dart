@@ -200,22 +200,22 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Walchand College\nof Engineering',
                             style: TextStyle(
                               fontFamily: 'serif',
                               fontSize: 34,
                               height: 1.15,
                               fontWeight: FontWeight.w800,
-                              color: AppTheme.navy,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
+                          Text(
                             'Discover communities, track club activity, and join the next wave of campus events.',
                             style: TextStyle(
                               fontSize: 14,
-                              color: AppTheme.muted,
+                              color: AppTheme.mutedColor(context),
                               height: 1.4,
                               fontWeight: FontWeight.w500,
                             ),
@@ -246,20 +246,23 @@ class _HomeScreenState extends State<HomeScreen> {
               snap: true,
               snapSizes: [minSize, restingSize, maxSize],
               builder: (context, scrollController) {
+                final isDark = Theme.of(context).brightness == Brightness.dark;
                 return Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
+                        color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
                         blurRadius: 24,
                         offset: const Offset(0, -8),
                       ),
                     ],
                     border: Border(
                       top: BorderSide(
-                        color: Colors.blueGrey.withValues(alpha: 0.05),
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.blueGrey.withValues(alpha: 0.05),
                         width: 1.5,
                       ),
                     ),
@@ -316,14 +319,16 @@ class _HomeScreenState extends State<HomeScreen> {
                             // Search Bar
                             TextField(
                               decoration: InputDecoration(
-                                prefixIcon: const Icon(Icons.search_rounded, size: 24, color: AppTheme.muted),
+                                prefixIcon: Icon(Icons.search_rounded, size: 24, color: AppTheme.mutedColor(context)),
                                 hintText: 'Search clubs or events...',
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                fillColor: const Color(0xFFF8FAFC),
+                                fillColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
                                   borderSide: BorderSide(
-                                    color: Colors.blueGrey.withValues(alpha: 0.08),
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.white.withValues(alpha: 0.05)
+                                        : Colors.blueGrey.withValues(alpha: 0.08),
                                     width: 1.2,
                                   ),
                                 ),
@@ -336,18 +341,23 @@ class _HomeScreenState extends State<HomeScreen> {
                               const SizedBox(height: 12),
                               Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: Theme.of(context).cardColor,
                                   borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                                  border: Border.all(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.white.withValues(alpha: 0.08)
+                                        : Colors.grey.shade100,
+                                    width: 1.5,
+                                  ),
                                 ),
                                 child: Column(
                                   children: matches.isEmpty
                                       ? [
-                                          const Padding(
-                                            padding: EdgeInsets.symmetric(vertical: 20),
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(vertical: 20),
                                             child: Text(
                                               'No matches found',
-                                              style: TextStyle(color: AppTheme.muted, fontSize: 13),
+                                              style: TextStyle(color: AppTheme.mutedColor(context), fontSize: 13),
                                             ),
                                           )
                                         ]
@@ -357,7 +367,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                               width: 38,
                                               height: 38,
                                               decoration: BoxDecoration(
-                                                color: const Color(0xFFEFF6FF),
+                                                color: Theme.of(context).brightness == Brightness.dark
+                                                    ? const Color(0xFF2563EB).withValues(alpha: 0.15)
+                                                    : const Color(0xFFEFF6FF),
                                                 borderRadius: BorderRadius.circular(10),
                                               ),
                                               child: Center(
@@ -375,7 +387,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                               club.description,
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(fontSize: 11, color: AppTheme.muted),
+                                              style: TextStyle(fontSize: 11, color: AppTheme.mutedColor(context)),
                                             ),
                                             trailing: const Icon(Icons.chevron_right_rounded, size: 18),
                                             onTap: () => Navigator.of(context).push(
@@ -398,12 +410,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text(
+                                Text(
                                   'Featured Clubs',
                                   style: TextStyle(
                                     fontSize: 22,
                                     fontWeight: FontWeight.bold,
-                                    color: AppTheme.navy,
+                                    color: Theme.of(context).colorScheme.onSurface,
                                     letterSpacing: -0.5,
                                   ),
                                 ),
@@ -501,30 +513,29 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             
                             const SizedBox(height: 26),
-                            
-                            // Calendar Header
+                                                    // Calendar Header
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
+                                    Text(
                                       'Calendar',
                                       style: TextStyle(
                                         fontSize: 22,
                                         fontWeight: FontWeight.bold,
-                                        color: AppTheme.navy,
+                                        color: Theme.of(context).colorScheme.onSurface,
                                         letterSpacing: -0.5,
                                       ),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
                                       _formatMonthYear(_selectedDate ?? todayMidnight).toUpperCase(),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w800,
-                                        color: AppTheme.muted,
+                                        color: AppTheme.mutedColor(context),
                                         letterSpacing: 0.5,
                                       ),
                                     ),
@@ -580,6 +591,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         _selectedDate!.month == cellDate.month &&
                                         _selectedDate!.day == cellDate.day;
                                     final hasEvent = _dateHasEvents(cellDate);
+                                    final isDark = Theme.of(context).brightness == Brightness.dark;
                                     
                                     return GestureDetector(
                                       onTap: () {
@@ -599,13 +611,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                             height: 76,
                                             decoration: BoxDecoration(
                                               color: isSelected
-                                                  ? AppTheme.navy
-                                                  : const Color(0xFFF8FAFC),
+                                                  ? Theme.of(context).colorScheme.primary
+                                                  : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC)),
                                               borderRadius: BorderRadius.circular(18),
                                               border: Border.all(
                                                 color: isSelected
-                                                    ? AppTheme.navy
-                                                    : const Color(0xFFE2E8F0),
+                                                    ? Theme.of(context).colorScheme.primary
+                                                    : (isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0)),
                                                 width: 1.5,
                                               ),
                                             ),
@@ -619,7 +631,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                     fontWeight: FontWeight.w700,
                                                     color: isSelected
                                                         ? Colors.white.withValues(alpha: 0.8)
-                                                        : AppTheme.muted,
+                                                        : AppTheme.mutedColor(context),
                                                   ),
                                                 ),
                                                 const SizedBox(height: 6),
@@ -630,7 +642,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                     fontWeight: FontWeight.w800,
                                                     color: isSelected
                                                         ? Colors.white
-                                                        : AppTheme.text,
+                                                        : AppTheme.textColor(context),
                                                   ),
                                                 ),
                                               ],
@@ -642,7 +654,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                             height: 5,
                                             decoration: BoxDecoration(
                                               color: hasEvent
-                                                  ? (isSelected ? AppTheme.navy : const Color(0xFF22C55E))
+                                                  ? (isSelected ? Theme.of(context).colorScheme.primary : const Color(0xFF22C55E))
                                                   : Colors.transparent,
                                               shape: BoxShape.circle,
                                             ),
@@ -664,10 +676,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Expanded(
                                   child: Text(
                                     eventsHeader,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
-                                      color: AppTheme.navy,
+                                      color: Theme.of(context).colorScheme.onSurface,
                                     ),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
@@ -691,9 +703,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF8FAFC),
+                                  color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
                                   borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                                  border: Border.all(
+                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                                    width: 1.5,
+                                  ),
                                 ),
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -701,7 +716,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Icon(
                                       Icons.event_busy_rounded,
                                       size: 40,
-                                      color: AppTheme.muted.withValues(alpha: 0.5),
+                                      color: AppTheme.mutedColor(context).withValues(alpha: 0.5),
                                     ),
                                     const SizedBox(height: 12),
                                     Text(
@@ -709,8 +724,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                           ? 'No events scheduled for this week.'
                                           : 'No events scheduled for this day.',
                                       textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        color: AppTheme.muted,
+                                      style: TextStyle(
+                                        color: AppTheme.mutedColor(context),
                                         fontSize: 13,
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -758,21 +773,22 @@ class _HomeScreenState extends State<HomeScreen> {
     required String label,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: 155,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: Colors.blueGrey.withValues(alpha: 0.08),
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.blueGrey.withValues(alpha: 0.08),
             width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.015),
+              color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.015),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -786,10 +802,10 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF), // Light blue-purple tint
+                color: isDark ? const Color(0xFF2563EB).withValues(alpha: 0.15) : const Color(0xFFEFF6FF), // Light blue-purple tint
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: const Color(0xFFDBEAFE),
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFDBEAFE),
                   width: 1,
                 ),
               ),
@@ -805,17 +821,17 @@ class _HomeScreenState extends State<HomeScreen> {
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.w900,
                     fontSize: 32,
-                    color: AppTheme.navy,
+                    color: Theme.of(context).colorScheme.onSurface,
                     height: 1.0,
                   ),
             ),
             const SizedBox(height: 4),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: AppTheme.muted,
+                color: AppTheme.mutedColor(context),
               ),
             ),
           ],
@@ -839,14 +855,18 @@ class _FeaturedClubCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
+        border: Border.all(
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+            color: isDark ? Colors.black.withValues(alpha: 0.2) : const Color(0xFF0F172A).withValues(alpha: 0.05),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -862,14 +882,16 @@ class _FeaturedClubCard extends StatelessWidget {
               vertical: 4,
             ),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE2E8F0),
+              ),
             ),
             child: Text(
               category,
-              style: const TextStyle(
-                color: Color(0xFF475569),
+              style: TextStyle(
+                color: AppTheme.textColor(context).withValues(alpha: 0.8),
                 fontSize: 10.5,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.3,
@@ -884,7 +906,7 @@ class _FeaturedClubCard extends StatelessWidget {
               height: 96,
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
+                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: ClipRRect(
@@ -918,8 +940,8 @@ class _FeaturedClubCard extends StatelessWidget {
               name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xFF0F172A),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 15.5,
                 fontWeight: FontWeight.bold,
                 letterSpacing: -0.2,
@@ -944,6 +966,7 @@ class _HomeTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = appState.session;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
       child: Row(
@@ -966,7 +989,7 @@ class _HomeTopBar extends StatelessWidget {
                     'Signed in as ${session.name}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           fontWeight: FontWeight.w500,
-                          color: AppTheme.muted,
+                          color: AppTheme.mutedColor(context),
                         ),
                   ),
               ],
@@ -992,7 +1015,7 @@ class _HomeTopBar extends StatelessWidget {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.notifications_none_rounded, color: AppTheme.navy, size: 26),
+                  icon: Icon(Icons.notifications_none_rounded, color: Theme.of(context).colorScheme.onSurface, size: 26),
                 ),
                 if (appState.notifications.any((n) => !n.isRead))
                   Positioned(
@@ -1004,7 +1027,7 @@ class _HomeTopBar extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.redAccent,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                        border: Border.all(color: Theme.of(context).cardColor, width: 2),
                       ),
                     ),
                   ),
@@ -1016,17 +1039,17 @@ class _HomeTopBar extends StatelessWidget {
             child: Container(
               width: 38,
               height: 38,
-              decoration: const BoxDecoration(
-                color: Color(0xFFE0E7FF), // Light Indigo background matching screenshot
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF2563EB).withValues(alpha: 0.15) : const Color(0xFFE0E7FF),
                 shape: BoxShape.circle,
               ),
               child: Center(
                 child: Text(
                   session?.name.isNotEmpty == true ? session!.name[0].toUpperCase() : 'A',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF312E81), // Dark indigo text color
+                    color: isDark ? Colors.white : const Color(0xFF312E81),
                   ),
                 ),
               ),

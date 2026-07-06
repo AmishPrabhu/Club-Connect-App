@@ -100,10 +100,10 @@ class _RootScreenState extends State<RootScreen> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           border: Border(
             top: BorderSide(
-              color: Colors.blueGrey.withValues(alpha: 0.08),
+              color: Theme.of(context).dividerColor,
               width: 1.2,
             ),
           ),
@@ -248,15 +248,21 @@ class _BackgroundDecor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFFF8FAFC),
-            Color(0xFFF1F5F9),
-          ],
+          colors: isDark
+              ? [
+                  const Color(0xFF0F172A),
+                  const Color(0xFF0F172A),
+                ]
+              : [
+                  const Color(0xFFF8FAFC),
+                  const Color(0xFFF1F5F9),
+                ],
         ),
       ),
     );

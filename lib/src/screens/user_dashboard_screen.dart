@@ -128,8 +128,9 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).cardColor,
       builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -140,12 +141,12 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Select Management Dashboard',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.navy,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     IconButton(
@@ -181,15 +182,18 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                      border: Border.all(
+                        color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
+                        width: 1.5,
+                      ),
                     ),
                     child: ListTile(
                       leading: Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFEFF6FF),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF2563EB).withValues(alpha: 0.15) : const Color(0xFFEFF6FF),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(icon, color: const Color(0xFF3B82F6), size: 20),
@@ -380,12 +384,17 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                        border: Border.all(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : Colors.grey.shade100,
+                          width: 1.5,
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
+                            color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.02),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -418,9 +427,9 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                     child: Text(
                                       session.name.isNotEmpty
                                           ? session.name[0].toUpperCase()
-                                          : 'U',
+                                          : 'A',
                                       style: const TextStyle(
-                                        fontSize: 24,
+                                        fontSize: 26,
                                         fontWeight: FontWeight.bold,
                                         color: Color(0xFF6D28D9),
                                       ),
@@ -435,40 +444,45 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                               children: [
                                 Text(
                                   session.name,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                                    color: AppTheme.navy,
+                                    color: Theme.of(context).colorScheme.onSurface,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [
-                                    Text(
-                                      isOfficer ? 'Core Member' : 'Member',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: isOfficer
-                                            ? AppTheme.purple
-                                            : AppTheme.blue,
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).brightness == Brightness.dark
+                                            ? Colors.white.withValues(alpha: 0.08)
+                                            : const Color(0xFFF1F5F9),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        session.role.toUpperCase(),
+                                        style: TextStyle(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.bold,
+                                          color: Theme.of(context).colorScheme.primary,
+                                        ),
                                       ),
                                     ),
-                                    const SizedBox(width: 4),
-                                    const Icon(
-                                      Icons.chevron_right_rounded,
-                                      size: 14,
-                                      color: Colors.grey,
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        session.email,
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            color: AppTheme.mutedColor(context)),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                   ],
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  session.email,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppTheme.muted,
-                                  ),
                                 ),
                               ],
                             ),
@@ -476,7 +490,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                           Icon(
                             Icons.arrow_forward_ios_rounded,
                             size: 16,
-                            color: Colors.grey.shade400,
+                            color: AppTheme.mutedColor(context),
                           ),
                         ],
                       ),
@@ -485,18 +499,32 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
 
                   // 2. Walkway to Club Management
                   if (hasManagementAccess) ...[
-                    const SizedBox(height: 20),
-                    GestureDetector(
+                    const SizedBox(height: 24),
+                    Text(
+                      'Management',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    InkWell(
                       onTap: () => _handleManagementTap(session, managedClub),
                       child: Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).cardColor,
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                          border: Border.all(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : Colors.grey.shade100,
+                            width: 1.5,
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.02),
+                              color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.02),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),
@@ -526,10 +554,10 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                         isOfficer 
                                             ? (managedClub?.name ?? session.clubName ?? 'Your Club')
                                             : 'Monitored Clubs',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 22,
                                           fontWeight: FontWeight.w900,
-                                          color: AppTheme.navy,
+                                          color: Theme.of(context).colorScheme.onSurface,
                                         ),
                                       ),
                                     ],
@@ -541,12 +569,15 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                   width: 60,
                                   height: 60,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFF1F5F9),
+                                    color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
                                     borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                                    border: Border.all(
+                                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
+                                      width: 1.5,
+                                    ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.015),
+                                        color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.015),
                                         blurRadius: 8,
                                         offset: const Offset(0, 4),
                                       ),
@@ -584,7 +615,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                       borderRadius: BorderRadius.circular(24),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: const Color(0xFF4F46E5).withOpacity(0.2),
+                                          color: const Color(0xFF4F46E5).withValues(alpha: 0.2),
                                           blurRadius: 8,
                                           offset: const Offset(0, 3),
                                         ),
@@ -630,12 +661,12 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'My Clubs',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.navy,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       Text(
@@ -671,16 +702,20 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                         itemBuilder: (context, index) {
                           final club = userClubs[index];
                           final role = _getUserRoleInClub(session, club);
+                          final isDark = Theme.of(context).brightness == Brightness.dark;
                           return Container(
                             width: 190,
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: Theme.of(context).cardColor,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                              border: Border.all(
+                                color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
+                                width: 1.5,
+                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.015),
+                                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.015),
                                   blurRadius: 8,
                                   offset: const Offset(0, 4),
                                 ),
@@ -704,7 +739,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                     width: 44,
                                     height: 44,
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF002147),
+                                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFF002147),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     padding: const EdgeInsets.all(6),
@@ -739,16 +774,16 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        Text(
-                                          club.name,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppTheme.navy,
+                                          Text(
+                                            club.name,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                              color: Theme.of(context).colorScheme.onSurface,
+                                            ),
                                           ),
-                                        ),
                                         const SizedBox(height: 2),
                                         Text(
                                           role,
@@ -784,12 +819,12 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'My Activity',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.navy,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       GestureDetector(
@@ -859,12 +894,12 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Upcoming Event',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.navy,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       if (upcomingRsvps.isNotEmpty)
@@ -892,20 +927,23 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 36),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                        border: Border.all(
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
+                          width: 1.5,
+                        ),
                       ),
                       alignment: Alignment.center,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.event_busy_rounded,
-                              size: 40, color: Colors.grey.shade300),
+                              size: 40, color: AppTheme.mutedColor(context)),
                           const SizedBox(height: 8),
-                          const Text(
+                          Text(
                             'No registered upcoming events.',
-                            style: TextStyle(color: AppTheme.muted, fontSize: 13),
+                            style: TextStyle(color: AppTheme.mutedColor(context), fontSize: 13),
                           ),
                         ],
                       ),
@@ -925,12 +963,15 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).cardColor,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                          border: Border.all(
+                            color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
+                            width: 1.5,
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.015),
+                              color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.015),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -943,10 +984,10 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                               width: 60,
                               height: 68,
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF8FAFC),
+                                color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: const Color(0xFFE2E8F0),
+                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0),
                                 ),
                               ),
                               child: Column(
@@ -963,10 +1004,10 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                   const SizedBox(height: 2),
                                   Text(
                                     '${nextUpcomingEvent.date?.day ?? ""}',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 22,
                                       fontWeight: FontWeight.w900,
-                                      color: AppTheme.navy,
+                                      color: Theme.of(context).colorScheme.onSurface,
                                     ),
                                   ),
                                 ],
@@ -979,16 +1020,16 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    nextUpcomingEvent.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.navy,
+                                    Text(
+                                      nextUpcomingEvent.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context).colorScheme.onSurface,
+                                      ),
                                     ),
-                                  ),
                                   const SizedBox(height: 4),
                                   Row(
                                     children: [
@@ -1085,7 +1126,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       String title, List<Map<String, dynamic>> items) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).cardColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -1098,10 +1139,10 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.navy,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 14),
@@ -1213,7 +1254,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   void _showCertificatesBottomSheet(List<Map<String, dynamic>> items) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).cardColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -1224,12 +1265,12 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'My Certificates',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.navy,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 14),
@@ -1299,7 +1340,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).cardColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
