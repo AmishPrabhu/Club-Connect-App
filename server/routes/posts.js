@@ -786,6 +786,62 @@ router.put('/:id/report', verifyToken, async (req, res) => {
     }
 });
 
+// Delete event report (President/Secretary only)
+router.delete('/:id/report', verifyToken, async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id);
+        if (!post) return res.status(404).json({ message: 'Event not found' });
+
+        if (post.type !== 'event') {
+            return res.status(400).json({ message: 'Reports can only be deleted for events' });
+        }
+
+        // Authorization: Admin or President/Secretary of THIS club
+        if (req.user.role !== 'admin') {
+            const isAuthorized = await ClubMember.findOne({
+                clubId: post.clubId,
+                $and: [
+                    {
+                        $or: [
+                            { userId: req.user.id },
+                            { email: { $regex: new RegExp(`^${req.user.email}$`, 'i') } }
+                        ]
+                    },
+                    {
+                        $or: [
+                            { role: { $in: ['Secretary', 'President', 'secretary', 'president'] } },
+                            { boardType: { $in: ['main', 'executive'] } }
+                        ]
+                    }
+                ]
+            });
+
+            if (!isAuthorized) {
+                return res.status(403).json({ message: 'Only presidents and secretaries can delete event reports' });
+            }
+        }
+
+        const updatedPost = await Post.findByIdAndUpdate(
+            req.params.id,
+            {
+                reportUrl: null,
+                reportFilename: null,
+                reportSubmittedBy: null,
+                reportSubmittedByName: null,
+                reportSubmittedAt: null,
+                updatedAt: new Date()
+            },
+            { new: true }
+        );
+
+        res.json(updatedPost);
+    } catch (error) {
+        console.error('Error deleting report:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+
 /**
  * Send event update emails to all attendees
  */

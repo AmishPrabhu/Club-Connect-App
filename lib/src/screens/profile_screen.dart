@@ -213,35 +213,22 @@ class _ProfileBodyState extends State<_ProfileBody> {
     showDialog(
       context: context,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text('Notification Settings', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SwitchListTile(
-                    title: const Text('Email Notifications', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                    subtitle: const Text('Receive notifications in your email inbox', style: TextStyle(fontSize: 11)),
-                    value: true,
-                    onChanged: (val) {},
-                  ),
-                  SwitchListTile(
-                    title: const Text('Push Notifications', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                    subtitle: const Text('Receive notifications on your device', style: TextStyle(fontSize: 11)),
-                    value: true,
-                    onChanged: (val) {},
-                  ),
-                ],
-              ),
-              actions: [
-                FilledButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Done'),
-                ),
-              ],
-            );
-          },
+        return AlertDialog(
+          title: Text('Notification Settings', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
+          content: const Text(
+            'Notification preferences will be available in a future update.',
+            style: TextStyle(fontSize: 14, height: 1.4),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Done'),
+            ),
+          ],
         );
       },
     );

@@ -24,6 +24,32 @@ class PostDetailScreen extends StatefulWidget {
 class _PostDetailScreenState extends State<PostDetailScreen> {
   bool _submitting = false;
   String? _message;
+  late final Future<PostItem> _postFuture;
+  bool _isAlreadyRsvped = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _postFuture = widget.appState.fetchPost(widget.initialPost.id);
+    _checkRsvpStatus();
+  }
+
+  void _checkRsvpStatus() async {
+    final session = widget.appState.session;
+    if (session == null) return;
+    try {
+      final list = await widget.appState.fetchEventRsvps(widget.initialPost.id);
+      final hasRsvped = list.any((item) =>
+          item['email']?.toString().toLowerCase() == session.email.toLowerCase());
+      if (mounted) {
+        setState(() {
+          _isAlreadyRsvped = hasRsvped;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error checking RSVP status: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +60,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         ),
       ),
       body: FutureBuilder<PostItem>(
-        future: widget.appState.fetchPost(widget.initialPost.id),
+        future: _postFuture,
         initialData: widget.initialPost,
         builder: (context, snapshot) {
           final post = snapshot.data ?? widget.initialPost;
@@ -122,17 +148,21 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                              if (post.isEvent) ...[
                               _buildReportSection(post),
                               const SizedBox(height: 18),
-                              SizedBox(
-                                width: double.infinity,
-                                child: FilledButton(
-                                  onPressed: _submitting
-                                      ? null
-                                      : () => _rsvp(post.id),
-                                  child: Text(
-                                    _submitting ? 'Submitting...' : 'RSVP',
-                                  ),
-                                ),
-                              ),
+                               SizedBox(
+                                 width: double.infinity,
+                                 child: FilledButton(
+                                   onPressed: (_submitting || !post.isUpcoming || _isAlreadyRsvped)
+                                       ? null
+                                       : () => _rsvp(post.id),
+                                   child: Text(
+                                     _submitting
+                                         ? 'Submitting...'
+                                         : (_isAlreadyRsvped
+                                             ? 'You\'re Registered ✓'
+                                             : (!post.isUpcoming ? 'Event Ended' : 'RSVP')),
+                                   ),
+                                 ),
+                               ),
                               if (widget.appState.session != null) ...[
                                 Builder(
                                   builder: (ctx) {
@@ -187,40 +217,41 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   ),
                 ),
               ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 14,
-                    mainAxisSpacing: 14,
-                    childAspectRatio: 1.1,
+              if (post.attachments.isNotEmpty)
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+                  sliver: SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 14,
+                      mainAxisSpacing: 14,
+                      childAspectRatio: 1.1,
+                    ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final src = post.attachments[index];
+                      return ClipRRect(
+                        borderRadius: BorderRadius.circular(22),
+                        child: src.startsWith('http')
+                            ? Image.network(
+                                src,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) => Image.asset(
+                                  'assets/images/club-default.jpg',
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            : Image.asset(
+                                src.startsWith('/') ? 'assets/images$src' : src,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) => Image.asset(
+                                  'assets/images/club-default.jpg',
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                      );
+                    }, childCount: post.attachments.length),
                   ),
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final src = post.attachments[index];
-                    return ClipRRect(
-                      borderRadius: BorderRadius.circular(22),
-                      child: src.startsWith('http')
-                          ? Image.network(
-                              src,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => Image.asset(
-                                'assets/images/club-default.jpg',
-                                fit: BoxFit.cover,
-                              ),
-                            )
-                          : Image.asset(
-                              src.startsWith('/') ? 'assets/images$src' : src,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => Image.asset(
-                                'assets/images/club-default.jpg',
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                    );
-                  }, childCount: post.attachments.length),
                 ),
-              ),
             ],
           );
         },
@@ -229,13 +260,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Future<void> _rsvp(String eventId) async {
+    if (_submitting) return;
     setState(() {
       _submitting = true;
       _message = null;
     });
     try {
       await widget.appState.rsvpToEvent(eventId);
-      setState(() => _message = 'RSVP submitted successfully.');
+      setState(() {
+        _message = 'RSVP submitted successfully.';
+        _isAlreadyRsvped = true;
+      });
     } catch (error) {
       setState(() => _message = error.toString());
     } finally {
@@ -385,7 +420,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               Navigator.pop(ctx);
               setState(() => _submitting = true);
               try {
-                await widget.appState.submitEventReport(postId, '', '');
+                await widget.appState.deleteEventReport(postId);
                 setState(() => _message = 'Report removed successfully.');
               } catch (e) {
                 setState(() => _message = 'Failed to remove report: $e');
@@ -403,58 +438,89 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   void _showSubmitReportDialog(String postId) {
     final urlController = TextEditingController();
     final filenameController = TextEditingController();
+    bool dialogSubmitting = false;
+    String? dialogError;
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Submit Activity Report'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: urlController,
-              decoration: const InputDecoration(
-                labelText: 'Report PDF URL',
-                hintText: 'Enter PDF document URL',
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Submit Activity Report'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: urlController,
+                enabled: !dialogSubmitting,
+                decoration: const InputDecoration(
+                  labelText: 'Report PDF URL',
+                  hintText: 'Enter PDF document URL',
+                ),
+                keyboardType: TextInputType.url,
               ),
-              keyboardType: TextInputType.url,
+              const SizedBox(height: 12),
+              TextField(
+                controller: filenameController,
+                enabled: !dialogSubmitting,
+                decoration: const InputDecoration(
+                  labelText: 'Filename / Label',
+                  hintText: 'e.g. event_report.pdf',
+                ),
+              ),
+              if (dialogError != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  dialogError!,
+                  style: const TextStyle(color: Colors.red, fontSize: 13),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: dialogSubmitting ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: filenameController,
-              decoration: const InputDecoration(
-                labelText: 'Filename / Label',
-                hintText: 'e.g. event_report.pdf',
-              ),
+            FilledButton(
+              onPressed: dialogSubmitting
+                  ? null
+                  : () async {
+                      final url = urlController.text.trim();
+                      final filename = filenameController.text.trim();
+                      if (url.isEmpty || filename.isEmpty) {
+                        setDialogState(() {
+                          dialogError = 'Please fill in both fields.';
+                        });
+                        return;
+                      }
+                      setDialogState(() {
+                        dialogSubmitting = true;
+                        dialogError = null;
+                      });
+                      try {
+                        await widget.appState.submitEventReport(postId, url, filename);
+                        if (ctx.mounted) {
+                          Navigator.pop(ctx);
+                        }
+                        setState(() => _message = 'Report submitted successfully.');
+                      } catch (e) {
+                        setDialogState(() {
+                          dialogSubmitting = false;
+                          dialogError = 'Failed to submit report: $e';
+                        });
+                      }
+                    },
+              child: dialogSubmitting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('Submit'),
             ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () async {
-              final url = urlController.text.trim();
-              final filename = filenameController.text.trim();
-              if (url.isEmpty || filename.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please fill in both fields.')),
-                );
-                return;
-              }
-              Navigator.pop(ctx);
-              setState(() => _submitting = true);
-              try {
-                await widget.appState.submitEventReport(postId, url, filename);
-                setState(() => _message = 'Report submitted successfully.');
-              } catch (e) {
-                setState(() => _message = 'Failed to submit report: $e');
-              } finally {
-                setState(() => _submitting = false);
-              }
-            },
-            child: const Text('Submit'),
-          ),
-        ],
       ),
     );
   }

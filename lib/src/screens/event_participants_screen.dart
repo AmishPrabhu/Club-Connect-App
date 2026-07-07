@@ -133,46 +133,69 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
   Future<void> _addParticipant() async {
     final nameController = TextEditingController();
     final emailController = TextEditingController();
+    String? dialogError;
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Add Participant'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Name'),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
-              keyboardType: TextInputType.emailAddress,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Add Participant'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Name'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(labelText: 'Email'),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              if (dialogError != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  dialogError!,
+                  style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                final name = nameController.text.trim();
+                final email = emailController.text.trim();
+                if (name.isEmpty || email.isEmpty) {
+                  setDialogState(() {
+                    dialogError = 'Please enter both Name and Email.';
+                  });
+                  return;
+                }
+                if (!email.contains('@') || !email.contains('.')) {
+                  setDialogState(() {
+                    dialogError = 'Please enter a valid Email.';
+                  });
+                  return;
+                }
+
+                try {
+                  await widget.appState.addEventParticipant(widget.event.id, name, email);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  _showSnackBar('Participant added.');
+                  _loadRsvps();
+                } catch (e) {
+                  setDialogState(() {
+                    dialogError = 'Failed to add: $e';
+                  });
+                }
+              },
+              child: const Text('Add'),
             ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              final name = nameController.text.trim();
-              final email = emailController.text.trim();
-              if (name.isEmpty || email.isEmpty) return;
-
-              Navigator.pop(ctx);
-              try {
-                await widget.appState.addEventParticipant(widget.event.id, name, email);
-                _showSnackBar('Participant added.');
-                _loadRsvps();
-              } catch (e) {
-                _showSnackBar('Failed to add participant: $e', isError: true);
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
       ),
     );
   }
@@ -492,7 +515,7 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               border: Border.all(color: Colors.red, style: BorderStyle.solid, width: 1.5),
-                              color: Colors.red.withOpacity(0.15),
+                              color: Colors.red.withValues(alpha: 0.15),
                             ),
                             child: Text(
                               '[Participant Name]',

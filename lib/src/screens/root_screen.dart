@@ -25,37 +25,43 @@ class _RootScreenState extends State<RootScreen> {
     final color = isSelected ? AppTheme.navy : AppTheme.muted;
 
     return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _index = index),
-        behavior: HitTestBehavior.opaque,
-        child: Center(
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? AppTheme.navy.withValues(alpha: 0.08) // Soft navy capsule background
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  isSelected ? selectedIcon : unselectedIcon,
-                  color: color,
-                  size: 24,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+      child: Semantics(
+        label: label,
+        selected: isSelected,
+        button: true,
+        excludeSemantics: true,
+        child: GestureDetector(
+          onTap: () => setState(() => _index = index),
+          behavior: HitTestBehavior.opaque,
+          child: Center(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppTheme.navy.withValues(alpha: 0.08) // Soft navy capsule background
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isSelected ? selectedIcon : unselectedIcon,
                     color: color,
+                    size: 24,
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                      color: color,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

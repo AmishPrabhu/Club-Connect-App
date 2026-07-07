@@ -17,6 +17,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _emailFocus = FocusNode();
+  final _passwordFocus = FocusNode();
   bool _obscure = true;
   bool _submitting = false;
   bool _googleSigningIn = false;
@@ -26,6 +28,8 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
@@ -58,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Sign in against the same backend your website uses.',
+                        'Your gateway to WCE\'s student club ecosystem. Discover events, track memberships, and connect with every club on campus.',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: Colors.white.withValues(alpha: 0.82),
                         ),
@@ -71,6 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.all(28),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 420),
@@ -95,7 +100,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 26),
                         TextField(
                           controller: _emailController,
+                          focusNode: _emailFocus,
                           keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          onSubmitted: (_) => FocusScope.of(context).requestFocus(_passwordFocus),
                           decoration: const InputDecoration(
                             labelText: 'Official Email ID',
                             prefixIcon: Icon(Icons.mail_outline_rounded),
@@ -104,7 +112,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 16),
                         TextField(
                           controller: _passwordController,
+                          focusNode: _passwordFocus,
                           obscureText: _obscure,
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) { if (!_submitting) _submit(); },
                           decoration: InputDecoration(
                             labelText: 'Password',
                             prefixIcon: const Icon(Icons.lock_outline_rounded),
@@ -177,7 +188,19 @@ class _LoginScreenState extends State<LoginScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
-                            icon: const Icon(Icons.g_mobiledata, size: 28),
+                            icon: Container(
+                              width: 28,
+                              height: 28,
+                              alignment: Alignment.center,
+                              child: const Text(
+                                'G',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF4285F4),
+                                ),
+                              ),
+                            ),
                             onPressed: _googleSigningIn ? null : _handleGoogle,
                             label: Padding(
                               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -200,6 +223,32 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                           ),
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Don't have an account? ",
+                              style: TextStyle(color: AppTheme.mutedColor(context), fontSize: 14),
+                            ),
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              onPressed: () => Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                  builder: (_) => SignupScreen(appState: widget.appState),
+                                ),
+                              ),
+                              child: const Text(
+                                'Sign Up',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

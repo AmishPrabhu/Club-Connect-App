@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
 import '../widgets/glass_card.dart';
+import 'notification_detail_screen.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key, required this.appState});
@@ -41,9 +42,21 @@ class NotificationsScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final item = notifications[index];
               return GestureDetector(
-                onTap: item.isRead
-                    ? null
-                    : () => appState.markNotificationAsRead(item.id),
+                onTap: () async {
+                  if (!item.isRead) {
+                    await appState.markNotificationAsRead(item.id);
+                  }
+                  if (context.mounted) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => NotificationDetailScreen(
+                          appState: appState,
+                          notification: item,
+                        ),
+                      ),
+                    );
+                  }
+                },
                 child: GlassCard(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,

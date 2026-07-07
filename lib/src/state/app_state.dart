@@ -381,6 +381,11 @@ class AppState extends ChangeNotifier {
     await refreshAll();
   }
 
+  Future<void> deleteEventReport(String postId) async {
+    await _apiClient.delete('/posts/$postId/report');
+    await refreshAll();
+  }
+
   Future<List<Map<String, dynamic>>> fetchClubTasks(String clubId) async {
     final response =
         await _apiClient.get('/tasks?clubId=$clubId') as List<dynamic>;

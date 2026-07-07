@@ -31,6 +31,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       );
       return;
     }
+    if (!email.contains('@') || !email.contains('.')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid email address')),
+      );
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -67,6 +73,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       ),
       body: Center(
         child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.all(24.0),
           child: GlassCard(
             child: _success

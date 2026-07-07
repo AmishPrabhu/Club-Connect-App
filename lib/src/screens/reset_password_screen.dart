@@ -28,6 +28,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   bool _isLoading = false;
   bool _success = false;
   bool _obscurePassword = true;
+  bool _obscureConfirm = true;
 
   @override
   void initState() {
@@ -222,11 +223,18 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       const SizedBox(height: 16),
                       TextField(
                         controller: _confirmPasswordController,
-                        obscureText: _obscurePassword,
-                        decoration: const InputDecoration(
+                        obscureText: _obscureConfirm,
+                        decoration: InputDecoration(
                           labelText: 'Confirm Password',
-                          prefixIcon: Icon(Icons.lock_outline),
-                          border: OutlineInputBorder(),
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          border: const OutlineInputBorder(),
+                          suffixIcon: IconButton(
+                            icon: Icon(_obscureConfirm
+                                ? Icons.visibility_off
+                                : Icons.visibility),
+                            onPressed: () => setState(
+                                () => _obscureConfirm = !_obscureConfirm),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 24),

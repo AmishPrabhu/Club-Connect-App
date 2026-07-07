@@ -6,7 +6,7 @@ class NotificationItem {
     required this.type,
     required this.title,
     required this.message,
-    required this.timeAgo,
+    required this.createdAt,
     required this.isRead,
     required this.icon,
     required this.color,
@@ -17,20 +17,27 @@ class NotificationItem {
   final String type;
   final String title;
   final String message;
-  final String timeAgo;
+  final DateTime createdAt;
   final bool isRead;
   final IconData icon;
   final Color color;
   final String? relatedId;
 
+  /// Computed lazily so relative time stays accurate as the app stays open.
+  String get timeAgo => _relativeTime(createdAt);
+
   factory NotificationItem.fromJson(Map<String, dynamic> json) {
     final type = json['type']?.toString() ?? 'system';
+    final rawCreatedAt = json['createdAt']?.toString();
+    final createdAt = rawCreatedAt != null
+        ? (DateTime.tryParse(rawCreatedAt) ?? DateTime.now())
+        : DateTime.now();
     return NotificationItem(
       id: (json['id'] ?? json['_id'])?.toString() ?? '',
       type: type,
       title: json['title']?.toString() ?? 'Notification',
       message: json['message']?.toString() ?? '',
-      timeAgo: _relativeTime(json['createdAt']?.toString()),
+      createdAt: createdAt,
       isRead: json['read'] == true,
       icon: _iconForType(type),
       color: _colorForType(type),
@@ -44,7 +51,7 @@ class NotificationItem {
       type: type,
       title: title,
       message: message,
-      timeAgo: timeAgo,
+      createdAt: createdAt,
       isRead: isRead ?? this.isRead,
       icon: icon,
       color: color,
@@ -78,9 +85,7 @@ class NotificationItem {
     }
   }
 
-  static String _relativeTime(String? raw) {
-    final createdAt = raw == null ? null : DateTime.tryParse(raw);
-    if (createdAt == null) return 'Just now';
+  static String _relativeTime(DateTime createdAt) {
     final diff = DateTime.now().difference(createdAt);
     if (diff.inMinutes < 1) return 'Just now';
     if (diff.inHours < 1) return '${diff.inMinutes}m ago';

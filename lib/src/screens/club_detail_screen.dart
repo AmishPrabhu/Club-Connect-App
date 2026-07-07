@@ -335,11 +335,16 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
           if (hasLink)
             ListTile(
               contentPadding: EdgeInsets.zero,
-              title: Text(
+              leading: const Icon(Icons.open_in_new_rounded, color: Colors.green, size: 20),
+              title: const Text(
+                'Open WhatsApp Group',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text(
                 _club.whatsappUrl,
-                style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 11),
               ),
               trailing: const Icon(Icons.copy_rounded, size: 20),
               onTap: () => _copyLink('WhatsApp', _club.whatsappUrl),
@@ -426,11 +431,16 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
           if (hasLink)
             ListTile(
               contentPadding: EdgeInsets.zero,
-              title: Text(
+              leading: const Icon(Icons.open_in_new_rounded, color: Colors.pink, size: 20),
+              title: const Text(
+                'Open Instagram Page',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text(
                 _club.instagramUrl,
-                style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 11),
               ),
               trailing: const Icon(Icons.copy_rounded, size: 20),
               onTap: () => _copyLink('Instagram', _club.instagramUrl),
@@ -646,6 +656,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
     final roleController = TextEditingController(text: member?['role']?.toString() ?? 'Member');
     String boardType = member?['boardType']?.toString() ?? 'member';
     String academicYear = member?['academicYear']?.toString() ?? 'FY';
+    String? dialogError;
 
     showDialog(
       context: context,
@@ -703,6 +714,13 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                     }
                   },
                 ),
+                if (dialogError != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    dialogError!,
+                    style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                ],
               ],
             ),
           ),
@@ -713,37 +731,51 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
             ),
             FilledButton(
               onPressed: () async {
-                if (nameController.text.isEmpty || emailController.text.isEmpty) return;
-                
-                 try {
+                final name = nameController.text.trim();
+                final email = emailController.text.trim();
+
+                if (name.isEmpty) {
+                  setDialogState(() => dialogError = 'Name cannot be empty.');
+                  return;
+                }
+                if (email.isEmpty) {
+                  setDialogState(() => dialogError = 'Email cannot be empty.');
+                  return;
+                }
+                if (!email.toLowerCase().endsWith('@walchandsangli.ac.in')) {
+                  setDialogState(() => dialogError = 'Email must end with @walchandsangli.ac.in');
+                  return;
+                }
+
+                try {
                   if (isEditing) {
                     final memberId = member['_id']?.toString() ?? member['id']?.toString() ?? '';
                     await widget.appState.updateClubMember(_club.id, memberId, {
-                      'name': nameController.text,
-                      'email': emailController.text,
-                      'role': roleController.text,
+                      'name': name,
+                      'email': email,
+                      'role': roleController.text.trim(),
                       'boardType': boardType,
                       'academicYear': academicYear,
                     });
-                    _showSuccessSnackBar('Member "${nameController.text}" updated successfully!');
+                    _showSuccessSnackBar('Member "$name" updated successfully!');
                   } else {
                     await widget.appState.addClubMember(
                       _club.id,
-                      name: nameController.text,
-                      email: emailController.text,
-                      role: roleController.text,
+                      name: name,
+                      email: email,
+                      role: roleController.text.trim(),
                       boardType: boardType,
                       academicYear: academicYear,
                       joinedAt: DateTime.now(),
                     );
-                    _showSuccessSnackBar('Member "${nameController.text}" added successfully!');
+                    _showSuccessSnackBar('Member "$name" added successfully!');
                   }
                   if (context.mounted) {
                     Navigator.of(ctx).pop();
                     _refreshMembers();
                   }
                 } catch (e) {
-                  _showErrorSnackBar('Failed to save member: $e');
+                  setDialogState(() => dialogError = 'Failed to save: $e');
                 }
               },
               child: Text(isEditing ? 'Save Changes' : 'Add Member'),

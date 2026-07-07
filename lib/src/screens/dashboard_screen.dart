@@ -17,6 +17,7 @@ import 'profile_screen.dart';
 import 'notification_detail_screen.dart';
 import 'institution_settings_screen.dart';
 import 'event_participants_screen.dart';
+import 'notifications_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({
@@ -136,7 +137,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _initializeDashboard() async {
-    final session = widget.appState.session!;
+    final session = widget.appState.session;
+    if (session == null) return;
     final activeRole = widget.initialRole ?? session.role;
     
     // Resolve managed club for officers
@@ -211,7 +213,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final session = widget.appState.session!;
+    final session = widget.appState.session;
+    if (session == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
     final activeRole = widget.initialRole ?? session.role;
     final isAdmin = activeRole == 'admin';
     final isTeacher = activeRole == 'teacher';
@@ -252,7 +261,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ? [
                       IconButton(
                         icon: const Icon(Icons.notifications_none_rounded, size: 22),
-                        onPressed: () {},
+                        tooltip: 'Notifications',
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => Scaffold(
+                                appBar: AppBar(title: const Text('Notifications')),
+                                body: NotificationsScreen(appState: widget.appState),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(width: 8),
                     ]

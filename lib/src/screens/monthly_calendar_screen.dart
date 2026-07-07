@@ -31,12 +31,14 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
   void _prevMonth() {
     setState(() {
       _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month - 1, 1);
+      _selectedDate = null; // Clear stale selection from previous month
     });
   }
 
   void _nextMonth() {
     setState(() {
       _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 1);
+      _selectedDate = null; // Clear stale selection from previous month
     });
   }
 

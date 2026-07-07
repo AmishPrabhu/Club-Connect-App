@@ -114,9 +114,11 @@ class ClubTile extends StatelessWidget {
                   ),
                   const Spacer(),
                   if (onToggleLike != null)
-                    GestureDetector(
-                      onTap: onToggleLike,
-                      child: Icon(
+                    IconButton(
+                      onPressed: onToggleLike,
+                      tooltip: isLiked ? 'Remove from favourites' : 'Add to favourites',
+                      iconSize: 20,
+                      icon: Icon(
                         isLiked
                             ? Icons.favorite_rounded
                             : Icons.favorite_border_rounded,

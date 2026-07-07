@@ -221,13 +221,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Image.asset(
-                              'assets/images/wce-campus.png',
-                              width: double.infinity,
-                              height: 175,
-                              fit: BoxFit.cover,
+                          RepaintBoundary(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Image.asset(
+                                'assets/images/wce-campus.png',
+                                width: double.infinity,
+                                height: 175,
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
                         ],

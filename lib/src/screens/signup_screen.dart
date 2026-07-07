@@ -61,6 +61,7 @@ class _SignupScreenState extends State<SignupScreen> {
       appBar: AppBar(title: const Text('Create Account')),
       body: Center(
         child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.all(24),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 460),
@@ -70,7 +71,13 @@ class _SignupScreenState extends State<SignupScreen> {
                 Text(title, style: Theme.of(context).textTheme.displaySmall),
                 const SizedBox(height: 10),
                 Text(
-                  'This is connected to the real signup and OTP routes from your backend.',
+                  isGoogleSignup
+                      ? 'Set a password to complete your Club Connect account.'
+                      : [
+                          'Enter your @walchandsangli.ac.in email to get started.',
+                          'Enter the 6-digit OTP sent to your email.',
+                          'Set your name and a secure password.',
+                        ][_step],
                   style: Theme.of(
                     context,
                   ).textTheme.bodyLarge?.copyWith(color: AppTheme.mutedColor(context)),
@@ -166,7 +173,19 @@ class _SignupScreenState extends State<SignupScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      icon: const Icon(Icons.g_mobiledata, size: 28),
+                      icon: Container(
+                        width: 28,
+                        height: 28,
+                        alignment: Alignment.center,
+                        child: const Text(
+                          'G',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF4285F4),
+                          ),
+                        ),
+                      ),
                       onPressed: _googleSigningIn ? null : _handleGoogle,
                       label: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -230,6 +249,12 @@ class _SignupScreenState extends State<SignupScreen> {
         );
         setState(() => _step = 2);
       } else {
+        if (_nameController.text.trim().isEmpty) {
+          throw Exception('Please enter your full name.');
+        }
+        if (_passwordController.text.length < 6) {
+          throw Exception('Password must be at least 6 characters.');
+        }
         if (_passwordController.text != _confirmController.text) {
           throw Exception('Passwords do not match.');
         }

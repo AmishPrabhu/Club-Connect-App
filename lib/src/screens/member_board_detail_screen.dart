@@ -142,6 +142,27 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
             );
           }
 
+          if (filtered.isEmpty && allMembers.isNotEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.filter_list_off, size: 64, color: Colors.grey[400]),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No members match your filters',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Try clearing the year or board filter.',
+                    style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                  ),
+                ],
+              ),
+            );
+          }
+
           return CustomScrollView(
             slivers: [
               SliverPadding(
