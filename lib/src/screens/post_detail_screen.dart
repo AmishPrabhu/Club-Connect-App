@@ -167,11 +167,14 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                 Builder(
                                   builder: (ctx) {
                                     final sess = widget.appState.session!;
-                                    final isOfficer = sess.clubId == post.clubId &&
-                                        (sess.role == 'club-secretary' || sess.role == 'president');
+                                    final clubMatch = widget.appState.clubs.where((c) => c.id == post.clubId).toList();
+                                    final club = clubMatch.isNotEmpty ? clubMatch.first : null;
+                                    final isOfficer = sess.isClubOfficerOf(post.clubId, club: club);
                                     final isSupervisor = sess.role == 'advisor' ||
                                         sess.role == 'teacher' ||
-                                        sess.role == 'admin';
+                                        sess.role == 'admin' ||
+                                        sess.roles.contains('advisor') ||
+                                        sess.roles.contains('teacher');
                                     if (isOfficer || isSupervisor) {
                                       return Padding(
                                         padding: const EdgeInsets.only(top: 12.0),
@@ -282,12 +285,15 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     final session = widget.appState.session;
     if (session == null) return const SizedBox.shrink();
 
-    final isClubOfficer = session.clubId == post.clubId &&
-        (session.role == 'club-secretary' || session.role == 'president');
+    final clubMatch = widget.appState.clubs.where((c) => c.id == post.clubId).toList();
+    final club = clubMatch.isNotEmpty ? clubMatch.first : null;
+    final isClubOfficer = session.canSubmitReportFor(post.clubId, club: club);
 
     final isSupervisor = session.role == 'advisor' ||
         session.role == 'teacher' ||
-        session.role == 'admin';
+        session.role == 'admin' ||
+        session.roles.contains('advisor') ||
+        session.roles.contains('teacher');
 
     final hasReport = post.reportUrl != null && post.reportUrl!.isNotEmpty;
 

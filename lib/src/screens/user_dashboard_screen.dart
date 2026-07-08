@@ -74,14 +74,16 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   }
 
   bool _isClubOfficer(UserSession session) {
-    final role = session.role.toLowerCase();
-    return role == 'president' ||
-        role == 'club-secretary' ||
-        role == 'treasurer' ||
-        role == 'advisor';
+    // Use memberships to check if user is an officer of any club,
+    // matching backend verifyClubOfficer middleware logic.
+    return session.isAnyClubOfficer;
   }
 
   String _getUserRoleInClub(UserSession session, Club club) {
+    // Check memberships first for the actual custom role
+    final membership = session.membershipFor(club.id);
+    if (membership != null) return membership.role;
+    // Fallback to email-based check for legacy compatibility
     final email = session.email.toLowerCase();
     if (club.presidentEmail.toLowerCase() == email) return 'President';
     if (club.secretaryEmail.toLowerCase() == email) return 'Secretary';
@@ -91,21 +93,37 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   }
 
   List<Map<String, dynamic>> _getAvailableManagementRoles(UserSession session) {
-    final email = session.email.toLowerCase();
     final list = <Map<String, dynamic>>[];
+    final addedClubIds = <String>{};
     
+    // 1. Scan memberships for officer-level access (boardType main/executive or officer role)
+    for (final membership in session.memberships) {
+      if (membership.isOfficer && !addedClubIds.contains(membership.clubId)) {
+        // Find the matching Club object from the loaded clubs list
+        final matchingClubs = widget.appState.clubs.where((c) => c.id == membership.clubId).toList();
+        if (matchingClubs.isNotEmpty) {
+          list.add({'club': matchingClubs.first, 'role': membership.role, 'type': 'club'});
+          addedClubIds.add(membership.clubId);
+        }
+      }
+    }
+    
+    // 2. Fallback: also check email-based officer roles for legacy clubs not in memberships
+    final email = session.email.toLowerCase();
     for (final club in widget.appState.clubs) {
+      if (addedClubIds.contains(club.id)) continue;
       if (club.presidentEmail.toLowerCase() == email) {
         list.add({'club': club, 'role': 'President', 'type': 'club'});
-      }
-      if (club.secretaryEmail.toLowerCase() == email) {
+        addedClubIds.add(club.id);
+      } else if (club.secretaryEmail.toLowerCase() == email) {
         list.add({'club': club, 'role': 'Secretary', 'type': 'club'});
-      }
-      if (club.treasurerEmail.toLowerCase() == email) {
+        addedClubIds.add(club.id);
+      } else if (club.treasurerEmail.toLowerCase() == email) {
         list.add({'club': club, 'role': 'Treasurer', 'type': 'club'});
-      }
-      if (club.advisorEmail.toLowerCase() == email) {
+        addedClubIds.add(club.id);
+      } else if (club.advisorEmail.toLowerCase() == email) {
         list.add({'club': club, 'role': 'Advisor', 'type': 'club'});
+        addedClubIds.add(club.id);
       }
     }
     
@@ -295,15 +313,17 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       }
     }
 
-    // Filter user's clubs (either liked or where they are an officer)
+    // Filter user's clubs (either liked, member via memberships, or officer via email)
+    final memberClubIds = session.memberships.map((m) => m.clubId).toSet();
     final userClubs = widget.appState.clubs.where((club) {
       final isLiked = session.likedClubs.contains(club.id);
+      final isMember = memberClubIds.contains(club.id);
       final email = session.email.toLowerCase();
       final isPresident = club.presidentEmail.toLowerCase() == email;
       final isSecretary = club.secretaryEmail.toLowerCase() == email;
       final isTreasurer = club.treasurerEmail.toLowerCase() == email;
       final isAdvisor = club.advisorEmail.toLowerCase() == email;
-      return isLiked || isPresident || isSecretary || isTreasurer || isAdvisor;
+      return isLiked || isMember || isPresident || isSecretary || isTreasurer || isAdvisor;
     }).toList();
 
     // Map RSVPs to actual PostItems

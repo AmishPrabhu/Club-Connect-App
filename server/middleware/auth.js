@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import ClubMember from '../models/ClubMember.js';
+import Club from '../models/Club.js';
 
 export const verifyToken = (req, res, next) => {
     const token = req.header('Authorization')?.split(' ')[1];
@@ -69,10 +70,29 @@ export const verifyClubOfficer = async (req, res, next) => {
 
             console.log('[Auth Debug] Checking officer for clubId:', clubId, 'userId:', req.user.id, 'email:', req.user.email);
 
-            // Check if user is an officer of THIS club by userId OR email (case-insensitive)
-            // We check BOTH the role field AND the boardType field because:
-            // 1. Role field may contain custom labels (e.g., "LEAD" instead of "President")
-            // 2. BoardType 'main' or 'executive' indicates officer status regardless of custom role label
+            // Fetch the club to check direct email assignments as fallback (failsafe/auto-heal)
+            const club = await Club.findById(clubId);
+            const emailLower = req.user.email?.toLowerCase();
+            let isDirectOfficer = false;
+            let resolvedDirectRole = null;
+
+            if (club) {
+                if (club.presidentEmail?.toLowerCase() === emailLower) {
+                    isDirectOfficer = true;
+                    resolvedDirectRole = 'President';
+                } else if (club.secretaryEmail?.toLowerCase() === emailLower) {
+                    isDirectOfficer = true;
+                    resolvedDirectRole = 'Secretary';
+                } else if (club.treasurerEmail?.toLowerCase() === emailLower) {
+                    isDirectOfficer = true;
+                    resolvedDirectRole = 'Treasurer';
+                } else if (club.advisorEmail?.toLowerCase() === emailLower) {
+                    isDirectOfficer = true;
+                    resolvedDirectRole = 'Advisor';
+                }
+            }
+
+            // Check if user is an officer of THIS club by userId OR email (case-insensitive) in ClubMember collection
             const officerFn = await ClubMember.findOne({
                 clubId: clubId,
                 $and: [
@@ -94,15 +114,55 @@ export const verifyClubOfficer = async (req, res, next) => {
             });
 
             console.log('[Auth Debug] Found officer record:', officerFn ? JSON.stringify({ email: officerFn.email, role: officerFn.role, boardType: officerFn.boardType, userId: officerFn.userId }) : 'null');
+            console.log('[Auth Debug] Is direct officer based on Club emails:', isDirectOfficer);
 
-            if (officerFn) {
+            if (isDirectOfficer || officerFn) {
+                // AUTO-HEAL: If direct officer but ClubMember record is out-of-sync or missing, sync it now
+                if (isDirectOfficer && resolvedDirectRole) {
+                    const memberRecord = await ClubMember.findOne({
+                        clubId: clubId,
+                        $or: [
+                            { userId: req.user.id },
+                            { email: { $regex: new RegExp(`^${req.user.email}$`, 'i') } }
+                        ]
+                    });
+
+                    if (memberRecord) {
+                        let updated = false;
+                        if (memberRecord.role !== resolvedDirectRole) {
+                            memberRecord.role = resolvedDirectRole;
+                            updated = true;
+                        }
+                        if (memberRecord.boardType !== 'main') {
+                            memberRecord.boardType = 'main';
+                            updated = true;
+                        }
+                        if (updated) {
+                            await memberRecord.save();
+                            console.log(`[Auth Debug] Auto-healed out-of-sync ClubMember record for ${req.user.email} as ${resolvedDirectRole}`);
+                        }
+                    } else {
+                        // Create missing ClubMember record
+                        await ClubMember.create({
+                            clubId,
+                            userId: req.user.id,
+                            name: req.user.name || resolvedDirectRole,
+                            email: req.user.email,
+                            role: resolvedDirectRole,
+                            boardType: 'main'
+                        });
+                        console.log(`[Auth Debug] Auto-created missing ClubMember record for ${req.user.email} as ${resolvedDirectRole}`);
+                    }
+                }
+
                 // If found by email but userId not set, link it now
-                if (!officerFn.userId && req.user.id) {
+                if (officerFn && !officerFn.userId && req.user.id) {
                     officerFn.userId = req.user.id;
                     await officerFn.save();
                     console.log('[Auth Debug] Linked userId to officer record');
                 }
-                next();
+                
+                return next();
             } else {
                 console.log('[Auth Debug] Officer check failed. Details:', {
                     clubId,
@@ -124,7 +184,7 @@ export const verifyClubOfficer = async (req, res, next) => {
             res.status(500).json({ message: 'Server authorization error' });
         }
     })
-}
+};
 
 // Check if user is a member (or officer) of the club
 export const verifyClubMember = async (req, res, next) => {

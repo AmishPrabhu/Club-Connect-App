@@ -790,11 +790,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
   Widget build(BuildContext context) {
     final session = widget.appState.session;
     final isAdmin = session?.role == 'admin';
-    final isOfficer = (session?.clubId == _club.id || (session?.clubName != null && session?.clubName == _club.name)) &&
-        (session?.role == 'president' ||
-         session?.role == 'club-secretary' ||
-         session?.role == 'advisor' ||
-         session?.role == 'treasurer');
+    final isOfficer = session != null && session.isClubOfficerOf(_club.id);
     final canManageMembers = isAdmin || isOfficer;
 
     final clubPosts = widget.appState.posts

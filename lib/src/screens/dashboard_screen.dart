@@ -144,10 +144,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Resolve managed club for officers
     if (widget.initialClub != null) {
       _selectedClub = widget.initialClub;
-    } else if (activeRole == 'president' ||
-        activeRole == 'club-secretary' ||
-        activeRole == 'treasurer' ||
-        activeRole == 'advisor') {
+    } else if (activeRole != 'admin' && activeRole != 'teacher' && activeRole != 'user' && activeRole != 'club-member') {
+      // Any non-admin, non-teacher role with a club context is an officer
+      _selectedClub = _resolveManagedClub(session);
+    } else if (session.isAnyClubOfficer && activeRole != 'admin' && activeRole != 'teacher') {
+      // Fallback: user has officer memberships but role didn't match above
       _selectedClub = _resolveManagedClub(session);
     } else if (activeRole == 'teacher') {
       setState(() => _isLoadingMonitored = true);
@@ -224,10 +225,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final activeRole = widget.initialRole ?? session.role;
     final isAdmin = activeRole == 'admin';
     final isTeacher = activeRole == 'teacher';
-    final isOfficer = activeRole == 'president' ||
-        activeRole == 'club-secretary' ||
-        activeRole == 'treasurer' ||
-        activeRole == 'advisor';
+    // Use membership-based check: if a club is selected, check officer status for that club;
+    // otherwise fall back to checking if they're an officer of any club.
+    final isOfficer = !isAdmin && !isTeacher && (
+        (_selectedClub != null && session.isClubOfficerOf(_selectedClub!.id, club: _selectedClub)) ||
+        (widget.initialClub != null && session.isClubOfficerOf(widget.initialClub!.id, club: widget.initialClub)) ||
+        session.isAnyClubOfficer
+    );
 
     return Scaffold(
       appBar: isAdmin
@@ -2383,8 +2387,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final members = data != null ? data[0] as List<dynamic> : [];
         final tasks = data != null ? data[1] as List<dynamic> : [];
         final activeRole = widget.initialRole ?? session.role;
-        final canEdit = activeRole == 'admin' || activeRole == 'advisor' || activeRole == 'president' || activeRole == 'club-secretary';
-        final isOfficer = activeRole == 'president' || activeRole == 'club-secretary' || activeRole == 'treasurer';
+        final canEdit = activeRole == 'admin' || (_selectedClub != null && session.isClubOfficerOf(_selectedClub!.id, club: _selectedClub));
+        final isOfficer = _selectedClub != null && session.isClubOfficerOf(_selectedClub!.id, club: _selectedClub);
 
         // Find next upcoming club event
         PostItem? nextUpcoming;
@@ -4827,7 +4831,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ─── MEMBERS TAB ───────────────────────────────────────────────────────────
   Widget _buildMembersView(UserSession session) {
     final activeRole = widget.initialRole ?? session.role;
-    final canEdit = activeRole == 'admin' || activeRole == 'advisor' || activeRole == 'president' || activeRole == 'club-secretary';
+    final canEdit = activeRole == 'admin' || (_selectedClub != null && session.isClubOfficerOf(_selectedClub!.id, club: _selectedClub));
     final isTreasurer = activeRole == 'treasurer';
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _membersFuture,
@@ -5000,7 +5004,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ─── DRAFTS & POSTS TAB ────────────────────────────────────────────────────
   Widget _buildPostsView(UserSession session) {
     final activeRole = widget.initialRole ?? session.role;
-    final canEdit = activeRole == 'admin' || activeRole == 'advisor' || activeRole == 'president' || activeRole == 'club-secretary';
+    final canEdit = activeRole == 'admin' || (_selectedClub != null && session.isClubOfficerOf(_selectedClub!.id, club: _selectedClub));
     final clubPosts = widget.appState.posts.where((p) => p.clubId == _selectedClub!.id).toList();
 
     return Column(
@@ -5103,7 +5107,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ─── EVENTS TAB ────────────────────────────────────────────────────────────
   Widget _buildEventsView(UserSession session) {
     final activeRole = widget.initialRole ?? session.role;
-    final canEdit = activeRole == 'admin' || activeRole == 'advisor' || activeRole == 'president' || activeRole == 'club-secretary';
+    final canEdit = activeRole == 'admin' || (_selectedClub != null && session.isClubOfficerOf(_selectedClub!.id, club: _selectedClub));
     final clubEvents = widget.appState.posts.where((p) => p.clubId == _selectedClub!.id && p.isEvent).toList();
     final now = DateTime.now();
     final upcoming = clubEvents.where((e) => e.date != null && e.date!.isAfter(now)).toList();
@@ -5190,7 +5194,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ─── TASKS TAB ─────────────────────────────────────────────────────────────
   Widget _buildTasksView(UserSession session) {
     final activeRole = widget.initialRole ?? session.role;
-    final canEdit = activeRole == 'admin' || activeRole == 'advisor' || activeRole == 'president' || activeRole == 'club-secretary';
+    final canEdit = activeRole == 'admin' || (_selectedClub != null && session.isClubOfficerOf(_selectedClub!.id, club: _selectedClub));
     final clubEvents = widget.appState.posts.where((p) => p.clubId == _selectedClub!.id && p.isEvent).toList();
 
     return FutureBuilder<List<Map<String, dynamic>>>(
@@ -5431,7 +5435,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ─── NOTIFICATIONS TAB ─────────────────────────────────────────────────────
   Widget _buildNotificationsView(UserSession session) {
     final activeRole = widget.initialRole ?? session.role;
-    final canEdit = activeRole == 'admin' || activeRole == 'advisor' || activeRole == 'president' || activeRole == 'club-secretary';
+    final canEdit = activeRole == 'admin' || (_selectedClub != null && session.isClubOfficerOf(_selectedClub!.id, club: _selectedClub));
     final notifications = widget.appState.notifications;
 
     return Column(
