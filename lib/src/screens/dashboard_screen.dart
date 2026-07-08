@@ -43,7 +43,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoadingMonitored = false;
   bool _isUploadingLogo = false;
   String _clubSearchQuery = '';
-  String _teacherActiveTab = 'Reports';
+  String _teacherActiveTab = 'Overview';
   String _teacherYearFilter = '2026';
   String _teacherBoardFilter = 'All Boards';
   String _teacherReportYearFilter = 'All Years';
@@ -178,7 +178,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     if (activeRole == 'advisor') {
-      _selectedSection = 'Events';
+      _selectedSection = 'Overview';
     } else if (activeRole == 'treasurer') {
       _selectedSection = 'Overview';
     } else if (activeRole == 'president' || activeRole == 'club-secretary') {
@@ -507,96 +507,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildOfficerClubDetailsView(UserSession session) {
-    final activeRole = widget.initialRole ?? session.role;
-    String titleText = '';
-    String subtitleText = '';
-    
-    if (activeRole == 'advisor') {
-      titleText = 'Advisor Dashboard';
-      subtitleText = 'Manage event posts, budgets, and team members for ';
-    } else if (activeRole == 'president') {
-      titleText = 'President Portal';
-      subtitleText = 'Manage members, posts, and budget for ';
-    } else if (activeRole == 'club-secretary') {
-      titleText = 'Secretary Portal';
-      subtitleText = 'Manage members, posts, and budget for ';
-    } else if (activeRole == 'treasurer') {
-      titleText = 'Treasurer Portal';
-      subtitleText = 'Manage members, posts, and budget for ';
+    if (_selectedSection == 'Overview') {
+      return _buildOverviewView(session);
     }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade100, width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.015),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                titleText,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.navy,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(text: subtitleText, style: const TextStyle(fontSize: 12, color: AppTheme.muted)),
-                    TextSpan(
-                      text: _selectedClub!.name,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.cyan),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        GestureDetector(
-          onTap: () => _showOfficerTabSelector(activeRole),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.menu_rounded, color: AppTheme.navy, size: 20),
-                const SizedBox(width: 12),
-                Text(
-                  _selectedSection,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy),
-                ),
-                const Spacer(),
-                const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 16),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
-        _buildActiveSectionView(session),
-      ],
-    );
+    return _buildActiveSectionView(session);
   }
 
   // ─── ADMIN DASHBOARD HELPER METHODS ────────────────────────────────────────
@@ -2486,99 +2400,97 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (!isOfficer) ...[
-              // 1. Club Header Block (Image 2 layout)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.grey.shade100, width: 1.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.015),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    // Club Logo
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.all(6),
-                      child: _selectedClub!.imageAsset.isNotEmpty
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: _selectedClub!.imageAsset.startsWith('http')
-                                  ? Image.network(_selectedClub!.imageAsset, fit: BoxFit.contain)
-                                  : Image.asset(
-                                      _selectedClub!.imageAsset.startsWith('/')
-                                          ? 'assets/images${_selectedClub!.imageAsset}'
-                                          : _selectedClub!.imageAsset,
-                                      fit: BoxFit.contain,
-                                      errorBuilder: (_, __, ___) => const Icon(Icons.groups_rounded, color: AppTheme.blue),
-                                    ),
-                            )
-                          : const Icon(Icons.groups_rounded, color: AppTheme.blue, size: 28),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _selectedClub!.name,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.navy,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            _selectedClub!.fullForm.isNotEmpty
-                                ? _selectedClub!.fullForm
-                                : _selectedClub!.description,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppTheme.muted,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF5F3FF),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: const Color(0xFFDDD6FE), width: 1),
-                            ),
-                            child: Text(
-                              (widget.initialRole ?? session.role).toUpperCase(),
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF7C3AED),
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+            // 1. Club Header Block (Image 2 layout)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.015),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              const SizedBox(height: 20),
-            ],
+              child: Row(
+                children: [
+                  // Club Logo
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.all(6),
+                    child: _selectedClub!.imageAsset.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: _selectedClub!.imageAsset.startsWith('http')
+                                ? Image.network(_selectedClub!.imageAsset, fit: BoxFit.contain)
+                                : Image.asset(
+                                    _selectedClub!.imageAsset.startsWith('/')
+                                        ? 'assets/images${_selectedClub!.imageAsset}'
+                                        : _selectedClub!.imageAsset,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) => const Icon(Icons.groups_rounded, color: AppTheme.blue),
+                                  ),
+                          )
+                        : const Icon(Icons.groups_rounded, color: AppTheme.blue, size: 28),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _selectedClub!.name,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.navy,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _selectedClub!.fullForm.isNotEmpty
+                              ? _selectedClub!.fullForm
+                              : _selectedClub!.description,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.muted,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F3FF),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFFDDD6FE), width: 1),
+                          ),
+                          child: Text(
+                            (widget.initialRole ?? session.role).toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF7C3AED),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
 
             // 2. Stat Counters Row (Image 2 layout)
             Row(
@@ -2625,122 +2537,157 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
 
-            if (!isOfficer) ...[
-              const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-              // 3. Quick Actions Section (Image 2 layout)
-              const Text(
-                'Quick Actions',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.navy,
-                ),
+            // 3. Quick Actions Section (Image 2 layout)
+            const Text(
+              'Quick Actions',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.navy,
               ),
-              const SizedBox(height: 12),
+            ),
+            const SizedBox(height: 12),
 
-              // Action Tiles List depending on user roles
-              if (activeRole == 'treasurer') ...[
-                _QuickActionTile(
-                  title: 'Member',
-                  subtitle: 'View and manage club members',
-                  icon: Icons.groups_outlined,
-                  iconColor: const Color(0xFF6366F1),
-                  bgColor: const Color(0xFFEEF2FF),
-                  onTap: () => setState(() => _selectedSection = 'Members'),
-                ),
-                const SizedBox(height: 10),
-                _QuickActionTile(
-                  title: 'Task',
-                  subtitle: 'View and assign club tasks',
-                  icon: Icons.playlist_add_check_rounded,
-                  iconColor: const Color(0xFFF59E0B),
-                  bgColor: const Color(0xFFFFFBEB),
-                  onTap: () => setState(() => _selectedSection = 'Tasks'),
-                ),
-                const SizedBox(height: 10),
-                _QuickActionTile(
-                  title: 'Messages',
-                  subtitle: 'Chat with club members',
-                  icon: Icons.chat_bubble_outline_rounded,
-                  iconColor: const Color(0xFF06B6D4),
-                  bgColor: const Color(0xFFECFEFF),
-                  onTap: () => setState(() => _selectedSection = 'Live Chat'),
-                ),
-                _QuickActionTile(
-                  title: 'Budgets',
-                  subtitle: 'Verify and view event budgets',
-                  icon: Icons.account_balance_wallet_outlined,
-                  iconColor: const Color(0xFFEF4444),
-                  bgColor: const Color(0xFFFEF2F2),
-                  onTap: () => setState(() => _selectedSection = 'Budgets'),
-                ),
-              ] else ...[
-                _QuickActionTile(
-                  title: 'Members',
-                  subtitle: 'View and manage club members',
-                  icon: Icons.groups_outlined,
-                  iconColor: const Color(0xFF6366F1),
-                  bgColor: const Color(0xFFEEF2FF),
-                  onTap: () => setState(() => _selectedSection = 'Members'),
-                ),
-                const SizedBox(height: 10),
-                _QuickActionTile(
-                  title: 'Drafts & Posts',
-                  subtitle: 'Manage and create announcements',
-                  icon: Icons.edit_note_rounded,
-                  iconColor: const Color(0xFFEC4899),
-                  bgColor: const Color(0xFFFDF2F8),
-                  onTap: () => setState(() => _selectedSection = 'Posts & Announcements'),
-                ),
-                const SizedBox(height: 10),
-                _QuickActionTile(
-                  title: 'Events',
-                  subtitle: 'Manage and schedule club events',
-                  icon: Icons.calendar_month_rounded,
-                  iconColor: const Color(0xFF10B981),
-                  bgColor: const Color(0xFFE6FDF5),
-                  onTap: () => setState(() => _selectedSection = 'Events'),
-                ),
-                const SizedBox(height: 10),
-                _QuickActionTile(
-                  title: 'Tasks',
-                  subtitle: 'Assign and track club tasks',
-                  icon: Icons.playlist_add_check_rounded,
-                  iconColor: const Color(0xFFF59E0B),
-                  bgColor: const Color(0xFFFFFBEB),
-                  onTap: () => setState(() => _selectedSection = 'Tasks'),
-                ),
-                const SizedBox(height: 10),
-                _QuickActionTile(
-                  title: 'Messages',
-                  subtitle: 'Chat with club members',
-                  icon: Icons.chat_bubble_outline_rounded,
-                  iconColor: const Color(0xFF06B6D4),
-                  bgColor: const Color(0xFFECFEFF),
-                  onTap: () => setState(() => _selectedSection = 'Live Chat'),
-                ),
-                const SizedBox(height: 10),
-                _QuickActionTile(
-                  title: 'Notifications',
-                  subtitle: 'Broadcast alerts and notices',
-                  icon: Icons.notifications_none_rounded,
-                  iconColor: const Color(0xFF8B5CF6),
-                  bgColor: const Color(0xFFF5F3FF),
-                  onTap: () => setState(() => _selectedSection = 'Notifications'),
-                ),
-                const SizedBox(height: 10),
-                _QuickActionTile(
-                  title: 'Budget',
-                  subtitle: 'Submit or verify event budgets',
-                  icon: Icons.account_balance_wallet_outlined,
-                  iconColor: const Color(0xFFEF4444),
-                  bgColor: const Color(0xFFFEF2F2),
-                  onTap: () => setState(() => _selectedSection = 'Budgets'),
-                ),
-              ],
-              const SizedBox(height: 24),
+            // Action Tiles List depending on user roles
+            if (activeRole == 'advisor') ...[
+              _QuickActionTile(
+                title: 'Events',
+                subtitle: 'Manage and schedule club events',
+                icon: Icons.calendar_month_rounded,
+                iconColor: const Color(0xFF10B981),
+                bgColor: const Color(0xFFE6FDF5),
+                onTap: () => setState(() => _selectedSection = 'Events'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Reports',
+                subtitle: 'View event reports',
+                icon: Icons.file_copy_outlined,
+                iconColor: const Color(0xFFF59E0B),
+                bgColor: const Color(0xFFFFFBEB),
+                onTap: () => setState(() => _selectedSection = 'Reports'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Budgets',
+                subtitle: 'Verify and view event budgets',
+                icon: Icons.account_balance_wallet_outlined,
+                iconColor: const Color(0xFFEF4444),
+                bgColor: const Color(0xFFFEF2F2),
+                onTap: () => setState(() => _selectedSection = 'Budgets'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Team',
+                subtitle: 'Manage club officers',
+                icon: Icons.people_rounded,
+                iconColor: const Color(0xFF6366F1),
+                bgColor: const Color(0xFFEEF2FF),
+                onTap: () => setState(() => _selectedSection = 'Team'),
+              ),
+            ] else if (activeRole == 'treasurer') ...[
+              _QuickActionTile(
+                title: 'Members',
+                subtitle: 'View and manage club members',
+                icon: Icons.groups_outlined,
+                iconColor: const Color(0xFF6366F1),
+                bgColor: const Color(0xFFEEF2FF),
+                onTap: () => setState(() => _selectedSection = 'Members'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Tasks',
+                subtitle: 'View and assign club tasks',
+                icon: Icons.playlist_add_check_rounded,
+                iconColor: const Color(0xFFF59E0B),
+                bgColor: const Color(0xFFFFFBEB),
+                onTap: () => setState(() => _selectedSection = 'Tasks'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Messages',
+                subtitle: 'Chat with club members',
+                icon: Icons.chat_bubble_outline_rounded,
+                iconColor: const Color(0xFF06B6D4),
+                bgColor: const Color(0xFFECFEFF),
+                onTap: () => setState(() => _selectedSection = 'Live Chat'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Budgets',
+                subtitle: 'Verify and view event budgets',
+                icon: Icons.account_balance_wallet_outlined,
+                iconColor: const Color(0xFFEF4444),
+                bgColor: const Color(0xFFFEF2F2),
+                onTap: () => setState(() => _selectedSection = 'Budgets'),
+              ),
+            ] else ...[
+              _QuickActionTile(
+                title: 'Members',
+                subtitle: 'View and manage club members',
+                icon: Icons.groups_outlined,
+                iconColor: const Color(0xFF6366F1),
+                bgColor: const Color(0xFFEEF2FF),
+                onTap: () => setState(() => _selectedSection = 'Members'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Drafts & Posts',
+                subtitle: 'Manage and create announcements',
+                icon: Icons.edit_note_rounded,
+                iconColor: const Color(0xFFEC4899),
+                bgColor: const Color(0xFFFDF2F8),
+                onTap: () => setState(() => _selectedSection = 'Posts & Announcements'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Events',
+                subtitle: 'Manage and schedule club events',
+                icon: Icons.calendar_month_rounded,
+                iconColor: const Color(0xFF10B981),
+                bgColor: const Color(0xFFE6FDF5),
+                onTap: () => setState(() => _selectedSection = 'Events'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Tasks',
+                subtitle: 'Assign and track club tasks',
+                icon: Icons.playlist_add_check_rounded,
+                iconColor: const Color(0xFFF59E0B),
+                bgColor: const Color(0xFFFFFBEB),
+                onTap: () => setState(() => _selectedSection = 'Tasks'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Messages',
+                subtitle: 'Chat with club members',
+                icon: Icons.chat_bubble_outline_rounded,
+                iconColor: const Color(0xFF06B6D4),
+                bgColor: const Color(0xFFECFEFF),
+                onTap: () => setState(() => _selectedSection = 'Live Chat'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Notifications',
+                subtitle: 'Broadcast alerts and notices',
+                icon: Icons.notifications_none_rounded,
+                iconColor: const Color(0xFF8B5CF6),
+                bgColor: const Color(0xFFF5F3FF),
+                onTap: () => setState(() => _selectedSection = 'Notifications'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Budget',
+                subtitle: 'Submit or verify event budgets',
+                icon: Icons.account_balance_wallet_outlined,
+                iconColor: const Color(0xFFEF4444),
+                bgColor: const Color(0xFFFEF2F2),
+                onTap: () => setState(() => _selectedSection = 'Budgets'),
+              ),
             ],
+            const SizedBox(height: 24),
 
             // 4. Upcoming Event Section (Image 2 layout)
             Row(
@@ -3352,6 +3299,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   onPressed: () {
                                     setState(() {
                                       _selectedClub = club;
+                                      _teacherActiveTab = 'Overview';
                                       _reloadSectionData();
                                     });
                                   },
@@ -3389,6 +3337,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildTeacherClubDetailsView(UserSession session) {
+    final clubReportCount = _allReports.where((r) => r['clubId'] == _selectedClub!.id).length;
+
+    // If a tab is selected (not on overview), show that tab content directly
+    if (_teacherActiveTab != 'Overview') {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: () => setState(() => _teacherActiveTab = 'Overview'),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.arrow_back_ios_new_rounded, size: 12, color: AppTheme.blue),
+                SizedBox(width: 4),
+                Text(
+                  'Back to Overview',
+                  style: TextStyle(color: AppTheme.blue, fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _teacherActiveTab == 'Reports'
+              ? _buildTeacherReportsTab()
+              : _buildTeacherMembersTab(),
+        ],
+      );
+    }
+
+    // Overview layout (admin-style)
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -3407,64 +3385,138 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         const SizedBox(height: 16),
+        // Club Header Card
         Container(
-          width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: Colors.grey.shade100, width: 1.5),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _selectedClub!.name,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.navy,
-                ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.015),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
-              const SizedBox(height: 4),
-              const Text(
-                'Manage event reports and view club members',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.muted,
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.all(6),
+                child: _selectedClub!.imageAsset.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: _selectedClub!.imageAsset.startsWith('http')
+                            ? Image.network(_selectedClub!.imageAsset, fit: BoxFit.contain)
+                            : Image.asset(
+                                _selectedClub!.imageAsset.startsWith('/')
+                                    ? 'assets/images${_selectedClub!.imageAsset}'
+                                    : _selectedClub!.imageAsset,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => const Icon(Icons.groups_rounded, color: AppTheme.blue),
+                              ),
+                      )
+                    : const Icon(Icons.groups_rounded, color: AppTheme.blue, size: 28),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _selectedClub!.name,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.navy,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _selectedClub!.fullForm.isNotEmpty
+                          ? _selectedClub!.fullForm
+                          : 'Monitor club reports and activities',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.muted,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F3FF),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFDDD6FE), width: 1),
+                      ),
+                      child: const Text(
+                        'TEACHER',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF7C3AED),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
-        GestureDetector(
-          onTap: _showTeacherTabSelector,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
+        const SizedBox(height: 20),
+        // Stat Cards
+        Row(
+          children: [
+            Expanded(
+              child: _MiniStatCard(
+                icon: Icons.file_copy_outlined,
+                iconColor: const Color(0xFFF59E0B),
+                bgColor: const Color(0xFFFFFBEB),
+                value: '$clubReportCount',
+                label: 'Reports',
+              ),
             ),
-            child: Row(
-              children: [
-                const Icon(Icons.menu_rounded, color: AppTheme.navy, size: 20),
-                const SizedBox(width: 12),
-                Text(
-                  _teacherActiveTab == 'Reports' ? 'Event Reports' : 'Members',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy),
-                ),
-                const Spacer(),
-                const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 16),
-              ],
-            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        // Quick Actions
+        const Text(
+          'Quick Actions',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.navy,
           ),
         ),
-        const SizedBox(height: 20),
-        _teacherActiveTab == 'Reports'
-            ? _buildTeacherReportsTab()
-            : _buildTeacherMembersTab(),
+        const SizedBox(height: 12),
+        _QuickActionTile(
+          title: 'Event Reports',
+          subtitle: 'View event reports for this club',
+          icon: Icons.file_copy_outlined,
+          iconColor: const Color(0xFFF59E0B),
+          bgColor: const Color(0xFFFFFBEB),
+          onTap: () => setState(() => _teacherActiveTab = 'Reports'),
+        ),
+        const SizedBox(height: 10),
+        _QuickActionTile(
+          title: 'Members',
+          subtitle: 'View club members',
+          icon: Icons.groups_outlined,
+          iconColor: const Color(0xFF6366F1),
+          bgColor: const Color(0xFFEEF2FF),
+          onTap: () => setState(() => _teacherActiveTab = 'Members'),
+        ),
       ],
     );
   }
@@ -6244,7 +6296,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Add Club to Monitor'),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Expanded(
+              child: Text(
+                'Add Club to Monitor',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close_rounded, size: 20),
+              onPressed: () => Navigator.of(ctx).pop(),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
+        ),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
