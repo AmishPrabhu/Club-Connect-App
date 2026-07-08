@@ -5,7 +5,7 @@ let apiInstance = null;
 
 function getBrevoClient() {
     if (!apiInstance) {
-        const apiKey = process.env.BREVO_API_KEY;
+        const apiKey = process.env.BREVO_API_KEY ? process.env.BREVO_API_KEY.trim() : null;
         if (!apiKey) {
             console.warn('⚠️ BREVO_API_KEY not configured - emails will not be sent');
             return null;
@@ -36,7 +36,7 @@ export async function sendEmail({ to, subject, html }) {
         sendSmtpEmail.htmlContent = html;
         sendSmtpEmail.sender = {
             name: 'Club Connect',
-            email: process.env.EMAIL_USER || 'noreply@clubconnect.com'
+            email: (process.env.EMAIL_USER || 'noreply@clubconnect.com').trim()
         };
         sendSmtpEmail.to = [{ email: to }];
 
@@ -52,25 +52,23 @@ export async function sendEmail({ to, subject, html }) {
 /**
  * Send password reset email
  */
-export async function sendPasswordResetEmail(user, resetUrl) {
+export async function sendPasswordResetEmail(user, resetToken) {
     return sendEmail({
         to: user.email,
-        subject: 'Password Reset - Club Connect',
+        subject: 'Password Reset Code - Club Connect',
         html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="background: #002147; padding: 20px; text-align: center;">
                     <h1 style="color: #DAA520; margin: 0;">Club Connect</h1>
                 </div>
                 <div style="padding: 30px; background: #f9f9f9;">
-                    <h2 style="color: #002147;">Password Reset Request</h2>
+                    <h2 style="color: #002147;">Password Reset Verification Code</h2>
                     <p>Hello ${user.name},</p>
-                    <p>We received a request to reset your password. Click the button below to create a new password:</p>
-                    <div style="text-align: center; margin: 30px 0;">
-                        <a href="${resetUrl}" style="background: #DAA520; color: #002147; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-                            Reset Password
-                        </a>
+                    <p>We received a request to reset your password. Use the following 6-digit verification code to complete the reset inside the app:</p>
+                    <div style="text-align: center; margin: 30px 0; background: #eee; padding: 15px; border-radius: 8px; font-size: 24px; font-weight: bold; letter-spacing: 2px; color: #002147;">
+                        ${resetToken}
                     </div>
-                    <p style="color: #666; font-size: 14px;">This link will expire in 1 hour.</p>
+                    <p style="color: #666; font-size: 14px;">This code will expire in 1 hour.</p>
                     <p style="color: #666; font-size: 14px;">If you didn't request this, please ignore this email.</p>
                 </div>
                 <div style="background: #002147; padding: 15px; text-align: center;">
