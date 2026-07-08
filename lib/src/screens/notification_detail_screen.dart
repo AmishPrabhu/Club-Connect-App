@@ -108,7 +108,7 @@ class NotificationDetailScreen extends StatelessWidget {
                   // Notification Body Message
                   MarkdownBody(
                     data: notification.message,
-                    styleSheet: MarkdownStyleSheet(
+                    styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
                       p: TextStyle(
                         fontSize: 14,
                         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.87),

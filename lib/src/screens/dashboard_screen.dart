@@ -2104,7 +2104,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            n.message,
+                            n.plainMessage,
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey.shade600,
@@ -5366,7 +5366,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "${msg['senderName'] ?? 'Officer'} (${msg['senderRole'] ?? ''})",
+                                  "${msg['senderName'] ?? 'Officer'}${msg['senderRole'] != null && msg['senderRole'].toString().isNotEmpty ? ' (${msg['senderRole']})' : ''}",
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 10,
@@ -5477,7 +5477,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 child: ListTile(
                   title: Text(n.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text(n.message),
+                  subtitle: Text(
+                    n.plainMessage,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(

@@ -26,6 +26,14 @@ class NotificationItem {
   /// Computed lazily so relative time stays accurate as the app stays open.
   String get timeAgo => _relativeTime(createdAt);
 
+  /// Strips markdown characters and newlines for clean plaintext previews.
+  String get plainMessage {
+    return message
+        .replaceAll(RegExp(r'\*\*|__|\*|_|#\s*|-\s*'), '')
+        .replaceAll(RegExp(r'\n+'), ' ')
+        .trim();
+  }
+
   factory NotificationItem.fromJson(Map<String, dynamic> json) {
     final type = json['type']?.toString() ?? 'system';
     final rawCreatedAt = json['createdAt']?.toString();

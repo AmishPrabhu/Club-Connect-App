@@ -719,10 +719,18 @@ router.post('/:id/messages', verifyClubOfficer, async (req, res) => {
         const clubId = req.params.id;
         const userId = req.user.id;
 
+        // Fetch user from DB to get the latest/real name
+        const dbUser = await User.findById(userId);
+        const resolvedSenderName = dbUser ? dbUser.name : (req.user.name || 'Club Officer');
+
         let officerRole = null;
 
         if (req.user.role === 'admin') {
             officerRole = 'Admin';
+        } else if (req.user.role === 'teacher') {
+            officerRole = 'Teacher';
+        } else if (req.user.role === 'advisor') {
+            officerRole = 'Advisor';
         } else {
             const member = await ClubMember.findOne({
                 clubId,
@@ -742,7 +750,7 @@ router.post('/:id/messages', verifyClubOfficer, async (req, res) => {
             clubId,
             clubName: club.name,
             senderId: userId,
-            senderName: req.user.name || 'Club Officer', // Fallback if name missing in token/user
+            senderName: resolvedSenderName,
             senderRole: officerRole,
             title,
             body,
