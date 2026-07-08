@@ -40,6 +40,7 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
   bool _isGenerating = false;
   int _generationProgress = 0;
   int _generationTotal = 0;
+  Size? _templateImageSize; // FI-16: actual pixel dimensions of the loaded template
 
   @override
   void initState() {
@@ -237,6 +238,12 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
     final url = await CloudinaryService.uploadImage(File(picked.path));
     if (url != null) {
       setState(() => _templateUrl = url);
+      // FI-16: load actual image dimensions for accurate preview positioning
+      _getNetworkImageSize(url).then((img) {
+        if (mounted) {
+          setState(() => _templateImageSize = Size(img.width.toDouble(), img.height.toDouble()));
+        }
+      });
       _showSnackBar('Template uploaded successfully.');
       _saveTemplateSettings();
     } else {
@@ -499,6 +506,12 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
               clipBehavior: Clip.antiAlias,
               child: LayoutBuilder(
                 builder: (context, constraints) {
+                  // FI-16: use real image aspect ratio; fall back to 0.7 only if dimensions not yet loaded
+                  final imgAspect = (_templateImageSize != null && _templateImageSize!.height > 0)
+                      ? (_templateImageSize!.width / _templateImageSize!.height)
+                      : (1.0 / 0.7); // portrait fallback ~1.43
+                  final previewHeight = constraints.maxWidth / imgAspect;
+
                   return Stack(
                     children: [
                       Image.network(
@@ -508,7 +521,7 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
                       ),
                       Positioned(
                         left: constraints.maxWidth * (_nameX / 100),
-                        top: (constraints.maxWidth * 0.7) * (_nameY / 100), // Estimate standard bounds height
+                        top: previewHeight * (_nameY / 100),
                         child: FractionalTranslation(
                           translation: const Offset(-0.5, -0.5),
                           child: Container(

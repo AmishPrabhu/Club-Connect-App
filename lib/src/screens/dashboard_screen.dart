@@ -525,27 +525,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Hello,',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppTheme.muted,
-                  fontWeight: FontWeight.w500,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Hello,',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: AppTheme.muted,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                session.name,
-                style: const TextStyle(
-                  fontSize: 26,
-                  color: AppTheme.navy,
-                  fontWeight: FontWeight.bold,
+                const SizedBox(height: 4),
+                Text(
+                  session.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    color: AppTheme.navy,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           GestureDetector(
             onTap: () {
@@ -922,12 +926,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onPressed: () => setState(() => _selectedSection = 'Overview'),
           ),
           const SizedBox(width: 8),
-          Text(
-            _selectedSection,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.navy,
+          Expanded(
+            child: Text(
+              _selectedSection,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.navy,
+              ),
             ),
           ),
         ],
@@ -2452,6 +2460,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       children: [
                         Text(
                           _selectedClub!.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -2480,6 +2490,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           child: Text(
                             (widget.initialRole ?? session.role).toUpperCase(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,

@@ -32,6 +32,11 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime? _selectedDate;
   final ScrollController _calendarScrollController = ScrollController();
 
+  // VL-01: GlobalKey to measure the actual hero column height at runtime
+  final GlobalKey _heroKey = GlobalKey();
+  double _heroHeight = 415.0;    // fallback until first frame
+  double _textHeight = 208.0;    // fallback until first frame
+
   @override
   void initState() {
     super.initState();
@@ -39,16 +44,31 @@ class _HomeScreenState extends State<HomeScreen> {
     _selectedDate = DateTime(now.year, now.month, now.day);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Measure hero height from its render box so snap sizes are device-accurate
+      final heroBox = _heroKey.currentContext?.findRenderObject() as RenderBox?;
+      if (heroBox != null && mounted) {
+        setState(() {
+          _heroHeight = heroBox.size.height;
+          // textHeight = topBar (66) + heading (~80) + subtext (~36) + gaps (~26)
+          _textHeight = 208.0; // kept as a proportional constant; hero drives the critical min size
+        });
+      }
+
+      // Calendar scroll offset
       if (_calendarScrollController.hasClients) {
-        final screenWidth = MediaQuery.of(context).size.width;
+        // Use available width minus safe-area insets so the midpoint is accurate
+        // on wide iPhones with side notches/rounded corners.
+        final mq = MediaQuery.of(context);
+        final availableWidth = mq.size.width - mq.padding.horizontal;
         const todayIndex = 15; // middle of 31 days
         const itemWidth = 54.0;
         const separatorWidth = 12.0;
         const itemSpace = itemWidth + separatorWidth;
+        const listHorizontalPadding = 20.0; // matches EdgeInsets.fromLTRB(20,...)
 
-        // Offset to align center of item with center of screen
-        final targetOffset = (todayIndex * itemSpace) - (screenWidth / 2) + (itemWidth / 2) + 20; // 20 is horizontal padding
-        _calendarScrollController.jumpTo(targetOffset);
+        // Offset so today's item centre aligns with the screen centre
+        final targetOffset = (todayIndex * itemSpace) - (availableWidth / 2) + (itemWidth / 2) + listHorizontalPadding;
+        _calendarScrollController.jumpTo(targetOffset.clamp(0.0, double.infinity));
       }
     });
   }
@@ -165,14 +185,11 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context, constraints) {
         final screenHeight = constraints.maxHeight;
         
-        // Dynamic snap calculations based on screen height
-        final double heroHeight = 415.0; // Heading + subtext + campus photo + top bar + margin
-        final double textHeight = 208.0; // Top bar + heading + subtext + margins
-        const double headerBarHeight = 66.0; // Height of _HomeTopBar (logo 42px + 24px padding)
+        // VL-01: Use measured hero height (updated after first frame via GlobalKey)
+        const double headerBarHeight = 66.0;
         
-        double minSize = 1.0 - (heroHeight / screenHeight);
-        double restingSize = 1.0 - (textHeight / screenHeight);
-        // Leave headerBarHeight always visible above the panel
+        double minSize = 1.0 - (_heroHeight / screenHeight);
+        double restingSize = 1.0 - (_textHeight / screenHeight);
         final double maxSize = 1.0 - (headerBarHeight / screenHeight);
         
         minSize = minSize.clamp(0.30, 0.55);
@@ -185,10 +202,11 @@ class _HomeScreenState extends State<HomeScreen> {
               top: 0,
               left: 0,
               right: 0,
-              height: heroHeight,
+              height: _heroHeight,
               child: SingleChildScrollView(
                 physics: const NeverScrollableScrollPhysics(),
                 child: Column(
+                  key: _heroKey,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _HomeTopBar(
@@ -479,42 +497,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                             
-                            const SizedBox(height: 12),
-                            
-                            // Static Page dots indicator
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: const BoxDecoration(
-                                    color: AppTheme.blue,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: BoxDecoration(
-                                    color: Color(0xFFCBD5E1),
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: BoxDecoration(
-                                    color: Color(0xFFCBD5E1),
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            
-                            const SizedBox(height: 26),
+
+
                                                     // Calendar Header
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -917,6 +901,7 @@ class _FeaturedClubCard extends StatelessWidget {
                     ? Image.network(
                         imageUrl,
                         fit: BoxFit.contain,
+                        cacheWidth: 200, // 96px display × 2× retina — avoids full-res decode
                         errorBuilder: (_, _, _) => Image.asset(
                           'assets/images/club-default.jpg',
                           fit: BoxFit.contain,
@@ -1004,36 +989,44 @@ class _HomeTopBar extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           else
-            Stack(
-              children: [
-                IconButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => Scaffold(
-                          appBar: AppBar(elevation: 0, backgroundColor: Colors.transparent),
-                          body: NotificationsScreen(appState: appState),
+            AnimatedBuilder(
+              animation: appState,
+              builder: (context, _) {
+                return Stack(
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => Scaffold(
+                              appBar: AppBar(elevation: 0, backgroundColor: Colors.transparent),
+                              body: AnimatedBuilder(
+                                animation: appState,
+                                builder: (context, _) => NotificationsScreen(appState: appState),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      icon: Icon(Icons.notifications_none_rounded, color: Theme.of(context).colorScheme.onSurface, size: 26),
+                    ),
+                    if (appState.notifications.any((n) => !n.isRead))
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Theme.of(context).cardColor, width: 2),
+                          ),
                         ),
                       ),
-                    );
-                  },
-                  icon: Icon(Icons.notifications_none_rounded, color: Theme.of(context).colorScheme.onSurface, size: 26),
-                ),
-                if (appState.notifications.any((n) => !n.isRead))
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: Colors.redAccent,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Theme.of(context).cardColor, width: 2),
-                      ),
-                    ),
-                  ),
-              ],
+                  ],
+                );
+              },
             ),
           const SizedBox(width: 8),
           GestureDetector(

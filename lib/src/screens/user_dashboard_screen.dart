@@ -174,72 +174,79 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                ...roles.map((cr) {
-                  final type = cr['type'] as String;
-                  final role = cr['role'] as String;
-                  final Club? club = cr['club'] as Club?;
-                  
-                  String title = '';
-                  String subtitle = '';
-                  IconData icon = Icons.groups_rounded;
-                  
-                  if (type == 'club' && club != null) {
-                    title = '${club.name} ($role)';
-                    subtitle = club.fullForm.isNotEmpty ? club.fullForm : 'Club Dashboard';
-                    icon = Icons.dashboard_rounded;
-                  } else if (type == 'teacher') {
-                    title = 'Teacher Dashboard';
-                    subtitle = 'Monitor and supervise assigned clubs';
-                    icon = Icons.school_rounded;
-                  } else if (type == 'admin') {
-                    title = 'System Admin Dashboard';
-                    subtitle = 'Manage all clubs, posts, and teachers';
-                    icon = Icons.admin_panel_settings_rounded;
-                  }
-                  
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
-                        width: 1.5,
-                      ),
-                    ),
-                    child: ListTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF2563EB).withValues(alpha: 0.15) : const Color(0xFFEFF6FF),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(icon, color: const Color(0xFF3B82F6), size: 20),
-                      ),
-                      title: Text(
-                        title,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy),
-                      ),
-                      subtitle: Text(
-                        subtitle,
-                        style: const TextStyle(fontSize: 11, color: Colors.grey),
-                      ),
-                      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 18),
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => DashboardScreen(
-                              appState: widget.appState,
-                              initialClub: club,
-                              initialRole: type == 'club' ? role.toLowerCase() : type,
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: roles.map((cr) {
+                        final type = cr['type'] as String;
+                        final role = cr['role'] as String;
+                        final Club? club = cr['club'] as Club?;
+                        
+                        String title = '';
+                        String subtitle = '';
+                        IconData icon = Icons.groups_rounded;
+                        
+                        if (type == 'club' && club != null) {
+                          title = '${club.name} ($role)';
+                          subtitle = club.fullForm.isNotEmpty ? club.fullForm : 'Club Dashboard';
+                          icon = Icons.dashboard_rounded;
+                        } else if (type == 'teacher') {
+                          title = 'Teacher Dashboard';
+                          subtitle = 'Monitor and supervise assigned clubs';
+                          icon = Icons.school_rounded;
+                        } else if (type == 'admin') {
+                          title = 'System Admin Dashboard';
+                          subtitle = 'Manage all clubs, posts, and teachers';
+                          icon = Icons.admin_panel_settings_rounded;
+                        }
+                        
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardColor,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
+                              width: 1.5,
                             ),
                           ),
+                          child: ListTile(
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF2563EB).withValues(alpha: 0.15) : const Color(0xFFEFF6FF),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(icon, color: const Color(0xFF3B82F6), size: 20),
+                            ),
+                            title: Text(
+                              title,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy),
+                            ),
+                            subtitle: Text(
+                              subtitle,
+                              style: const TextStyle(fontSize: 11, color: Colors.grey),
+                            ),
+                            trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 18),
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => DashboardScreen(
+                                    appState: widget.appState,
+                                    initialClub: club,
+                                    initialRole: type == 'club' ? role.toLowerCase() : type,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         );
-                      },
+                      }).toList(),
                     ),
-                  );
-                }),
+                  ),
+                ),
               ],
             ),
           ),
@@ -252,6 +259,20 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
     final roles = _getAvailableManagementRoles(session);
     if (roles.length > 1) {
       _showRoleSelector(session, roles);
+    } else if (roles.length == 1) {
+      final single = roles.first;
+      final type = single['type'] as String;
+      final role = single['role'] as String;
+      final Club? club = single['club'] as Club?;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => DashboardScreen(
+            appState: widget.appState,
+            initialClub: club ?? defaultClub,
+            initialRole: type == 'club' ? role.toLowerCase() : type,
+          ),
+        ),
+      );
     } else {
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -386,9 +407,26 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                child: Text(
-                  'Error loading activity: $_rsvpError',
-                  style: const TextStyle(color: Colors.red),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Error loading activity: $_rsvpError',
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: _loadUserRsvps,
+                      icon: const Icon(Icons.refresh_rounded, size: 16),
+                      label: const Text('Retry'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
