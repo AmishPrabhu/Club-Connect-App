@@ -9,6 +9,7 @@ class PostItem {
     this.date,
     this.time,
     this.location,
+    this.locationType,
     this.locationUrl,
     this.coverAsset,
     this.attachments = const [],
@@ -20,6 +21,15 @@ class PostItem {
     this.reportSubmittedAt,
     this.totalSessions = 1,
     this.certificateTemplate,
+    this.registrationStart,
+    this.registrationStartTime,
+    this.registrationEnd,
+    this.registrationEndTime,
+    this.registrationLink,
+    this.responseSpreadsheetUrl,
+    this.eventWhatsappLink,
+    this.relatedEventId,
+    this.relatedEventTitle,
   });
 
   final String id;
@@ -31,6 +41,7 @@ class PostItem {
   final DateTime? date;
   final String? time;
   final String? location;
+  final String? locationType;
   final String? locationUrl;
   final String? coverAsset;
   final List<String> attachments;
@@ -58,6 +69,19 @@ class PostItem {
 
   /// Certificate template positioning variables
   final Map<String, dynamic>? certificateTemplate;
+  
+  /// Event specific registration fields
+  final String? registrationStart;
+  final String? registrationStartTime;
+  final String? registrationEnd;
+  final String? registrationEndTime;
+  final String? registrationLink;
+  final String? responseSpreadsheetUrl;
+  final String? eventWhatsappLink;
+  
+  /// Related event fields (for announcements)
+  final String? relatedEventId;
+  final String? relatedEventTitle;
 
   bool get isEvent => type == 'event';
   bool get isUpcoming =>
@@ -95,6 +119,7 @@ class PostItem {
           : null,
       time: json['time']?.toString(),
       location: json['location']?.toString(),
+      locationType: json['locationType']?.toString(),
       locationUrl: json['locationUrl']?.toString(),
       coverAsset: json['coverImage']?.toString(),
       attachments: attachments,
@@ -108,6 +133,15 @@ class PostItem {
           : null,
       totalSessions: (json['totalSessions'] as num?)?.toInt() ?? 1,
       certificateTemplate: json['certificateTemplate'] as Map<String, dynamic>?,
+      registrationStart: json['registrationStart']?.toString(),
+      registrationStartTime: json['registrationStartTime']?.toString(),
+      registrationEnd: json['registrationEnd']?.toString(),
+      registrationEndTime: json['registrationEndTime']?.toString(),
+      registrationLink: json['registrationLink']?.toString(),
+      responseSpreadsheetUrl: json['responseSpreadsheetUrl']?.toString(),
+      eventWhatsappLink: json['eventWhatsappLink']?.toString(),
+      relatedEventId: json['relatedEventId']?.toString(),
+      relatedEventTitle: json['relatedEventTitle']?.toString(),
     );
   }
 }

@@ -440,25 +440,46 @@ class AppState extends ChangeNotifier {
     String? date,
     String? time,
     String? location,
+    String? locationType,
+    String? locationUrl,
     String? coverImage,
+    String? registrationStart,
+    String? registrationStartTime,
+    String? registrationEnd,
+    String? registrationEndTime,
+    String? registrationLink,
+    String? responseSpreadsheetUrl,
+    String? eventWhatsappLink,
+    String? relatedEventId,
+    String? relatedEventTitle,
+    int? totalSessions,
   }) async {
-    final response =
-        await _apiClient.post(
-              '/posts',
-              body: {
-                'clubId': clubId,
-                'clubName': clubName,
-                'title': title,
-                'content': content,
-                'type': type,
-                'status': status,
-                if (date != null) 'date': date,
-                if (time != null) 'time': time,
-                if (location != null) 'location': location,
-                if (coverImage != null) 'coverImage': coverImage,
-              },
-            )
-            as Map<String, dynamic>;
+    final body = <String, dynamic>{
+      'clubId': clubId,
+      'clubName': clubName,
+      'title': title,
+      'content': content,
+      'type': type,
+      'status': status,
+    };
+    if (date != null) body['date'] = date;
+    if (time != null) body['time'] = time;
+    if (location != null) body['location'] = location;
+    if (locationType != null) body['locationType'] = locationType;
+    if (locationUrl != null) body['locationUrl'] = locationUrl;
+    if (coverImage != null) body['coverImage'] = coverImage;
+    if (registrationStart != null) body['registrationStart'] = registrationStart;
+    if (registrationStartTime != null) body['registrationStartTime'] = registrationStartTime;
+    if (registrationEnd != null) body['registrationEnd'] = registrationEnd;
+    if (registrationEndTime != null) body['registrationEndTime'] = registrationEndTime;
+    if (registrationLink != null) body['registrationLink'] = registrationLink;
+    if (responseSpreadsheetUrl != null) body['responseSpreadsheetUrl'] = responseSpreadsheetUrl;
+    if (eventWhatsappLink != null) body['eventWhatsappLink'] = eventWhatsappLink;
+    if (relatedEventId != null) body['relatedEventId'] = relatedEventId;
+    if (relatedEventTitle != null) body['relatedEventTitle'] = relatedEventTitle;
+    if (totalSessions != null) body['totalSessions'] = totalSessions;
+
+    final response = await _apiClient.post('/posts', body: body) as Map<String, dynamic>;
     final created = PostItem.fromJson(response);
     posts = [created, ...posts];
     notifyListeners();

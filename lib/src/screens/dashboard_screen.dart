@@ -5807,6 +5807,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final locationController = TextEditingController();
     String? coverImageUrl;
     bool isUploading = false;
+    
+    String locationType = 'campus';
+    final locationUrlController = TextEditingController();
+    final regStartController = TextEditingController();
+    final regStartTimeController = TextEditingController();
+    final regEndController = TextEditingController();
+    final regEndTimeController = TextEditingController();
+    final regLinkController = TextEditingController();
+    final sheetUrlController = TextEditingController();
+    final whatsappLinkController = TextEditingController();
+    final totalSessionsController = TextEditingController(text: '1');
+    String relatedEventId = '';
+
+    Future<void> pickDate(TextEditingController controller) async {
+      final picked = await showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime(2000),
+        lastDate: DateTime(2100),
+      );
+      if (picked != null) {
+        controller.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+      }
+    }
+
+    Future<void> pickTime(TextEditingController controller) async {
+      final picked = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
+      );
+      if (picked != null && mounted) {
+        controller.text = picked.format(context);
+      }
+    }
 
     await showDialog<void>(
       context: context,
@@ -5816,73 +5850,145 @@ class _DashboardScreenState extends State<DashboardScreen> {
           title: Text(isEvent ? 'Create Event' : 'Create Announcement'),
           content: StatefulBuilder(
             builder: (context, setStateDialog) {
-              return SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: titleController,
-                      decoration: const InputDecoration(labelText: 'Title'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: contentController,
-                      maxLines: 4,
-                      decoration: const InputDecoration(labelText: 'Description'),
-                    ),
-                    _buildMarkdownToolbar(contentController, setStateDialog),
-                    if (isEvent) ...[
-                      const SizedBox(height: 12),
+              return SizedBox(
+                width: double.maxFinite,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                       TextField(
-                        controller: dateController,
-                        decoration: const InputDecoration(labelText: 'Date (YYYY-MM-DD)'),
+                        controller: titleController,
+                        decoration: const InputDecoration(labelText: 'Title'),
                       ),
                       const SizedBox(height: 12),
                       TextField(
-                        controller: timeController,
-                        decoration: const InputDecoration(labelText: 'Time'),
+                        controller: contentController,
+                        maxLines: 4,
+                        decoration: const InputDecoration(labelText: 'Description'),
                       ),
+                      _buildMarkdownToolbar(contentController, setStateDialog),
                       const SizedBox(height: 12),
-                      TextField(
-                        controller: locationController,
-                        decoration: const InputDecoration(labelText: 'Location'),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    if (coverImageUrl != null)
-                      Container(
-                        height: 100,
+
+                      if (!isEvent) ...[
+                        DropdownButtonFormField<String>(
+                          value: '',
+                          isExpanded: true,
+                          decoration: const InputDecoration(labelText: 'Related Event (Optional)'),
+                          items: [
+                            const DropdownMenuItem(value: '', child: Text('None')),
+                            ...widget.appState.posts.where((p) => p.isEvent).map(
+                                  (p) => DropdownMenuItem(value: p.id, child: Text(p.title, overflow: TextOverflow.ellipsis)),
+                                ),
+                          ],
+                          onChanged: (val) => setStateDialog(() => relatedEventId = val ?? ''),
+                        ),
+                      ],
+
+                      if (isEvent) ...[
+                        const Divider(height: 32),
+                        const Text('Event Timing', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(child: TextField(controller: dateController, readOnly: true, onTap: () => pickDate(dateController), decoration: const InputDecoration(labelText: 'Date', hintText: 'YYYY-MM-DD'))),
+                            const SizedBox(width: 12),
+                            Expanded(child: TextField(controller: timeController, readOnly: true, onTap: () => pickTime(timeController), decoration: const InputDecoration(labelText: 'Time', hintText: '5:00 PM'))),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                value: locationType,
+                                isExpanded: true,
+                                decoration: const InputDecoration(labelText: 'Type'),
+                                items: const [
+                                  DropdownMenuItem(value: 'campus', child: Text('Campus')),
+                                  DropdownMenuItem(value: 'external', child: Text('External')),
+                                ],
+                                onChanged: (val) => setStateDialog(() => locationType = val ?? 'campus'),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(child: TextField(controller: locationController, decoration: const InputDecoration(labelText: 'Location Name'))),
+                          ],
+                        ),
+                        if (locationType == 'external') ...[
+                           const SizedBox(height: 12),
+                           TextField(controller: locationUrlController, decoration: const InputDecoration(labelText: 'Google Maps URL')),
+                        ],
+                        const SizedBox(height: 12),
+                        TextField(
+                           controller: totalSessionsController, 
+                           decoration: const InputDecoration(labelText: 'Total Sessions'),
+                           keyboardType: TextInputType.number,
+                        ),
+                        
+                        const Divider(height: 32),
+                        const Text('Registration (Optional)', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(child: TextField(controller: regStartController, readOnly: true, onTap: () => pickDate(regStartController), decoration: const InputDecoration(labelText: 'Start Date', hintText: 'YYYY-MM-DD'))),
+                            const SizedBox(width: 12),
+                            Expanded(child: TextField(controller: regStartTimeController, readOnly: true, onTap: () => pickTime(regStartTimeController), decoration: const InputDecoration(labelText: 'Start Time'))),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(child: TextField(controller: regEndController, readOnly: true, onTap: () => pickDate(regEndController), decoration: const InputDecoration(labelText: 'End Date', hintText: 'YYYY-MM-DD'))),
+                            const SizedBox(width: 12),
+                            Expanded(child: TextField(controller: regEndTimeController, readOnly: true, onTap: () => pickTime(regEndTimeController), decoration: const InputDecoration(labelText: 'End Time'))),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(controller: regLinkController, decoration: const InputDecoration(labelText: 'External Registration Link')),
+                        
+                        const Divider(height: 32),
+                        const Text('Links (Optional)', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 12),
+                        TextField(controller: sheetUrlController, decoration: const InputDecoration(labelText: 'Response Spreadsheet URL')),
+                        const SizedBox(height: 12),
+                        TextField(controller: whatsappLinkController, decoration: const InputDecoration(labelText: 'Event WhatsApp Link')),
+                      ],
+                      const SizedBox(height: 16),
+                      if (coverImageUrl != null)
+                        Container(
+                          height: 100,
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            image: DecorationImage(image: NetworkImage(coverImageUrl!), fit: BoxFit.cover),
+                          ),
+                        ),
+                      SizedBox(
                         width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          image: DecorationImage(image: NetworkImage(coverImageUrl!), fit: BoxFit.cover),
+                        child: OutlinedButton.icon(
+                          icon: isUploading
+                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                              : const Icon(Icons.image),
+                          label: Text(isUploading ? 'Uploading...' : 'Upload Cover Image'),
+                          onPressed: isUploading
+                              ? null
+                              : () async {
+                                  final picker = ImagePicker();
+                                  final picked = await picker.pickImage(source: ImageSource.gallery);
+                                  if (picked != null) {
+                                    setStateDialog(() => isUploading = true);
+                                    final url = await CloudinaryService.uploadImage(File(picked.path));
+                                    setStateDialog(() {
+                                      coverImageUrl = url;
+                                      isUploading = false;
+                                    });
+                                  }
+                                },
                         ),
                       ),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        icon: isUploading
-                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                            : const Icon(Icons.image),
-                        label: Text(isUploading ? 'Uploading...' : 'Upload Cover Image'),
-                        onPressed: isUploading
-                            ? null
-                            : () async {
-                                final picker = ImagePicker();
-                                final picked = await picker.pickImage(source: ImageSource.gallery);
-                                if (picked != null) {
-                                  setStateDialog(() => isUploading = true);
-                                  final url = await CloudinaryService.uploadImage(File(picked.path));
-                                  setStateDialog(() {
-                                    coverImageUrl = url;
-                                    isUploading = false;
-                                  });
-                                }
-                              },
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },
@@ -5895,6 +6001,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             FilledButton(
               onPressed: () async {
                 try {
+                  String? relTitle;
+                  if (!isEvent && relatedEventId.isNotEmpty) {
+                    relTitle = widget.appState.posts.where((p) => p.id == relatedEventId).firstOrNull?.title;
+                  }
+
                   await widget.appState.createPost(
                     clubId: club.id,
                     clubName: club.name,
@@ -5902,10 +6013,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     content: contentController.text.trim(),
                     type: isEvent ? 'event' : 'announcement',
                     status: 'published',
-                    date: isEvent ? dateController.text.trim() : null,
-                    time: isEvent ? timeController.text.trim() : null,
-                    location: isEvent ? locationController.text.trim() : null,
+                    date: isEvent && dateController.text.isNotEmpty ? dateController.text.trim() : null,
+                    time: isEvent && timeController.text.isNotEmpty ? timeController.text.trim() : null,
+                    location: isEvent && locationController.text.isNotEmpty ? locationController.text.trim() : null,
+                    locationType: isEvent ? locationType : null,
+                    locationUrl: isEvent && locationUrlController.text.isNotEmpty ? locationUrlController.text.trim() : null,
                     coverImage: coverImageUrl,
+                    registrationStart: isEvent && regStartController.text.isNotEmpty ? regStartController.text.trim() : null,
+                    registrationStartTime: isEvent && regStartTimeController.text.isNotEmpty ? regStartTimeController.text.trim() : null,
+                    registrationEnd: isEvent && regEndController.text.isNotEmpty ? regEndController.text.trim() : null,
+                    registrationEndTime: isEvent && regEndTimeController.text.isNotEmpty ? regEndTimeController.text.trim() : null,
+                    registrationLink: isEvent && regLinkController.text.isNotEmpty ? regLinkController.text.trim() : null,
+                    responseSpreadsheetUrl: isEvent && sheetUrlController.text.isNotEmpty ? sheetUrlController.text.trim() : null,
+                    eventWhatsappLink: isEvent && whatsappLinkController.text.isNotEmpty ? whatsappLinkController.text.trim() : null,
+                    relatedEventId: !isEvent && relatedEventId.isNotEmpty ? relatedEventId : null,
+                    relatedEventTitle: relTitle,
+                    totalSessions: isEvent ? int.tryParse(totalSessionsController.text.trim()) ?? 1 : null,
                   );
                   _showSuccessSnackBar(isEvent ? 'Event created successfully!' : 'Announcement created successfully!');
                   _reloadSectionData();
@@ -5932,6 +6055,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final selectedNames = <String>{};
     String relatedEventId = '';
 
+    Future<void> pickDate(TextEditingController controller) async {
+      final picked = await showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime(2000),
+        lastDate: DateTime(2100),
+      );
+      if (picked != null) {
+        controller.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+      }
+    }
+
     await showDialog<void>(
       context: context,
       builder: (context) {
@@ -5957,15 +6092,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(height: 12),
                     TextField(
                       controller: deadlineController,
-                      decoration: const InputDecoration(labelText: 'Deadline (YYYY-MM-DD)'),
+                      readOnly: true,
+                      onTap: () => pickDate(deadlineController),
+                      decoration: const InputDecoration(labelText: 'Deadline', hintText: 'YYYY-MM-DD'),
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       value: '',
+                      isExpanded: true,
                       items: [
                         const DropdownMenuItem(value: '', child: Text('No Related Event')),
                         ...posts.where((post) => post.isEvent).map(
-                              (post) => DropdownMenuItem(value: post.id, child: Text(post.title)),
+                              (post) => DropdownMenuItem(value: post.id, child: Text(post.title, overflow: TextOverflow.ellipsis)),
                             ),
                       ],
                       onChanged: (value) => setStateDialog(() => relatedEventId = value ?? ''),
