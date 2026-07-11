@@ -388,7 +388,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                               height: 38,
                                               decoration: BoxDecoration(
                                                 color: Theme.of(context).brightness == Brightness.dark
-                                                    ? const Color(0xFF2563EB).withValues(alpha: 0.15)
+                                                    ? AppTheme.accent(context).withValues(alpha: 0.15)
                                                     : const Color(0xFFEFF6FF),
                                                 borderRadius: BorderRadius.circular(10),
                                               ),
@@ -446,18 +446,18 @@ class _HomeScreenState extends State<HomeScreen> {
                                     minimumSize: Size.zero,
                                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   ),
-                                  child: const Row(
+                                  child: Row(
                                     children: [
                                       Text(
                                         'View all',
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          color: AppTheme.blue,
+                                          color: AppTheme.accent(context),
                                           fontSize: 14,
                                         ),
                                       ),
-                                      SizedBox(width: 4),
-                                      Icon(Icons.chevron_right_rounded, size: 16, color: AppTheme.blue),
+                                      const SizedBox(width: 4),
+                                      Icon(Icons.chevron_right_rounded, size: 16, color: AppTheme.accent(context)),
                                     ],
                                   ),
                                 ),
@@ -537,9 +537,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ),
                                     );
                                   },
-                                  child: const Text(
+                                  child: Text(
                                     'View Month',
-                                    style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.blue),
+                                    style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.accent(context)),
                                   ),
                                 ),
                               ],
@@ -787,7 +787,7 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF2563EB).withValues(alpha: 0.15) : const Color(0xFFEFF6FF), // Light blue-purple tint
+                color: isDark ? AppTheme.accent(context).withValues(alpha: 0.15) : const Color(0xFFEFF6FF), // Light blue-purple tint
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFDBEAFE),
@@ -796,7 +796,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: Icon(
                 icon,
-                color: AppTheme.blue,
+                color: AppTheme.accent(context),
                 size: 24,
               ),
             ),
@@ -967,7 +967,7 @@ class _HomeTopBar extends StatelessWidget {
                   'Club Connect',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.blue,
+                        color: Colors.white,
                       ),
                 ),
                 if (session != null)
@@ -1034,7 +1034,7 @@ class _HomeTopBar extends StatelessWidget {
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF2563EB).withValues(alpha: 0.15) : const Color(0xFFE0E7FF),
+                color: isDark ? AppTheme.accent(context).withValues(alpha: 0.2) : const Color(0xFFE0E7FF),
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -1043,7 +1043,7 @@ class _HomeTopBar extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Theme.of(context).cardColor : const Color(0xFF312E81),
+                    color: isDark ? AppTheme.accent(context) : const Color(0xFF312E81),
                   ),
                 ),
               ),

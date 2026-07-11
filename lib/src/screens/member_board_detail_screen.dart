@@ -180,7 +180,7 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
                           if (index > 0) const SizedBox(height: 24),
                           Row(
                             children: [
-                              Container(width: 4, height: 20, decoration: BoxDecoration(color: AppTheme.blue, borderRadius: BorderRadius.circular(2))),
+                              Container(width: 4, height: 20, decoration: BoxDecoration(color: AppTheme.accent(context), borderRadius: BorderRadius.circular(2))),
                               const SizedBox(width: 10),
                               Text(
                                 _boardLabels[boardType] ?? boardType,
@@ -190,10 +190,10 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.blue.withValues(alpha: 0.12),
+                                  color: AppTheme.accent(context).withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
-                                child: Text('${boardMembers.length}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.blue)),
+                                child: Text('${boardMembers.length}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.accent(context))),
                               ),
                             ],
                           ),
@@ -250,16 +250,16 @@ class _MemberCard extends StatelessWidget {
             backgroundImage: (profileImage != null && profileImage.isNotEmpty)
                 ? NetworkImage(profileImage)
                 : null,
-            backgroundColor: AppTheme.blue.withValues(alpha: 0.15),
+            backgroundColor: AppTheme.accent(context).withValues(alpha: 0.15),
             child: (profileImage == null || profileImage.isEmpty)
-                ? Text(initial, style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.blue))
+                ? Text(initial, style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.accent(context)))
                 : null,
           ),
           title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(role, style: const TextStyle(color: AppTheme.blue, fontWeight: FontWeight.w500, fontSize: 12)),
+              Text(role, style: TextStyle(color: AppTheme.accent(context), fontWeight: FontWeight.w500, fontSize: 12)),
               if (email.isNotEmpty)
                 Text(email, style: const TextStyle(fontSize: 11, color: Colors.grey)),
             ],

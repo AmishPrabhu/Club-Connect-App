@@ -65,7 +65,7 @@ class ProfileSettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'Profile & Settings',
@@ -298,7 +298,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
               title: 'Account Settings',
               subtitle: 'Change password, delete account',
               icon: Icons.settings_outlined,
-              iconColor: const Color(0xFF2563EB),
+              iconColor: AppTheme.accent(context),
               bgColor: const Color(0xFFEFF6FF),
               onTap: () {
                 Navigator.of(context).push(
@@ -590,7 +590,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'Account Settings',
@@ -614,7 +614,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 title: 'Change Password',
                 subtitle: 'Update your password',
                 icon: Icons.lock_outline_rounded,
-                iconColor: const Color(0xFF2563EB),
+                iconColor: AppTheme.accent(context),
                 bgColor: const Color(0xFFEFF6FF),
                 onTap: () {
                   Navigator.of(context).push(
@@ -631,7 +631,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 title: 'Privacy & Security',
                 subtitle: 'Manage your privacy settings',
                 icon: Icons.shield_outlined,
-                iconColor: const Color(0xFF2563EB),
+                iconColor: AppTheme.accent(context),
                 bgColor: const Color(0xFFEFF6FF),
                 onTap: _showPrivacyDialog,
               ),
@@ -640,7 +640,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 title: 'App Information',
                 subtitle: 'Version 1.0.0',
                 icon: Icons.info_outline_rounded,
-                iconColor: const Color(0xFF2563EB),
+                iconColor: AppTheme.accent(context),
                 bgColor: const Color(0xFFEFF6FF),
                 onTap: _showAppInfoDialog,
               ),
@@ -689,7 +689,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: bgColor,
+                    color: isDark ? bgColor.withValues(alpha: 0.15) : bgColor,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(icon, color: iconColor, size: 22),
@@ -701,18 +701,18 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.navy,
+                          color: AppTheme.navyColor(context),
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         subtitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: AppTheme.muted,
+                          color: AppTheme.mutedColor(context),
                         ),
                       ),
                     ],

@@ -269,7 +269,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                     icon: const Icon(Icons.upload_file_rounded),
                     label: const Text('Upload from Device'),
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppTheme.blue,
+                      backgroundColor: AppTheme.accent(context),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
@@ -557,7 +557,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.info_outline_rounded, color: AppTheme.blue, size: 20),
+                  Icon(Icons.info_outline_rounded, color: AppTheme.accent(context), size: 20),
                   const SizedBox(width: 8),
                   Text(
                     'About Club',
@@ -877,7 +877,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                                     .textTheme
                                     .bodyLarge
                                     ?.copyWith(
-                                      color: AppTheme.text.withValues(alpha: 0.8),
+                                      color: AppTheme.textColor(context).withValues(alpha: 0.8),
                                       height: 1.4,
                                     ),
                               ),
@@ -945,12 +945,12 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                                     Share.share(csv.toString(), subject: '${_club.name} Member Roster');
                                     _showSuccessSnackBar('Roster CSV generated. Opening sharing options...');
                                   },
-                                  icon: const Icon(Icons.download_rounded, color: AppTheme.blue),
+                                  icon: Icon(Icons.download_rounded, color: AppTheme.accent(context)),
                                   tooltip: 'Export Members',
                                 ),
                                 IconButton(
                                   onPressed: () => _showMemberDialog(),
-                                  icon: const Icon(Icons.person_add_alt_1_rounded, color: AppTheme.blue),
+                                  icon: Icon(Icons.person_add_alt_1_rounded, color: AppTheme.accent(context)),
                                   tooltip: 'Add Member',
                                 ),
                               ],
@@ -1210,7 +1210,7 @@ class _Metric extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppTheme.blue),
+          Icon(icon, color: AppTheme.accent(context)),
           const SizedBox(height: 12),
           Text(value, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 4),

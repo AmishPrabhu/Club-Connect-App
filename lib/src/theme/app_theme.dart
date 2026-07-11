@@ -1,19 +1,37 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 
 class AppTheme {
-  static const Color navy = Color(0xFF002147);
+  static Color get navy {
+    try {
+      final brightness = PlatformDispatcher.instance.platformBrightness;
+      return brightness == Brightness.dark ? const Color(0xFFF8FAFC) : const Color(0xFF002147);
+    } catch (_) {
+      return const Color(0xFF002147);
+    }
+  }
   static const Color surface = Color(0xFFF4F7FB);
   static const Color card = Colors.white;
   static const Color text = Color(0xFF162033);
   static const Color muted = Color(0xFF6E7A8A);
   static const Color cyan = Color(0xFF38BDF8);
-  static const Color blue = Color(0xFF2563EB);
+  
+  static Color get blue {
+    try {
+      final brightness = PlatformDispatcher.instance.platformBrightness;
+      return brightness == Brightness.dark ? darkAccent : const Color(0xFF2563EB);
+    } catch (_) {
+      return const Color(0xFF2563EB);
+    }
+  }
+
   static const Color purple = Color(0xFF7C3AED);
 
   static const Color darkBackground = Color(0xFF000000);
   static const Color darkSurface = Color(0xFF111111);
   static const Color darkText = Color(0xFFF8FAFC);
   static const Color darkMuted = Color(0xFF94A3B8);
+  static const Color darkAccent = Color(0xFF818CF8);
 
   static ThemeData light() {
     final base = ThemeData(
@@ -84,7 +102,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: blue, width: 1.4),
+          borderSide: BorderSide(color: blue, width: 1.4),
         ),
       ),
       chipTheme: base.chipTheme.copyWith(
@@ -120,8 +138,8 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: blue,
-        primary: blue,
+        seedColor: darkAccent,
+        primary: darkAccent,
         secondary: cyan,
         surface: darkSurface,
         brightness: Brightness.dark,
@@ -162,7 +180,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: blue, width: 1.4),
+          borderSide: const BorderSide(color: darkAccent, width: 1.4),
         ),
       ),
       chipTheme: base.chipTheme.copyWith(
@@ -171,7 +189,7 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: blue,
+          backgroundColor: darkAccent,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -218,4 +236,12 @@ class AppTheme {
   /// True when the current theme is dark mode.
   static bool isDark(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark;
+
+  /// Primary accent color that adapts to light/dark mode.
+  static Color accent(BuildContext context) =>
+      isDark(context) ? darkAccent : blue;
+
+  /// Navy text color that adapts to light/dark mode.
+  static Color navyColor(BuildContext context) =>
+      isDark(context) ? darkText : navy;
 }

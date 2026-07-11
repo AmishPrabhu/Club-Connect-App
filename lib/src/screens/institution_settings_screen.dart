@@ -98,13 +98,13 @@ class _InstitutionSettingsScreenState extends State<InstitutionSettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.business_rounded, color: AppTheme.blue),
-                      SizedBox(width: 8),
+                      Icon(Icons.business_rounded, color: AppTheme.accent(context)),
+                      const SizedBox(width: 8),
                       Text(
                         'Institution Branding',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navyColor(context)),
                       ),
                     ],
                   ),
@@ -172,13 +172,13 @@ class _InstitutionSettingsScreenState extends State<InstitutionSettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.mail_outline_rounded, color: AppTheme.blue),
-                      SizedBox(width: 8),
+                      Icon(Icons.mail_outline_rounded, color: AppTheme.accent(context)),
+                      const SizedBox(width: 8),
                       Text(
                         'Global Communication Settings',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navyColor(context)),
                       ),
                     ],
                   ),
@@ -198,7 +198,7 @@ class _InstitutionSettingsScreenState extends State<InstitutionSettingsScreen> {
                     title: const Text('Enable Automated Event Updates'),
                     subtitle: const Text('Send emails to present attendees on event reports or schedule changes.'),
                     value: _enableEmailRouting,
-                    activeColor: AppTheme.blue,
+                    activeColor: AppTheme.accent(context),
                     onChanged: (val) => setState(() => _enableEmailRouting = val),
                     contentPadding: EdgeInsets.zero,
                   ),
@@ -214,7 +214,7 @@ class _InstitutionSettingsScreenState extends State<InstitutionSettingsScreen> {
               child: ElevatedButton(
                 onPressed: _saveSettings,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.blue,
+                  backgroundColor: AppTheme.accent(context),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),

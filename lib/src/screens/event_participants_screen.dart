@@ -360,14 +360,14 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Event Participants'),
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.navy,
+        backgroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.transparent : Colors.white,
+        foregroundColor: AppTheme.navyColor(context),
         elevation: 0,
         bottom: TabBar(
           controller: _tabController,
-          labelColor: AppTheme.navy,
+          labelColor: AppTheme.navyColor(context),
           unselectedLabelColor: Colors.grey,
-          indicatorColor: AppTheme.blue,
+          indicatorColor: AppTheme.accent(context),
           tabs: const [
             Tab(icon: Icon(Icons.people_outline), text: 'Attendance'),
             Tab(icon: Icon(Icons.badge_outlined), text: 'Certificates'),
@@ -384,7 +384,7 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
       floatingActionButton: _tabController.index == 0
           ? FloatingActionButton(
               onPressed: _addParticipant,
-              backgroundColor: AppTheme.blue,
+              backgroundColor: AppTheme.accent(context),
               child: const Icon(Icons.person_add_alt_1_rounded),
             )
           : null,
@@ -415,9 +415,9 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
                     child: ChoiceChip(
                       label: Text('Session $s'),
                       selected: active,
-                      selectedColor: AppTheme.blue,
+                      selectedColor: AppTheme.accent(context),
                       labelStyle: TextStyle(
-                        color: active ? Theme.of(context).cardColor : Colors.black87,
+                        color: active ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87),
                         fontWeight: FontWeight.bold,
                       ),
                       onSelected: (val) {
@@ -493,9 +493,9 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
         children: [
           // Preview Canvas
           if (_templateUrl != null) ...[
-            const Text(
+            Text(
               'Certificate Live Preview',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navy),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navyColor(context)),
             ),
             const SizedBox(height: 8),
             Container(
@@ -672,7 +672,7 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: _isSavingTemplate ? null : _saveTemplateSettings,
-                        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.blue, foregroundColor: Colors.white),
+                         style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent(context), foregroundColor: Colors.white),
                         child: _isSavingTemplate
                             ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                             : const Text('Save Template Configuration'),
@@ -749,7 +749,7 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: isSelected ? AppTheme.blue : Colors.transparent, width: 2),
+          border: Border.all(color: isSelected ? AppTheme.accent(context) : Colors.transparent, width: 2),
         ),
         child: Container(
           width: 24,

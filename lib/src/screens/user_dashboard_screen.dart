@@ -215,14 +215,14 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                             leading: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF2563EB).withValues(alpha: 0.15) : const Color(0xFFEFF6FF),
+                                color: isDark ? AppTheme.accent(context).withValues(alpha: 0.15) : const Color(0xFFEFF6FF),
                                 shape: BoxShape.circle,
                               ),
-                              child: Icon(icon, color: const Color(0xFF3B82F6), size: 20),
+                              child: Icon(icon, color: AppTheme.accent(context), size: 20),
                             ),
                             title: Text(
                               title,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navyColor(context)),
                             ),
                             subtitle: Text(
                               subtitle,
@@ -652,9 +652,9 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                                     ? 'assets/images${managedClub.imageAsset}'
                                                     : managedClub.imageAsset,
                                                 fit: BoxFit.contain,
-                                                errorBuilder: (_, __, ___) => const Icon(Icons.groups_rounded, color: AppTheme.blue),
+                                                errorBuilder: (_, __, ___) => Icon(Icons.groups_rounded, color: AppTheme.accent(context)),
                                               ))
-                                        : const Icon(Icons.groups_rounded, color: AppTheme.blue, size: 28),
+                                        : Icon(Icons.groups_rounded, color: AppTheme.accent(context), size: 28),
                                   ),
                                 ),
                               ],
@@ -729,10 +729,10 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                       ),
                       Text(
                         '${userClubs.length} ${userClubs.length == 1 ? 'Club' : 'Clubs'}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.blue,
+                          color: AppTheme.accent(context),
                         ),
                       ),
                     ],
@@ -888,12 +888,12 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                       GestureDetector(
                         onTap: () => _showAllActivityBottomSheet(
                             rsvpsWithEvents, upcomingRsvps, attendedRsvps, certificateRsvps),
-                        child: const Text(
+                        child: Text(
                           'View All',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.blue,
+                            color: AppTheme.accent(context),
                           ),
                         ),
                       ),
@@ -966,12 +966,12 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                             'Upcoming Events',
                             upcomingRsvps,
                           ),
-                          child: const Text(
+                          child: Text(
                             'View All',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: AppTheme.blue,
+                              color: AppTheme.accent(context),
                             ),
                           ),
                         ),
@@ -1053,10 +1053,10 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                 children: [
                                   Text(
                                     _getMonthName(nextUpcomingEvent.date),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w800,
-                                      color: AppTheme.blue,
+                                      color: AppTheme.accent(context),
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -1425,12 +1425,12 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'Full Activity Log',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.navy,
+                      color: AppTheme.navyColor(context),
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -1466,7 +1466,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                             ? Colors.green
                                             : (isCert
                                                 ? Colors.orange
-                                                : AppTheme.blue))
+                                                : AppTheme.accent(context)))
                                         .withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
@@ -1481,7 +1481,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                           ? Colors.green.shade700
                                           : (isCert
                                               ? Colors.orange.shade700
-                                              : AppTheme.blue),
+                                              : AppTheme.accent(context)),
                                     ),
                                   ),
                                 ),
@@ -1546,19 +1546,19 @@ class _ActivityStatCard extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.navy,
+                color: AppTheme.navyColor(context),
               ),
             ),
             const SizedBox(height: 2),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.muted,
+                color: AppTheme.mutedColor(context),
               ),
             ),
           ],

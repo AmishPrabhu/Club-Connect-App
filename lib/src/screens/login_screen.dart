@@ -43,7 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(32),
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [AppTheme.navy, Color(0xFF0F3B73)],
                       begin: Alignment.topLeft,

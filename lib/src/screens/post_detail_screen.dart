@@ -325,11 +325,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.file_copy_rounded, size: 16, color: AppTheme.blue),
-              SizedBox(width: 8),
-              Text(
+              Icon(Icons.file_copy_rounded, size: 16, color: AppTheme.accent(context)),
+              const SizedBox(width: 8),
+              const Text(
                 'ACTIVITY REPORT',
                 style: TextStyle(
                   fontSize: 11,

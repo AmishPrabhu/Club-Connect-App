@@ -22,7 +22,10 @@ class _RootScreenState extends State<RootScreen> {
 
   Widget _buildNavItem(int index, IconData unselectedIcon, IconData selectedIcon, String label) {
     final isSelected = _index == index;
-    final color = isSelected ? AppTheme.navy : AppTheme.muted;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = isSelected
+        ? (isDark ? Theme.of(context).colorScheme.primary : AppTheme.navy)
+        : (isDark ? AppTheme.darkMuted : AppTheme.muted);
 
     return Expanded(
       child: Semantics(
@@ -39,7 +42,9 @@ class _RootScreenState extends State<RootScreen> {
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? AppTheme.navy.withValues(alpha: 0.08) // Soft navy capsule background
+                    ? (isDark
+                        ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15)
+                        : AppTheme.navy.withValues(alpha: 0.08)) // Soft navy capsule background
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(24),
               ),
@@ -162,11 +167,11 @@ class _TopBar extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                 Text(
                   'Club Connect',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.blue,
+                        color: Colors.white,
                       ),
                 ),
                 if (session != null)
@@ -205,8 +210,14 @@ class _TopBar extends StatelessWidget {
                             ),
                           ),
                         );
-                      },
-                      icon: const Icon(Icons.notifications_none_rounded, color: AppTheme.navy, size: 26),
+                       },
+                      icon: Icon(
+                        Icons.notifications_none_rounded,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : AppTheme.navy,
+                        size: 26,
+                      ),
                     ),
                     if (appState.notifications.any((n) => !n.isRead))
                       Positioned(
@@ -232,17 +243,21 @@ class _TopBar extends StatelessWidget {
             child: Container(
               width: 38,
               height: 38,
-              decoration: const BoxDecoration(
-                color: Color(0xFFE0E7FF), // Light Indigo background matching screenshot
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppTheme.accent(context).withValues(alpha: 0.2)
+                    : const Color(0xFFE0E7FF), // Light Indigo background matching screenshot
                 shape: BoxShape.circle,
               ),
               child: Center(
                 child: Text(
                   session?.name.isNotEmpty == true ? session!.name[0].toUpperCase() : 'A',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF312E81), // Dark indigo text color
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppTheme.accent(context)
+                        : const Color(0xFF312E81), // Dark indigo text color
                   ),
                 ),
               ),

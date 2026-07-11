@@ -464,10 +464,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           shrinkWrap: true,
           children: sections.map((sec) {
             IconData icon = Icons.bookmark_outline_rounded;
-            Color iconColor = AppTheme.blue;
+            Color iconColor = AppTheme.accent(ctx);
             if (sec == 'Overview') {
               icon = Icons.trending_up_rounded;
-              iconColor = AppTheme.blue;
+              iconColor = AppTheme.accent(ctx);
             } else if (sec == 'Members') {
               icon = Icons.people_outline_rounded;
               iconColor = Colors.purple;
@@ -543,7 +543,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   session.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 26,
                     color: AppTheme.navy,
                     fontWeight: FontWeight.bold,
@@ -635,7 +635,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Dashboard Overview',
             style: TextStyle(
               fontSize: 16,
@@ -720,15 +720,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: bgColor,
+              color: Theme.of(context).brightness == Brightness.dark ? iconColor.withValues(alpha: 0.15) : bgColor,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: iconColor, size: 20),
+            child: Icon(
+              icon,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? (iconColor == const Color(0xFF2563EB) ? AppTheme.accent(context) : iconColor.withValues(alpha: 0.95))
+                  : iconColor,
+              size: 20,
+            ),
           ),
           const SizedBox(height: 10),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: AppTheme.navy,
@@ -757,7 +763,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Quick Actions',
                 style: TextStyle(
                   fontSize: 16,
@@ -875,10 +881,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: bgColor,
+                    color: Theme.of(context).brightness == Brightness.dark ? iconColor.withValues(alpha: 0.15) : bgColor,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, color: iconColor, size: 22),
+                  child: Icon(
+                    icon,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? (iconColor == const Color(0xFF2563EB) ? AppTheme.accent(context) : iconColor.withValues(alpha: 0.95))
+                        : iconColor,
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -887,7 +899,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                           color: AppTheme.navy,
@@ -923,7 +935,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.navy),
+            icon: Icon(Icons.arrow_back_rounded, color: AppTheme.navyColor(context)),
             onPressed: () => setState(() => _selectedSection = 'Overview'),
           ),
           const SizedBox(width: 8),
@@ -932,7 +944,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _selectedSection,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: AppTheme.navy,
@@ -964,7 +976,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Administrative Control Center',
             style: TextStyle(
               color: AppTheme.navy,
@@ -983,8 +995,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 12),
           Text(
             'Welcome, ${session.name}',
-            style: const TextStyle(
-              color: AppTheme.blue,
+            style: TextStyle(
+              color: AppTheme.accent(context),
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
@@ -1006,15 +1018,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           _buildStatCard(
             icon: Icons.people_alt_outlined,
-            iconColor: AppTheme.blue,
-            iconBgColor: AppTheme.blue,
+            iconColor: AppTheme.accent(context),
+            iconBgColor: AppTheme.accent(context),
             value: '$clubsCount',
             label: 'TOTAL CLUBS',
           ),
           _buildStatCard(
             icon: Icons.calendar_month_outlined,
-            iconColor: AppTheme.blue,
-            iconBgColor: AppTheme.blue,
+            iconColor: AppTheme.accent(context),
+            iconBgColor: AppTheme.accent(context),
             value: '${events.length}',
             label: 'UPCOMING',
           ),
@@ -1064,7 +1076,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: iconBgColor,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? iconColor.withValues(alpha: 0.15)
+                  : iconBgColor,
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: iconColor, size: 24),
@@ -1075,10 +1089,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.navy,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppTheme.textColor(context)
+                      : AppTheme.navy,
                 ),
               ),
               const SizedBox(height: 2),
@@ -1167,7 +1183,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           const SizedBox(height: 6),
                           Text(
                             post.title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                               color: AppTheme.navy,
@@ -1208,9 +1224,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Expanded(
               child: Row(
                 children: [
-                  Container(width: 4, height: 18, color: AppTheme.blue),
+                  Container(width: 4, height: 18, color: AppTheme.accent(context)),
                   const SizedBox(width: 8),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Recent Campus Activity',
                       style: TextStyle(
@@ -1297,7 +1313,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           height: 48,
           child: FilledButton.icon(
             style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.blue,
+              backgroundColor: AppTheme.accent(context),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: _showCreateClubDialog,
@@ -1371,7 +1387,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     Text(
                       club.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.navy,
@@ -1512,8 +1528,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildCategoryBadge(String category) {
-    Color bgColor = AppTheme.blue;
-    Color textColor = AppTheme.blue;
+    Color bgColor = AppTheme.accent(context);
+    Color textColor = AppTheme.accent(context);
 
     switch (category.toLowerCase()) {
       case 'academic':
@@ -1632,7 +1648,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onTap: () => _showAssignLeadershipDialog(club, roleLabel, roleKey),
             child: Row(
               children: [
-                const Icon(Icons.add, size: 14, color: AppTheme.blue),
+                Icon(Icons.add, size: 14, color: AppTheme.blue),
                 const SizedBox(width: 4),
                 Text(
                   'Assign',
@@ -1834,7 +1850,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'All Posts & Announcements',
           style: TextStyle(
             fontSize: 20,
@@ -1935,7 +1951,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           const SizedBox(height: 6),
                           Text(
                             post.title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                               color: AppTheme.navy,
@@ -2002,7 +2018,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Expanded(
+            Expanded(
               child: Text(
                 'System Broadcasts',
                 style: TextStyle(
@@ -2107,7 +2123,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           const SizedBox(height: 6),
                           Text(
                             n.title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                               color: AppTheme.navy,
@@ -2180,7 +2196,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   Container(width: 4, height: 18, color: Colors.green.shade600),
                   const SizedBox(width: 8),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Teacher Management',
                       style: TextStyle(
@@ -2339,7 +2355,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: 12),
                 Text(
                   name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.navy,
@@ -2449,10 +2465,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         ? 'assets/images${_selectedClub!.imageAsset}'
                                         : _selectedClub!.imageAsset,
                                     fit: BoxFit.contain,
-                                    errorBuilder: (_, __, ___) => const Icon(Icons.groups_rounded, color: AppTheme.blue),
+                                    errorBuilder: (_, __, ___) => Icon(Icons.groups_rounded, color: AppTheme.accent(context)),
                                   ),
                           )
-                        : const Icon(Icons.groups_rounded, color: AppTheme.blue, size: 28),
+                        : Icon(Icons.groups_rounded, color: AppTheme.accent(context), size: 28),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -2463,10 +2479,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           _selectedClub!.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.navy,
+                            color: AppTheme.navyColor(context),
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -2476,27 +2492,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               : _selectedClub!.description,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppTheme.muted,
+                            color: AppTheme.mutedColor(context),
                           ),
                         ),
                         const SizedBox(height: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF5F3FF),
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF7C3AED).withValues(alpha: 0.15)
+                                : const Color(0xFFF5F3FF),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFFDDD6FE), width: 1),
+                            border: Border.all(
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? const Color(0xFFDDD6FE).withValues(alpha: 0.3)
+                                    : const Color(0xFFDDD6FE),
+                                width: 1),
                           ),
                           child: Text(
                             (widget.initialRole ?? session.role).toUpperCase(),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF7C3AED),
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? const Color(0xFFA78BFA)
+                                  : const Color(0xFF7C3AED),
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -2557,7 +2581,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 24),
 
             // 3. Quick Actions Section (Image 2 layout)
-            const Text(
+            Text(
               'Quick Actions',
               style: TextStyle(
                 fontSize: 16,
@@ -2710,19 +2734,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Upcoming Event',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.navy,
+                    color: AppTheme.navyColor(context),
                   ),
                 ),
                 if (upcomingClubEvents.isNotEmpty)
                   TextButton(
                     onPressed: () => setState(() => _selectedSection = 'Events'),
                     style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                    child: const Text('View All', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.blue)),
+                    child: Text('View All', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.blue)),
                   ),
               ],
             ),
@@ -2782,7 +2806,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           children: [
                             Text(
                               _getMonthName(nextUpcoming.date),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w800,
                                 color: AppTheme.blue,
@@ -2791,10 +2815,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             const SizedBox(height: 2),
                             Text(
                               '${nextUpcoming.date?.day ?? ""}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w900,
-                                color: AppTheme.navy,
+                                color: AppTheme.navyColor(context),
                               ),
                             ),
                           ],
@@ -2811,7 +2835,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               nextUpcoming.title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: AppTheme.navy,
@@ -2854,9 +2878,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 24),
 
             // Secondary: WhatsApp / Instagram Profile and template links
-            const Text(
+            Text(
               'Social & Configurations',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.navy),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.navyColor(context)),
             ),
             const SizedBox(height: 10),
             _buildProfilePictureCard(canEdit),
@@ -2970,17 +2994,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ? 'assets/images${_selectedClub!.imageAsset}'
                                     : _selectedClub!.imageAsset,
                                 fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => const Icon(Icons.groups_rounded, color: AppTheme.blue),
+                                errorBuilder: (_, __, ___) => Icon(Icons.groups_rounded, color: AppTheme.blue),
                               ),
                       )
-                    : const Icon(Icons.groups_rounded, color: AppTheme.blue, size: 28),
+                    : Icon(Icons.groups_rounded, color: AppTheme.blue, size: 28),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Advisor Dashboard',
                       style: TextStyle(
                         fontSize: 20,
@@ -3000,16 +3024,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEFF6FF),
+                        color: Theme.of(context).brightness == Brightness.dark ? AppTheme.accent(context).withValues(alpha: 0.15) : const Color(0xFFEFF6FF),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFBFDBFE), width: 1),
+                        border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? AppTheme.accent(context).withValues(alpha: 0.3) : const Color(0xFFBFDBFE), width: 1),
                       ),
-                      child: const Text(
+                      child: Text(
                         'ADVISOR',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF2563EB),
+                          color: AppTheme.blue,
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -3113,7 +3137,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.file_copy_rounded, color: AppTheme.blue),
+              leading: Icon(Icons.file_copy_rounded, color: AppTheme.blue),
               title: const Text('Event Reports', style: TextStyle(fontWeight: FontWeight.bold)),
               onTap: () {
                 setState(() => _teacherActiveTab = 'Reports');
@@ -3159,7 +3183,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -3167,11 +3191,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.navy,
+                        color: AppTheme.navyColor(context),
                       ),
                     ),
-                    SizedBox(height: 4),
-                    Text(
+                    const SizedBox(height: 4),
+                    const Text(
                       'Monitor club event reports and activities',
                       style: TextStyle(fontSize: 12, color: AppTheme.muted),
                     ),
@@ -3183,7 +3207,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2563EB),
+                      color: AppTheme.blue,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.add, color: Colors.white, size: 20),
@@ -3266,7 +3290,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                 : club.imageAsset,
                                             fit: BoxFit.contain,
                                           ))
-                                    : const Icon(Icons.groups_rounded, color: AppTheme.blue, size: 16),
+                                    : Icon(Icons.groups_rounded, color: AppTheme.blue, size: 16),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -3276,7 +3300,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 children: [
                                   Text(
                                     club.name,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy),
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navyColor(context)),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -3330,12 +3354,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 width: 28,
                                 height: 28,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFEFF6FF),
+                                  color: Theme.of(context).brightness == Brightness.dark ? AppTheme.accent(context).withValues(alpha: 0.15) : const Color(0xFFEFF6FF),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: IconButton(
                                   padding: EdgeInsets.zero,
-                                  icon: const Icon(Icons.download_rounded, size: 14, color: Color(0xFF2563EB)),
+                                  icon: Icon(Icons.download_rounded, size: 14, color: AppTheme.blue),
                                   onPressed: () => _downloadAllReports(club.id),
                                 ),
                               ),
@@ -3363,11 +3387,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           GestureDetector(
             onTap: () => setState(() => _teacherActiveTab = 'Overview'),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.arrow_back_ios_new_rounded, size: 12, color: AppTheme.blue),
-                SizedBox(width: 4),
+                const SizedBox(width: 4),
                 Text(
                   'Back to Overview',
                   style: TextStyle(color: AppTheme.blue, fontWeight: FontWeight.bold, fontSize: 13),
@@ -3389,11 +3413,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: [
         GestureDetector(
           onTap: () => setState(() => _selectedClub = null),
-          child: const Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.arrow_back_ios_new_rounded, size: 12, color: AppTheme.blue),
-              SizedBox(width: 4),
+              const SizedBox(width: 4),
               Text(
                 'Back to Dashboard',
                 style: TextStyle(color: AppTheme.blue, fontWeight: FontWeight.bold, fontSize: 13),
@@ -3437,10 +3461,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ? 'assets/images${_selectedClub!.imageAsset}'
                                     : _selectedClub!.imageAsset,
                                 fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => const Icon(Icons.groups_rounded, color: AppTheme.blue),
+                                errorBuilder: (_, __, ___) => Icon(Icons.groups_rounded, color: AppTheme.blue),
                               ),
                       )
-                    : const Icon(Icons.groups_rounded, color: AppTheme.blue, size: 28),
+                    : Icon(Icons.groups_rounded, color: AppTheme.blue, size: 28),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -3449,7 +3473,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     Text(
                       _selectedClub!.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.navy,
@@ -3508,7 +3532,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         const SizedBox(height: 24),
         // Quick Actions
-        const Text(
+        Text(
           'Quick Actions',
           style: TextStyle(
             fontSize: 16,
@@ -3564,9 +3588,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Event Reports',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navyColor(context)),
                 ),
                 Row(
                   children: [
@@ -3580,7 +3604,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: _teacherReportYearFilter,
-                          style: const TextStyle(fontSize: 12, color: AppTheme.navy, fontWeight: FontWeight.bold),
+                          style: TextStyle(fontSize: 12, color: AppTheme.navyColor(context), fontWeight: FontWeight.bold),
                           items: ['All Years', '2026', '2027', '2028'].map((y) {
                             return DropdownMenuItem(value: y, child: Text(y));
                           }).toList(),
@@ -3659,7 +3683,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             children: [
                               Text(
                                 report['eventTitle']?.toString() ?? 'Untitled Event',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy),
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navyColor(context)),
                               ),
                               const SizedBox(height: 2),
                               const Text('ID: N/A', style: TextStyle(fontSize: 10, color: Colors.grey)),
@@ -3775,7 +3799,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Expanded(
                   child: Text(
                     '${_selectedClub!.name} Members',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navyColor(context)),
                   ),
                 ),
                 FilledButton.icon(
@@ -3805,7 +3829,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: DropdownButton<String>(
                         value: _teacherYearFilter,
                         isExpanded: true,
-                        style: const TextStyle(fontSize: 12, color: AppTheme.navy, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 12, color: AppTheme.navyColor(context), fontWeight: FontWeight.bold),
                         items: ['All Years', '2026', '2027', '2028'].map((y) {
                           return DropdownMenuItem(value: y, child: Text(y));
                         }).toList(),
@@ -3829,7 +3853,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: DropdownButton<String>(
                         value: _teacherBoardFilter,
                         isExpanded: true,
-                        style: const TextStyle(fontSize: 12, color: AppTheme.navy, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 12, color: AppTheme.navyColor(context), fontWeight: FontWeight.bold),
                         items: ['All Boards', 'Main Board (TY)', 'Executive Board (SY)', 'Member Board (FY)'].map((b) {
                           return DropdownMenuItem(value: b, child: Text(b));
                         }).toList(),
@@ -3892,7 +3916,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           children: [
                             Text(
                               name,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navyColor(context)),
                             ),
                             const SizedBox(width: 8),
                             _buildPill(boardLabel),
@@ -4018,7 +4042,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(height: 20),
         
         // 2. Events List
-        const Text(
+        Text(
           'Club Events',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navy),
         ),
@@ -4063,7 +4087,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           Text(
                             event.title,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy),
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navyColor(context)),
                           ),
                           const SizedBox(height: 6),
                           Row(
@@ -4087,7 +4111,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.visibility_outlined, color: AppTheme.blue),
+                      icon: Icon(Icons.visibility_outlined, color: AppTheme.blue),
                       onPressed: () {
                         Navigator.push(
                           context,
@@ -4179,11 +4203,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Expanded(
                         child: Text(
                           report['eventTitle']?.toString() ?? 'Untitled Event',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy),
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy),
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.copy_all_rounded, color: AppTheme.blue),
+                        icon: Icon(Icons.copy_all_rounded, color: AppTheme.blue),
                         onPressed: () {
                           final url = report['reportUrl']?.toString() ?? '';
                           if (url.isNotEmpty) {
@@ -4207,7 +4231,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             const Text('Submitted By: ', style: TextStyle(fontSize: 12, color: AppTheme.muted)),
                             Text(
                               report['reportSubmittedByName']?.toString() ?? 'Unknown',
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.navyColor(context)),
                             ),
                           ],
                         ),
@@ -4217,7 +4241,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             const Text('Event Date: ', style: TextStyle(fontSize: 12, color: AppTheme.muted)),
                             Text(
                               eventDate != null ? eventDate.toLocal().toString().split(' ')[0] : 'N/A',
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.navyColor(context)),
                             ),
                           ],
                         ),
@@ -4227,7 +4251,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             const Text('Submitted: ', style: TextStyle(fontSize: 12, color: AppTheme.muted)),
                             Text(
                               submittedAt != null ? submittedAt.toLocal().toString().split(' ')[0] : 'N/A',
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.navyColor(context)),
                             ),
                           ],
                         ),
@@ -4290,7 +4314,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Expanded(
                     child: Text(
                       event.title,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navyColor(context)),
                     ),
                   ),
                   Container(
@@ -4373,7 +4397,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Club Officers',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navy),
         ),
@@ -4402,11 +4426,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: const BoxDecoration(
-              color: Color(0xFFEFF6FF),
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark ? AppTheme.accent(context).withValues(alpha: 0.15) : const Color(0xFFEFF6FF),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.person_rounded, color: Color(0xFF2563EB), size: 24),
+            child: Icon(Icons.person_rounded, color: AppTheme.blue, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -4415,7 +4439,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Text(
                   role,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -4432,7 +4456,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             )
           else
             IconButton(
-              icon: const Icon(Icons.person_add_alt_1_rounded, color: AppTheme.blue),
+              icon: Icon(Icons.person_add_alt_1_rounded, color: AppTheme.blue),
               onPressed: () => _showAssignOfficerDialog(role),
             ),
         ],
@@ -4707,7 +4731,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               contentPadding: EdgeInsets.zero,
               title: Text(
                 _selectedClub!.whatsappUrl,
-                style: const TextStyle(color: AppTheme.blue, decoration: TextDecoration.underline),
+                style: TextStyle(color: AppTheme.blue, decoration: TextDecoration.underline),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -4800,7 +4824,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               contentPadding: EdgeInsets.zero,
               title: Text(
                 _selectedClub!.instagramUrl,
-                style: const TextStyle(color: AppTheme.blue, decoration: TextDecoration.underline),
+                style: TextStyle(color: AppTheme.blue, decoration: TextDecoration.underline),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -5124,7 +5148,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final clubEvents = widget.appState.posts.where((p) => p.clubId == _selectedClub!.id && p.isEvent).toList();
     final now = DateTime.now();
     final upcoming = clubEvents.where((e) => e.date != null && e.date!.isAfter(now)).toList();
-    final past = clubEvents.where((e) => e.date != null && !e.date!.isAfter(now)).toList();
+    final past = clubEvents.where((e) => e.date != null && !e.date!.isBefore(now)).toList();
 
     return DefaultTabController(
       length: 2,
@@ -5153,11 +5177,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          const TabBar(
+          TabBar(
             labelColor: AppTheme.blue,
             unselectedLabelColor: Colors.grey,
             indicatorColor: AppTheme.blue,
-            tabs: [
+            tabs: const [
               Tab(text: 'Upcoming'),
               Tab(text: 'Past'),
             ],
@@ -6327,7 +6351,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         child: Text(
           label,
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.navy),
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.navyColor(context)),
         ),
       ),
     );
@@ -6770,9 +6794,9 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
                     : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                         Container(padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(color: AppTheme.blue.withValues(alpha: 0.1), shape: BoxShape.circle),
-                            child: const Icon(Icons.add_photo_alternate_outlined, color: AppTheme.blue, size: 30)),
+                            child: Icon(Icons.add_photo_alternate_outlined, color: AppTheme.blue, size: 30)),
                         const SizedBox(height: 10),
-                        const Text('Tap to add Cover Photo / Video',
+                        Text('Tap to add Cover Photo / Video',
                             style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.blue)),
                         const SizedBox(height: 4),
                         const Text('Required \u00b7 Max 1', style: TextStyle(fontSize: 12, color: AppTheme.muted)),
@@ -6906,7 +6930,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
                 ...events.map((p) => DropdownMenuItem(
                   value: p.id,
                   child: Row(children: [
-                    const Icon(Icons.event_rounded, size: 16, color: AppTheme.blue),
+                    Icon(Icons.event_rounded, size: 16, color: AppTheme.blue),
                     const SizedBox(width: 8),
                     Expanded(child: Text(p.title, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14))),
                   ]),
@@ -6991,7 +7015,6 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
             (v) => setState(() => timeFromHour = v!),
             (v) => setState(() => timeFromMin = v!),
             (v) => setState(() => timeFromPeriod = v!)),
-        const SizedBox(height: 12),
         Divider(height: 1, color: isDark ? Colors.white.withValues(alpha: 0.07) : Colors.blueGrey.withValues(alpha: 0.1)),
         const SizedBox(height: 12),
         row('To', timeToHour, timeToMin, timeToPeriod,
@@ -7025,13 +7048,13 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
           border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.blueGrey.withValues(alpha: 0.12)),
         ),
         child: Row(children: [
-          const Icon(Icons.repeat_rounded, size: 18, color: AppTheme.blue),
+          Icon(Icons.repeat_rounded, size: 18, color: AppTheme.blue),
           const SizedBox(width: 10),
           const Text('Sessions', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
           const Spacer(),
           _ctr(Icons.remove_rounded, totalSessions > 1 ? () => setState(() => totalSessions--) : null),
           Padding(padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text('$totalSessions', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.navy))),
+              child: Text('$totalSessions', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.navyColor(context)))),
           _ctr(Icons.add_rounded, totalSessions < 20 ? () => setState(() => totalSessions++) : null),
         ]),
       ),
@@ -7516,7 +7539,9 @@ class _MiniStatCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: bgColor,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? iconColor.withValues(alpha: 0.15)
+                  : bgColor,
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: iconColor, size: 16),
@@ -7524,19 +7549,21 @@ class _MiniStatCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: AppTheme.navy,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? AppTheme.textColor(context)
+                  : AppTheme.navy,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 9,
               fontWeight: FontWeight.bold,
-              color: AppTheme.muted,
+              color: AppTheme.mutedColor(context),
             ),
           ),
         ],
@@ -7590,7 +7617,9 @@ class _QuickActionTile extends StatelessWidget {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: bgColor,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? iconColor.withValues(alpha: 0.15)
+                        : bgColor,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(icon, color: iconColor, size: 20),
@@ -7602,18 +7631,18 @@ class _QuickActionTile extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.navy,
+                          color: AppTheme.navyColor(context),
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         subtitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10,
-                          color: AppTheme.muted,
+                          color: AppTheme.mutedColor(context),
                         ),
                       ),
                     ],

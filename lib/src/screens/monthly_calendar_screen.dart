@@ -301,9 +301,9 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: isSelected
-                                      ? AppTheme.blue
+                                      ? AppTheme.accent(context)
                                       : isToday
-                                          ? AppTheme.blue.withValues(alpha: 0.1)
+                                          ? AppTheme.accent(context).withValues(alpha: 0.1)
                                           : Colors.transparent,
                                   shape: BoxShape.circle,
                                 ),
@@ -324,8 +324,8 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                                           fontSize: 15,
                                           color: isSelected
                                               ? Theme.of(context).cardColor : isToday
-                                                  ? AppTheme.blue
-                                                  : AppTheme.text,
+                                                  ? AppTheme.accent(context)
+                                                  : AppTheme.textColor(context),
                                         ),
                                       ),
                                     ),

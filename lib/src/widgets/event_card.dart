@@ -95,7 +95,7 @@ class EventCard extends StatelessWidget {
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 fontWeight: FontWeight.w800,
-                                color: AppTheme.blue,
+                                color: AppTheme.accent(context),
                               ),
                         ),
                       ),
@@ -137,7 +137,7 @@ class EventCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(
                       context,
-                    ).textTheme.bodyMedium?.copyWith(color: AppTheme.muted),
+                    ).textTheme.bodyMedium?.copyWith(color: AppTheme.mutedColor(context)),
                   ),
                   const SizedBox(height: 14),
                   Wrap(
@@ -223,7 +223,7 @@ class _Meta extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: AppTheme.text,
+            color: AppTheme.textColor(context),
             fontWeight: FontWeight.w600,
           ),
         ),
