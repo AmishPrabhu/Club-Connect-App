@@ -439,10 +439,13 @@ class AppState extends ChangeNotifier {
     required String status,
     String? date,
     String? time,
+    String? timeFrom,
+    String? timeTo,
     String? location,
     String? locationType,
     String? locationUrl,
     String? coverImage,
+    List<String> descriptionImages = const [],
     String? registrationStart,
     String? registrationStartTime,
     String? registrationEnd,
@@ -464,10 +467,13 @@ class AppState extends ChangeNotifier {
     };
     if (date != null) body['date'] = date;
     if (time != null) body['time'] = time;
+    if (timeFrom != null) body['timeFrom'] = timeFrom;
+    if (timeTo != null) body['timeTo'] = timeTo;
     if (location != null) body['location'] = location;
     if (locationType != null) body['locationType'] = locationType;
     if (locationUrl != null) body['locationUrl'] = locationUrl;
     if (coverImage != null) body['coverImage'] = coverImage;
+    if (descriptionImages.isNotEmpty) body['descriptionImages'] = descriptionImages;
     if (registrationStart != null) body['registrationStart'] = registrationStart;
     if (registrationStartTime != null) body['registrationStartTime'] = registrationStartTime;
     if (registrationEnd != null) body['registrationEnd'] = registrationEnd;

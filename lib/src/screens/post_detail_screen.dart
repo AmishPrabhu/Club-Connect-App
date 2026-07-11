@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 import '../models/post_item.dart';
 import '../state/app_state.dart';
@@ -119,10 +120,21 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                             const SizedBox(height: 16),
-                            Text(
-                              post.content,
-                              style: Theme.of(context).textTheme.bodyLarge,
-                            ),
+                             MarkdownBody(
+                               data: post.content,
+                               styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                                 p: Theme.of(context).textTheme.bodyLarge,
+                                 listBullet: Theme.of(context).textTheme.bodyLarge,
+                               ),
+                               onTapLink: (text, href, title) async {
+                                 if (href != null) {
+                                   final uri = Uri.parse(href);
+                                   if (await canLaunchUrl(uri)) {
+                                     launchUrl(uri, mode: LaunchMode.externalApplication);
+                                   }
+                                 }
+                               },
+                             ),
                             if (post.date != null) ...[
                               const SizedBox(height: 20),
                               _MetaRow(

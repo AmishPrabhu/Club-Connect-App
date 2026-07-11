@@ -8,11 +8,14 @@ class PostItem {
     required this.type,
     this.date,
     this.time,
+    this.timeFrom,
+    this.timeTo,
     this.location,
     this.locationType,
     this.locationUrl,
     this.coverAsset,
     this.attachments = const [],
+    this.descriptionImages = const [],
     this.rsvps,
     this.budgetImageUrl,
     this.budgetVerified,
@@ -39,12 +42,18 @@ class PostItem {
   final String content;
   final String type;
   final DateTime? date;
+  /// Legacy single time string (e.g. "5:00 PM"). Use [timeFrom]/[timeTo] when available.
   final String? time;
+  /// New structured time fields
+  final String? timeFrom;
+  final String? timeTo;
   final String? location;
   final String? locationType;
   final String? locationUrl;
   final String? coverAsset;
   final List<String> attachments;
+  /// Inline description images uploaded alongside the post
+  final List<String> descriptionImages;
 
   /// RSVP count — mirrors DBPost.rsvps (number of RSVP names)
   final int? rsvps;
@@ -118,11 +127,16 @@ class PostItem {
           ? DateTime.tryParse(json['date'].toString())
           : null,
       time: json['time']?.toString(),
+      timeFrom: json['timeFrom']?.toString(),
+      timeTo: json['timeTo']?.toString(),
       location: json['location']?.toString(),
       locationType: json['locationType']?.toString(),
       locationUrl: json['locationUrl']?.toString(),
       coverAsset: json['coverImage']?.toString(),
       attachments: attachments,
+      descriptionImages: (json['descriptionImages'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
       rsvps: rsvpsCount,
       budgetImageUrl: json['budgetImage']?.toString(),
       budgetVerified: json['budgetVerified'] as bool?,

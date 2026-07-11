@@ -132,7 +132,7 @@ class EventCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    post.content,
+                    _stripMarkdown(post.content),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(
@@ -231,3 +231,16 @@ class _Meta extends StatelessWidget {
     );
   }
 }
+
+String _stripMarkdown(String markdown) {
+  // 1. Link parsing: [text](url) -> text
+  var text = markdown.replaceAllMapped(RegExp(r'\[([^\]]+)\]\([^)]+\)'), (match) => match[1] ?? '');
+  // 2. Bold/Italic formatting: **text** or __text__ or *text* or _text_ -> text
+  text = text.replaceAll(RegExp(r'\*\*|__|\*|_'), '');
+  // 3. Headers: # Heading -> Heading
+  text = text.replaceAll(RegExp(r'^#+\s+', multiLine: true), '');
+  // 4. Bullet lists: - item -> item
+  text = text.replaceAll(RegExp(r'^\s*-\s+', multiLine: true), '');
+  return text.trim();
+}
+
