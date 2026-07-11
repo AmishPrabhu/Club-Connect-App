@@ -81,7 +81,7 @@ class _InstitutionSettingsScreenState extends State<InstitutionSettingsScreen> {
         foregroundColor: AppTheme.navy,
         elevation: 0,
       ),
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: Theme.of(context).dividerColor,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -91,9 +91,9 @@ class _InstitutionSettingsScreenState extends State<InstitutionSettingsScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(color: Theme.of(context).dividerColor),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,7 +124,7 @@ class _InstitutionSettingsScreenState extends State<InstitutionSettingsScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: Theme.of(context).dividerColor),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: DropdownButtonHideUnderline(
@@ -165,9 +165,9 @@ class _InstitutionSettingsScreenState extends State<InstitutionSettingsScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(color: Theme.of(context).dividerColor),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

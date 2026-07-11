@@ -323,8 +323,7 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                                               : FontWeight.w500,
                                           fontSize: 15,
                                           color: isSelected
-                                              ? Colors.white
-                                              : isToday
+                                              ? Theme.of(context).cardColor : isToday
                                                   ? AppTheme.blue
                                                   : AppTheme.text,
                                         ),
@@ -338,8 +337,7 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                                           height: 5,
                                           decoration: BoxDecoration(
                                             color: isSelected
-                                                ? Colors.white
-                                                : const Color(0xFF22C55E), // Green dot
+                                                ? Theme.of(context).cardColor : const Color(0xFF22C55E), // Green dot
                                             shape: BoxShape.circle,
                                           ),
                                         ),

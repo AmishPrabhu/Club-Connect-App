@@ -211,17 +211,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ? 'Connecting...'
                                     : 'Sign in with Google',
                                 style: TextStyle(
-                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                                  color: Theme.of(context).brightness == Brightness.dark ? Theme.of(context).cardColor : Colors.black87,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
                             style: OutlinedButton.styleFrom(
-                              backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
+                              backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppTheme.cardBg(context) : Colors.white,
                               side: BorderSide(
                                 color: Theme.of(context).brightness == Brightness.dark
                                     ? Colors.white.withValues(alpha: 0.1)
-                                    : Colors.grey.shade300,
+                                    : Theme.of(context).dividerColor,
                               ),
                             ),
                           ),

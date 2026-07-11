@@ -181,7 +181,7 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           if (appState.isLoading)
-            const SizedBox(
+            SizedBox(
               width: 20,
               height: 20,
               child: CircularProgressIndicator(strokeWidth: 2),
@@ -218,7 +218,7 @@ class _TopBar extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: Colors.redAccent,
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
+                            border: Border.all(color: Theme.of(context).cardColor, width: 2),
                           ),
                         ),
                       ),
@@ -267,8 +267,8 @@ class _BackgroundDecor extends StatelessWidget {
           end: Alignment.bottomCenter,
           colors: isDark
               ? [
-                  const Color(0xFF0F172A),
-                  const Color(0xFF0F172A),
+                  AppTheme.surfaceBg(context),
+                  AppTheme.surfaceBg(context),
                 ]
               : [
                   const Color(0xFFF8FAFC),

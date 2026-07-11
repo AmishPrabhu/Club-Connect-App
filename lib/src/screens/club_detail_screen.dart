@@ -243,9 +243,9 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                   width: 100,
                   height: 100,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: AppTheme.surfaceBg(context),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade300),
+                    border: Border.all(color: Theme.of(context).dividerColor),
                   ),
                   padding: const EdgeInsets.all(8),
                   child: _isUploadingLogo
@@ -269,7 +269,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                     icon: const Icon(Icons.upload_file_rounded),
                     label: const Text('Upload from Device'),
                     style: FilledButton.styleFrom(
-                      backgroundColor: Colors.blue.shade700,
+                      backgroundColor: AppTheme.blue,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
@@ -357,7 +357,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                 currentValue: '',
               ),
               child: CustomPaint(
-                painter: DashedBorderPainter(color: Colors.grey.shade400, gap: 6),
+                painter: DashedBorderPainter(color: Theme.of(context).dividerColor, gap: 6),
                 child: Container(
                   height: 48,
                   width: double.infinity,
@@ -453,7 +453,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                 currentValue: '',
               ),
               child: CustomPaint(
-                painter: DashedBorderPainter(color: Colors.grey.shade400, gap: 6),
+                painter: DashedBorderPainter(color: Theme.of(context).dividerColor, gap: 6),
                 child: Container(
                   height: 48,
                   width: double.infinity,
@@ -557,7 +557,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.info_outline_rounded, color: Colors.blue, size: 20),
+                  const Icon(Icons.info_outline_rounded, color: AppTheme.blue, size: 20),
                   const SizedBox(width: 8),
                   Text(
                     'About Club',
@@ -844,7 +844,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                                     width: 72,
                                     height: 72,
                                     decoration: BoxDecoration(
-                                      color: Colors.white,
+                                      color: Theme.of(context).cardColor,
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     padding: const EdgeInsets.all(10),

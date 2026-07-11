@@ -1,3 +1,4 @@
+import 'package:club_connect_flutter/src/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
 class GlassCard extends StatelessWidget {
@@ -19,7 +20,7 @@ class GlassCard extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: isDark
-            ? const Color(0xFF1E293B)
+            ? AppTheme.cardBg(context)
             : Colors.white.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(

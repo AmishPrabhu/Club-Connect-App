@@ -1,3 +1,4 @@
+import 'package:club_connect_flutter/src/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -317,16 +318,16 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       margin: const EdgeInsets.only(top: 16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: AppTheme.surfaceBg(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
             children: [
-              Icon(Icons.file_copy_rounded, size: 16, color: Colors.blue),
+              Icon(Icons.file_copy_rounded, size: 16, color: AppTheme.blue),
               SizedBox(width: 8),
               Text(
                 'ACTIVITY REPORT',
@@ -530,7 +531,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       }
                     },
               child: dialogSubmitting
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),

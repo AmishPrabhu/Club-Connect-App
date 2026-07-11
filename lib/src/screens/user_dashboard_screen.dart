@@ -207,7 +207,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                             color: Theme.of(context).cardColor,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
+                              color: isDark ? Colors.white.withValues(alpha: 0.08) : Theme.of(context).dividerColor,
                               width: 1.5,
                             ),
                           ),
@@ -447,7 +447,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                         border: Border.all(
                           color: Theme.of(context).brightness == Brightness.dark
                               ? Colors.white.withValues(alpha: 0.08)
-                              : Colors.grey.shade100,
+                              : Theme.of(context).dividerColor,
                           width: 1.5,
                         ),
                         boxShadow: [
@@ -577,7 +577,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                           border: Border.all(
                             color: Theme.of(context).brightness == Brightness.dark
                                 ? Colors.white.withValues(alpha: 0.08)
-                                : Colors.grey.shade100,
+                                : Theme.of(context).dividerColor,
                             width: 1.5,
                           ),
                           boxShadow: [
@@ -627,10 +627,10 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                   width: 60,
                                   height: 60,
                                   decoration: BoxDecoration(
-                                    color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                                    color: Theme.of(context).brightness == Brightness.dark ? AppTheme.surfaceBg(context) : const Color(0xFFF1F5F9),
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
-                                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
+                                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.08) : Theme.of(context).dividerColor,
                                       width: 1.5,
                                     ),
                                     boxShadow: [
@@ -703,7 +703,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                 const Spacer(),
                                 Icon(
                                   Icons.chevron_right_rounded,
-                                  color: Colors.grey.shade400,
+                                  color: Theme.of(context).dividerColor,
                                   size: 20,
                                 ),
                               ],
@@ -768,7 +768,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                               color: Theme.of(context).cardColor,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
+                                color: isDark ? Colors.white.withValues(alpha: 0.08) : Theme.of(context).dividerColor,
                                 width: 1.5,
                               ),
                               boxShadow: [
@@ -797,7 +797,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                     width: 44,
                                     height: 44,
                                     decoration: BoxDecoration(
-                                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFF002147),
+                                      color: isDark ? AppTheme.surfaceBg(context) : const Color(0xFF002147),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     padding: const EdgeInsets.all(6),
@@ -852,7 +852,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                             fontWeight: FontWeight.bold,
                                             color: role != 'Member'
                                                 ? AppTheme.purple
-                                                : Colors.grey.shade600,
+                                                : Theme.of(context).dividerColor,
                                           ),
                                         ),
                                       ],
@@ -861,7 +861,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                   if (role == 'Member')
                                     Icon(
                                       Icons.chevron_right_rounded,
-                                      color: Colors.grey.shade400,
+                                      color: Theme.of(context).dividerColor,
                                       size: 16,
                                     ),
                                 ],
@@ -988,7 +988,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                         color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.08) : Theme.of(context).dividerColor,
                           width: 1.5,
                         ),
                       ),
@@ -1024,7 +1024,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                           color: Theme.of(context).cardColor,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
+                            color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.08) : Theme.of(context).dividerColor,
                             width: 1.5,
                           ),
                           boxShadow: [
@@ -1042,7 +1042,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                               width: 60,
                               height: 68,
                               decoration: BoxDecoration(
-                                color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                                color: Theme.of(context).brightness == Brightness.dark ? AppTheme.surfaceBg(context) : const Color(0xFFF8FAFC),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                   color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0),
@@ -1419,7 +1419,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
+                        color: Theme.of(context).dividerColor,
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
@@ -1466,7 +1466,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                             ? Colors.green
                                             : (isCert
                                                 ? Colors.orange
-                                                : Colors.blue))
+                                                : AppTheme.blue))
                                         .withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
@@ -1481,7 +1481,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                           ? Colors.green.shade700
                                           : (isCert
                                               ? Colors.orange.shade700
-                                              : Colors.blue.shade700),
+                                              : AppTheme.blue),
                                     ),
                                   ),
                                 ),

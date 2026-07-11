@@ -35,7 +35,7 @@ class NotificationDetailScreen extends StatelessWidget {
                 color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200,
+                  color: isDark ? Colors.white.withValues(alpha: 0.08) : Theme.of(context).dividerColor,
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -67,7 +67,7 @@ class NotificationDetailScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
+                          color: isDark ? AppTheme.surfaceBg(context) : Theme.of(context).dividerColor,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -75,7 +75,7 @@ class NotificationDetailScreen extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white70 : Colors.grey.shade700,
+                            color: isDark ? Colors.white70 : Theme.of(context).dividerColor,
                             letterSpacing: 0.8,
                           ),
                         ),

@@ -417,7 +417,7 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
                       selected: active,
                       selectedColor: AppTheme.blue,
                       labelStyle: TextStyle(
-                        color: active ? Colors.white : Colors.black87,
+                        color: active ? Theme.of(context).cardColor : Colors.black87,
                         fontWeight: FontWeight.bold,
                       ),
                       onSelected: (val) {
@@ -500,7 +500,7 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
             const SizedBox(height: 8),
             Container(
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(color: Theme.of(context).dividerColor),
                 borderRadius: BorderRadius.circular(12),
               ),
               clipBehavior: Clip.antiAlias,
@@ -559,9 +559,9 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
             Container(
               height: 180,
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: AppTheme.surfaceBg(context),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(color: Theme.of(context).dividerColor),
               ),
               child: Center(
                 child: Column(
@@ -589,7 +589,7 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.grey.shade200),
+                side: BorderSide(color: Theme.of(context).dividerColor),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(12),
@@ -674,7 +674,7 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
                         onPressed: _isSavingTemplate ? null : _saveTemplateSettings,
                         style: ElevatedButton.styleFrom(backgroundColor: AppTheme.blue, foregroundColor: Colors.white),
                         child: _isSavingTemplate
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                             : const Text('Save Template Configuration'),
                       ),
                     ),
@@ -757,7 +757,7 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
           decoration: BoxDecoration(
             color: Color(int.parse(hexColor.replaceAll('#', '0xff'))),
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: Theme.of(context).dividerColor),
           ),
         ),
       ),

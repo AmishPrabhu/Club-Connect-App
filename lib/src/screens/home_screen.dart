@@ -296,7 +296,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           width: 44,
                           height: 5,
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
+                            color: Theme.of(context).dividerColor,
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
@@ -342,7 +342,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 prefixIcon: Icon(Icons.search_rounded, size: 24, color: AppTheme.mutedColor(context)),
                                 hintText: 'Search clubs or events...',
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                fillColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                                fillColor: Theme.of(context).brightness == Brightness.dark ? AppTheme.cardBg(context) : const Color(0xFFF8FAFC),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
                                   borderSide: BorderSide(
@@ -366,7 +366,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   border: Border.all(
                                     color: Theme.of(context).brightness == Brightness.dark
                                         ? Colors.white.withValues(alpha: 0.08)
-                                        : Colors.grey.shade100,
+                                        : Theme.of(context).dividerColor,
                                     width: 1.5,
                                   ),
                                 ),
@@ -598,7 +598,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                             decoration: BoxDecoration(
                                               color: isSelected
                                                   ? Theme.of(context).colorScheme.primary
-                                                  : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC)),
+                                                  : (isDark ? AppTheme.cardBg(context) : const Color(0xFFF8FAFC)),
                                               borderRadius: BorderRadius.circular(18),
                                               border: Border.all(
                                                 color: isSelected
@@ -627,8 +627,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                     fontSize: 18,
                                                     fontWeight: FontWeight.w800,
                                                     color: isSelected
-                                                        ? Colors.white
-                                                        : AppTheme.textColor(context),
+                                                        ? Theme.of(context).cardColor : AppTheme.textColor(context),
                                                   ),
                                                 ),
                                               ],
@@ -689,10 +688,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                                  color: Theme.of(context).brightness == Brightness.dark ? AppTheme.cardBg(context) : const Color(0xFFF8FAFC),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.05) : Theme.of(context).dividerColor,
                                     width: 1.5,
                                   ),
                                 ),
@@ -852,7 +851,7 @@ class _FeaturedClubCard extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: isDark ? Colors.black.withValues(alpha: 0.2) : const Color(0xFF0F172A).withValues(alpha: 0.05),
+            color: isDark ? Colors.black.withValues(alpha: 0.2) : AppTheme.surfaceBg(context).withValues(alpha: 0.05),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -868,7 +867,7 @@ class _FeaturedClubCard extends StatelessWidget {
               vertical: 4,
             ),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+              color: isDark ? AppTheme.surfaceBg(context) : const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
                 color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE2E8F0),
@@ -892,7 +891,7 @@ class _FeaturedClubCard extends StatelessWidget {
               height: 96,
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                color: isDark ? AppTheme.surfaceBg(context) : const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: ClipRRect(
@@ -983,7 +982,7 @@ class _HomeTopBar extends StatelessWidget {
             ),
           ),
           if (appState.isLoading)
-            const SizedBox(
+            SizedBox(
               width: 20,
               height: 20,
               child: CircularProgressIndicator(strokeWidth: 2),
@@ -1044,7 +1043,7 @@ class _HomeTopBar extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : const Color(0xFF312E81),
+                    color: isDark ? Theme.of(context).cardColor : const Color(0xFF312E81),
                   ),
                 ),
               ),

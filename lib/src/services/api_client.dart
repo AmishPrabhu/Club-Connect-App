@@ -27,9 +27,10 @@ class ApiClient {
     }
     if (kDebugMode) {
       if (!kIsWeb && Platform.isAndroid) {
-        return 'http://10.0.2.2:5001/api';
+        // Using adb reverse to map the device's port 5001 to the PC's port 5001
+        return 'http://127.0.0.1:5001/api';
       }
-      return 'http://localhost:5001/api';
+      return 'http://127.0.0.1:5001/api';
     }
     return 'https://club-connect-7fwy.onrender.com/api';
   }

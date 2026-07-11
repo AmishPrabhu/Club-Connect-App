@@ -441,7 +441,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
+          color: isDark ? Colors.white.withValues(alpha: 0.08) : Theme.of(context).dividerColor,
           width: 1.5,
         ),
         boxShadow: [
@@ -665,7 +665,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
+          color: isDark ? Colors.white.withValues(alpha: 0.08) : Theme.of(context).dividerColor,
           width: 1.5,
         ),
         boxShadow: [
@@ -720,7 +720,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 ),
                 Icon(
                   Icons.chevron_right_rounded,
-                  color: Colors.grey.shade400,
+                  color: Theme.of(context).dividerColor,
                   size: 20,
                 ),
               ],
@@ -734,9 +734,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   Widget _buildDeleteAccountTile() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.015),
@@ -934,7 +934,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 child: FilledButton(
                   onPressed: _isLoading ? null : _handleChangePassword,
                   child: _isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 24,
                           height: 24,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
@@ -1050,7 +1050,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                   onPressed: _isLoadingOtp ? null : _requestOtp,
                   icon: const Icon(Icons.mail_outline_rounded),
                   label: _isLoadingOtp
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(color: Colors.red, strokeWidth: 2),
@@ -1089,7 +1089,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
                     child: _isDeleting
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 24,
                             height: 24,
                             child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),

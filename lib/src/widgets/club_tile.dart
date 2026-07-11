@@ -97,7 +97,7 @@ class ClubTile extends StatelessWidget {
                     height: 48,
                     decoration: BoxDecoration(
                       color: AppTheme.isDark(context)
-                          ? const Color(0xFF0F172A)
+                          ? AppTheme.surfaceBg(context)
                           : const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(

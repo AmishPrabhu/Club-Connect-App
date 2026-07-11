@@ -96,7 +96,7 @@ class _EventsScreenState extends State<EventsScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.event_busy_rounded, size: 64, color: Colors.grey.shade400),
+                        Icon(Icons.event_busy_rounded, size: 64, color: Theme.of(context).dividerColor),
                         const SizedBox(height: 16),
                         const Text(
                           'No events match your filters.',

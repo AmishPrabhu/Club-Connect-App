@@ -467,7 +467,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Color iconColor = AppTheme.blue;
             if (sec == 'Overview') {
               icon = Icons.trending_up_rounded;
-              iconColor = Colors.blue;
+              iconColor = AppTheme.blue;
             } else if (sec == 'Members') {
               icon = Icons.people_outline_rounded;
               iconColor = Colors.purple;
@@ -601,7 +601,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     decoration: BoxDecoration(
                       color: const Color(0xFF7C3AED), // Purple edit badge
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 1.5),
+                      border: Border.all(color: Theme.of(context).cardColor, width: 1.5),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.1),
@@ -702,9 +702,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.015),
@@ -843,9 +843,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.015),
@@ -906,7 +906,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 Icon(
                   Icons.chevron_right_rounded,
-                  color: Colors.grey.shade400,
+                  color: Theme.of(context).dividerColor,
                   size: 20,
                 ),
               ],
@@ -950,9 +950,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 12),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).dividerColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -984,7 +984,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(
             'Welcome, ${session.name}',
             style: const TextStyle(
-              color: Colors.blue,
+              color: AppTheme.blue,
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
@@ -1006,15 +1006,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           _buildStatCard(
             icon: Icons.people_alt_outlined,
-            iconColor: Colors.blue.shade700,
-            iconBgColor: Colors.blue.shade50,
+            iconColor: AppTheme.blue,
+            iconBgColor: AppTheme.blue,
             value: '$clubsCount',
             label: 'TOTAL CLUBS',
           ),
           _buildStatCard(
             icon: Icons.calendar_month_outlined,
-            iconColor: Colors.blue.shade700,
-            iconBgColor: Colors.blue.shade50,
+            iconColor: AppTheme.blue,
+            iconBgColor: AppTheme.blue,
             value: '${events.length}',
             label: 'UPCOMING',
           ),
@@ -1048,9 +1048,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).dividerColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -1102,9 +1102,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).dividerColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -1154,13 +1154,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              Icon(Icons.access_time, size: 11, color: Colors.grey.shade500),
+                              Icon(Icons.access_time, size: 11, color: Theme.of(context).dividerColor),
                               const SizedBox(width: 4),
                               Text(
                                 post.date != null
                                     ? '${post.date!.year}-${post.date!.month.toString().padLeft(2, '0')}-${post.date!.day.toString().padLeft(2, '0')}'
                                     : '',
-                                style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                                style: TextStyle(fontSize: 10, color: Theme.of(context).dividerColor),
                               ),
                             ],
                           ),
@@ -1180,13 +1180,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             'Posted by ${post.clubName}',
                             style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey.shade600,
+                              color: Theme.of(context).dividerColor,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                    Icon(Icons.chevron_right, color: Theme.of(context).dividerColor),
                   ],
                 ),
               ),
@@ -1208,7 +1208,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Expanded(
               child: Row(
                 children: [
-                  Container(width: 4, height: 18, color: Colors.blue.shade700),
+                  Container(width: 4, height: 18, color: AppTheme.blue),
                   const SizedBox(width: 8),
                   const Expanded(
                     child: Text(
@@ -1275,15 +1275,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.search_rounded),
                   hintText: 'Search clubs by name...',
-                  fillColor: Colors.white,
+                  fillColor: Theme.of(context).cardColor,
                   filled: true,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade200),
+                    borderSide: BorderSide(color: Theme.of(context).dividerColor),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade200),
+                    borderSide: BorderSide(color: Theme.of(context).dividerColor),
                   ),
                 ),
                 onChanged: (val) => setState(() => _clubSearchQuery = val),
@@ -1327,9 +1327,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).dividerColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -1348,9 +1348,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: AppTheme.surfaceBg(context),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: Theme.of(context).dividerColor),
                 ),
                 padding: const EdgeInsets.all(4),
                 child: club.imageAsset.isNotEmpty
@@ -1423,7 +1423,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             club.description,
             style: TextStyle(
               fontSize: 13,
-              color: Colors.grey.shade700,
+              color: Theme.of(context).dividerColor,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -1432,9 +1432,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.grey.shade50,
+              color: AppTheme.surfaceBg(context),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade100),
+              border: Border.all(color: Theme.of(context).dividerColor),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1512,8 +1512,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildCategoryBadge(String category) {
-    Color bgColor = Colors.blue.shade50;
-    Color textColor = Colors.blue.shade700;
+    Color bgColor = AppTheme.blue;
+    Color textColor = AppTheme.blue;
 
     switch (category.toLowerCase()) {
       case 'academic':
@@ -1864,9 +1864,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).dividerColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -1923,11 +1923,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                               const SizedBox(width: 8),
                               if (post.date != null) ...[
-                                Icon(Icons.access_time, size: 11, color: Colors.grey.shade500),
+                                Icon(Icons.access_time, size: 11, color: Theme.of(context).dividerColor),
                                 const SizedBox(width: 4),
                                 Text(
                                   '${post.date!.year}-${post.date!.month.toString().padLeft(2, '0')}-${post.date!.day.toString().padLeft(2, '0')}',
-                                  style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                                  style: TextStyle(fontSize: 10, color: Theme.of(context).dividerColor),
                                 ),
                               ],
                             ],
@@ -1948,7 +1948,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             'Posted by ${post.clubName}',
                             style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey.shade600,
+                              color: Theme.of(context).dividerColor,
                             ),
                           ),
                         ],
@@ -2059,9 +2059,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).dividerColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -2092,14 +2092,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.blue.shade800,
+                                  color: AppTheme.blue,
                                 ),
                               ),
                               if (n.timeAgo.isNotEmpty) ...[
                                 const SizedBox(width: 6),
                                 Text(
                                   '•  ${n.timeAgo}',
-                                  style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                                  style: TextStyle(fontSize: 10, color: Theme.of(context).dividerColor),
                                 ),
                               ],
                             ],
@@ -2120,7 +2120,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             n.plainMessage,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade600,
+                              color: Theme.of(context).dividerColor,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -2266,9 +2266,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).dividerColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -2311,7 +2311,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   }
                 }
               },
-              child: Icon(Icons.delete_outline_rounded, color: Colors.grey.shade400, size: 22),
+              child: Icon(Icons.delete_outline_rounded, color: Theme.of(context).dividerColor, size: 22),
             ),
           ),
           Center(
@@ -2333,7 +2333,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: CircleAvatar(
                     radius: 36,
                     backgroundColor: Colors.white,
-                    child: Icon(Icons.person_outline_rounded, color: Colors.grey.shade400, size: 36),
+                    child: Icon(Icons.person_outline_rounded, color: Theme.of(context).dividerColor, size: 36),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -2350,7 +2350,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   email,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade500,
+                    color: Theme.of(context).dividerColor,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -2417,9 +2417,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.015),
@@ -2733,9 +2733,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                  border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
                 ),
                 alignment: Alignment.center,
                 child: const Text('No upcoming events scheduled.', style: TextStyle(color: Colors.grey, fontSize: 13)),
@@ -2755,9 +2755,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                    border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.015),
@@ -2939,9 +2939,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade100, width: 1.5),
+            border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.015),
@@ -3043,7 +3043,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Icon(
                         tabIcon,
                         size: 16,
-                        color: isActive ? Colors.white : AppTheme.navy.withValues(alpha: 0.6),
+                        color: isActive ? Theme.of(context).cardColor : AppTheme.navy.withValues(alpha: 0.6),
                       ),
                       const SizedBox(width: 6),
                       Text(tab),
@@ -3052,11 +3052,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   labelStyle: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
-                    color: isActive ? Colors.white : AppTheme.navy,
+                    color: isActive ? Theme.of(context).cardColor : AppTheme.navy,
                   ),
                   selected: isActive,
                   selectedColor: AppTheme.blue,
-                  backgroundColor: Colors.grey.shade100,
+                  backgroundColor: Theme.of(context).dividerColor,
                   onSelected: (selected) {
                     if (selected) {
                       setState(() {
@@ -3231,9 +3231,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   return Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                      border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.015),
@@ -3309,7 +3309,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 height: 28,
                                 child: FilledButton(
                                   style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(0xFF0F172A),
+                                    backgroundColor: AppTheme.surfaceBg(context),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                     padding: EdgeInsets.zero,
                                   ),
@@ -3406,9 +3406,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade100, width: 1.5),
+            border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.015),
@@ -3573,9 +3573,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade200),
+                        border: Border.all(color: Theme.of(context).dividerColor),
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
@@ -3593,7 +3593,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(width: 8),
                     FilledButton.icon(
                       style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF0F172A),
+                        backgroundColor: AppTheme.surfaceBg(context),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
@@ -3612,13 +3612,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 40),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                  border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.file_copy_outlined, size: 44, color: Colors.grey.shade300),
+                    Icon(Icons.file_copy_outlined, size: 44, color: Theme.of(context).dividerColor),
                     const SizedBox(height: 8),
                     const Text('No reports available.', style: TextStyle(color: Colors.grey, fontSize: 13)),
                   ],
@@ -3637,9 +3637,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   return Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                      border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -3797,9 +3797,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade200),
+                      border: Border.all(color: Theme.of(context).dividerColor),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
@@ -3821,9 +3821,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade200),
+                      border: Border.all(color: Theme.of(context).dividerColor),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
@@ -3849,13 +3849,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 40),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                  border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.groups_outlined, size: 44, color: Colors.grey.shade300),
+                    Icon(Icons.groups_outlined, size: 44, color: Theme.of(context).dividerColor),
                     const SizedBox(height: 8),
                     const Text('No members found matching filters.', style: TextStyle(color: Colors.grey, fontSize: 13)),
                   ],
@@ -3881,9 +3881,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   return Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                      border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -4028,13 +4028,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 40),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade100, width: 1.5),
+              border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
             ),
             child: Column(
               children: [
-                Icon(Icons.event_busy_rounded, size: 48, color: Colors.grey.shade300),
+                Icon(Icons.event_busy_rounded, size: 48, color: Theme.of(context).dividerColor),
                 const SizedBox(height: 8),
                 const Text('No events found for your club.', style: TextStyle(color: Colors.grey, fontSize: 13)),
               ],
@@ -4051,9 +4051,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               return Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                  border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
                 ),
                 child: Row(
                   children: [
@@ -4068,14 +4068,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           const SizedBox(height: 6),
                           Row(
                             children: [
-                              Icon(Icons.calendar_month_rounded, size: 14, color: Colors.grey.shade400),
+                              Icon(Icons.calendar_month_rounded, size: 14, color: Theme.of(context).dividerColor),
                               const SizedBox(width: 4),
                               Text(
                                 event.date != null ? event.date!.toLocal().toString().split(' ')[0] : 'N/A',
                                 style: const TextStyle(fontSize: 12, color: AppTheme.muted),
                               ),
                               const SizedBox(width: 16),
-                              Icon(Icons.people_alt_rounded, size: 14, color: Colors.grey.shade400),
+                              Icon(Icons.people_alt_rounded, size: 14, color: Theme.of(context).dividerColor),
                               const SizedBox(width: 4),
                               Text(
                                 '${event.rsvps ?? 0} RSVPs',
@@ -4135,13 +4135,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 40),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade100, width: 1.5),
+              border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
             ),
             child: Column(
               children: [
-                Icon(Icons.file_copy_outlined, size: 48, color: Colors.grey.shade300),
+                Icon(Icons.file_copy_outlined, size: 48, color: Theme.of(context).dividerColor),
                 const SizedBox(height: 8),
                 const Text('No reports available.', style: TextStyle(color: Colors.grey, fontSize: 13)),
               ],
@@ -4166,9 +4166,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             return Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -4251,13 +4251,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 40),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade100, width: 1.5),
+          border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
         ),
         child: Column(
           children: [
-            Icon(Icons.account_balance_wallet_outlined, size: 48, color: Colors.grey.shade300),
+            Icon(Icons.account_balance_wallet_outlined, size: 48, color: Theme.of(context).dividerColor),
             const SizedBox(height: 8),
             const Text('No budgets have been submitted yet.', style: TextStyle(color: Colors.grey, fontSize: 13)),
           ],
@@ -4277,9 +4277,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.shade100, width: 1.5),
+            border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -4394,9 +4394,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
       ),
       child: Row(
         children: [
@@ -4577,9 +4577,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).dividerColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -4609,9 +4609,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   width: 100,
                   height: 100,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: AppTheme.surfaceBg(context),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade300),
+                    border: Border.all(color: Theme.of(context).dividerColor),
                   ),
                   padding: const EdgeInsets.all(8),
                   child: _isUploadingLogo
@@ -4636,7 +4636,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       icon: const Icon(Icons.upload_file_rounded),
                       label: const Text('Upload from Device'),
                       style: FilledButton.styleFrom(
-                        backgroundColor: Colors.blue.shade700,
+                        backgroundColor: AppTheme.blue,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
@@ -4662,9 +4662,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).dividerColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -4707,7 +4707,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               contentPadding: EdgeInsets.zero,
               title: Text(
                 _selectedClub!.whatsappUrl,
-                style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
+                style: const TextStyle(color: AppTheme.blue, decoration: TextDecoration.underline),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -4722,7 +4722,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 currentValue: '',
               ),
               child: CustomPaint(
-                painter: DashedBorderPainter(color: Colors.grey.shade400, gap: 6),
+                painter: DashedBorderPainter(color: Theme.of(context).dividerColor, gap: 6),
                 child: Container(
                   height: 48,
                   width: double.infinity,
@@ -4755,9 +4755,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).dividerColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -4800,7 +4800,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               contentPadding: EdgeInsets.zero,
               title: Text(
                 _selectedClub!.instagramUrl,
-                style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
+                style: const TextStyle(color: AppTheme.blue, decoration: TextDecoration.underline),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -4815,7 +4815,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 currentValue: '',
               ),
               child: CustomPaint(
-                painter: DashedBorderPainter(color: Colors.grey.shade400, gap: 6),
+                painter: DashedBorderPainter(color: Theme.of(context).dividerColor, gap: 6),
                 child: Container(
                   height: 48,
                   width: double.infinity,
@@ -4913,9 +4913,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   final mId = m['_id']?.toString() ?? m['id']?.toString() ?? '';
                   return Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade200),
+                      border: Border.all(color: Theme.of(context).dividerColor),
                     ),
                     child: ListTile(
                       leading: CircleAvatar(
@@ -5057,14 +5057,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               final post = clubPosts[index];
               return Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: Theme.of(context).dividerColor),
                 ),
                 child: ListTile(
                   contentPadding: const EdgeInsets.all(12),
                   leading: CircleAvatar(
-                    backgroundColor: Colors.blue.shade50,
+                    backgroundColor: AppTheme.blue,
                     child: Icon(post.isEvent ? Icons.event : Icons.campaign_outlined, color: AppTheme.blue),
                   ),
                   title: Text(post.title, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -5259,9 +5259,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                   return Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade200),
+                      border: Border.all(color: Theme.of(context).dividerColor),
                     ),
                     child: ListTile(
                       title: Text(t['title']?.toString() ?? 'Task', style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -5348,9 +5348,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Container(
               height: 300,
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
+                color: AppTheme.surfaceBg(context),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(color: Theme.of(context).dividerColor),
               ),
               child: messages.isEmpty
                   ? const Center(child: Text('No messages yet. Start the conversation!'))
@@ -5387,13 +5387,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 10,
-                                    color: isMe ? Colors.white70 : Colors.blue.shade700,
+                                    color: isMe ? Colors.white70 : AppTheme.blue,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   msg['body']?.toString() ?? '',
-                                  style: TextStyle(color: isMe ? Colors.white : Colors.black87),
+                                  style: TextStyle(color: isMe ? Theme.of(context).cardColor : Colors.black87),
                                 ),
                               ],
                             ),
@@ -5488,9 +5488,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               final n = notifications[index];
               return Container(
                 decoration: BoxDecoration(
-                  color: n.isRead ? Colors.white : Colors.blue.shade50.withValues(alpha: 0.3),
+                  color: n.isRead ? Theme.of(context).cardColor : AppTheme.blue.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: Theme.of(context).dividerColor),
                 ),
                 child: ListTile(
                   title: Text(n.title, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -5574,15 +5574,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: (verified ? Colors.green : Colors.blue).withValues(alpha: 0.12),
+                              color: (verified ? Colors.green : AppTheme.blue).withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(verified ? Icons.check_circle_rounded : Icons.hourglass_empty_rounded, size: 14, color: verified ? Colors.green : Colors.blue),
+                                Icon(verified ? Icons.check_circle_rounded : Icons.hourglass_empty_rounded, size: 14, color: verified ? Colors.green : AppTheme.blue),
                                 const SizedBox(width: 4),
-                                Text(verified ? 'Verified' : 'Awaiting', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: verified ? Colors.green : Colors.blue)),
+                                Text(verified ? 'Verified' : 'Awaiting', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: verified ? Colors.green : AppTheme.blue)),
                               ],
                             ),
                           ),
@@ -5675,7 +5675,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         icon: isUploading
-                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                            ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                             : const Icon(Icons.image),
                         label: Text(isUploading ? 'Uploading...' : 'Select Budget Image'),
                         onPressed: isUploading
@@ -5984,7 +5984,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         icon: isUploading
-                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                            ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                             : const Icon(Icons.add_photo_alternate),
                         label: Text(isUploading ? 'Uploading...' : 'Upload Club Logo'),
                         onPressed: isUploading
@@ -6321,9 +6321,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.grey.shade100,
+          color: AppTheme.surfaceBg(context),
           borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: Colors.grey.shade300),
+          border: Border.all(color: Theme.of(context).dividerColor),
         ),
         child: Text(
           label,
@@ -6592,7 +6592,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
 
   Widget _buildHeader(bool isDark) {
     final labels = widget.isEvent ? ['Content', 'Details', 'Registration'] : ['Content', 'Details'];
-    final titleColor = isDark ? Colors.white : AppTheme.text;
+    final titleColor = isDark ? Theme.of(context).cardColor : AppTheme.text;
     final subtitleColor = isDark ? AppTheme.darkMuted : AppTheme.muted;
     final headerBg = isDark ? AppTheme.darkSurface : Colors.white;
 
@@ -7092,9 +7092,9 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(color: selected ? AppTheme.blue : Colors.transparent, borderRadius: BorderRadius.circular(11)),
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(icon, size: 15, color: selected ? Colors.white : AppTheme.muted),
+          Icon(icon, size: 15, color: selected ? Theme.of(context).cardColor : AppTheme.muted),
           const SizedBox(width: 6),
-          Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: selected ? Colors.white : AppTheme.muted)),
+          Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: selected ? Theme.of(context).cardColor : AppTheme.muted)),
         ]),
       ),
     ),
@@ -7341,7 +7341,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
         ),
         child: _isSubmitting
-            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+            ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
             : Text(
                 widget.isEvent ? 'Publish Event' : 'Publish Post',
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
@@ -7500,9 +7500,9 @@ class _MiniStatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.01),
@@ -7566,9 +7566,9 @@ class _QuickActionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.015),
@@ -7621,7 +7621,7 @@ class _QuickActionTile extends StatelessWidget {
                 ),
                 Icon(
                   Icons.chevron_right_rounded,
-                  color: Colors.grey.shade400,
+                  color: Theme.of(context).dividerColor,
                   size: 18,
                 ),
               ],

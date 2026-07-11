@@ -187,7 +187,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                            color: isDark ? Colors.white.withValues(alpha: 0.05) : Theme.of(context).dividerColor,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Column(
@@ -195,7 +195,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             children: [
                               Text('Resetting password for:',
                                   style: TextStyle(
-                                      fontSize: 12, color: isDark ? Colors.grey : Colors.grey.shade600)),
+                                      fontSize: 12, color: isDark ? Colors.grey : Theme.of(context).dividerColor)),
                               Text(_emailController.text,
                                   style: const TextStyle(
                                       fontWeight: FontWeight.bold)),
@@ -244,7 +244,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         child: FilledButton(
                           onPressed: _isLoading ? null : _submitReset,
                           child: _isLoading
-                              ? const SizedBox(
+                              ? SizedBox(
                                   height: 20,
                                   width: 20,
                                   child: CircularProgressIndicator(
