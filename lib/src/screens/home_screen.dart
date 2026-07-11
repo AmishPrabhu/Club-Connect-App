@@ -203,11 +203,13 @@ class _HomeScreenState extends State<HomeScreen> {
               left: 0,
               right: 0,
               height: _heroHeight,
-              child: SingleChildScrollView(
-                physics: const NeverScrollableScrollPhysics(),
-                child: Column(
-                  key: _heroKey,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              child: Container(
+                color: Colors.transparent,
+                child: SingleChildScrollView(
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: Column(
+                    key: _heroKey,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _HomeTopBar(
                       appState: widget.appState,
@@ -257,6 +259,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+            ),
             
             // 2. Interactive Sliding Panel (Foreground)
             DraggableScrollableSheet(
@@ -269,11 +272,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 final isDark = Theme.of(context).brightness == Brightness.dark;
                 return Container(
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                    color: isDark ? AppTheme.darkSurface : Theme.of(context).colorScheme.surface,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+                        color: Colors.black.withValues(alpha: isDark ? 0.5 : 0.08),
                         blurRadius: 24,
                         offset: const Offset(0, -8),
                       ),
@@ -281,9 +284,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     border: Border(
                       top: BorderSide(
                         color: isDark
-                            ? Colors.white.withValues(alpha: 0.05)
+                            ? AppTheme.darkBorder
                             : Colors.blueGrey.withValues(alpha: 0.05),
-                        width: 1.5,
+                        width: 1,
                       ),
                     ),
                   ),
@@ -309,26 +312,78 @@ class _HomeScreenState extends State<HomeScreen> {
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                           children: [
-                            // Metric Cards
+                            // ── Stats Row (no card, pure type) ───────────
                             Row(
                               children: [
+                                // Left stat
                                 Expanded(
-                                  child: _buildMetricCard(
-                                    context: context,
-                                    icon: Icons.groups_outlined,
-                                    value: '${clubs.length}',
-                                    label: 'Active Clubs',
+                                  child: GestureDetector(
                                     onTap: widget.onOpenClubs,
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          '${clubs.length}',
+                                          style: TextStyle(
+                                            fontSize: 44,
+                                            fontWeight: FontWeight.w900,
+                                            color: isDark ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                                            height: 1.0,
+                                            letterSpacing: -2,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Active Clubs',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                            color: isDark ? AppTheme.darkMuted : AppTheme.mutedColor(context),
+                                            letterSpacing: 0.2,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                                const SizedBox(width: 16),
+                                // Thin divider
+                                Container(
+                                  width: 1,
+                                  height: 44,
+                                  color: isDark ? AppTheme.darkBorder : Colors.blueGrey.withValues(alpha: 0.12),
+                                ),
+                                const SizedBox(width: 20),
+                                // Right stat
                                 Expanded(
-                                  child: _buildMetricCard(
-                                    context: context,
-                                    icon: Icons.calendar_month_outlined,
-                                    value: '${upcomingEvents.length}',
-                                    label: 'Upcoming Events',
+                                  child: GestureDetector(
                                     onTap: widget.onOpenEvents,
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          '${upcomingEvents.length}',
+                                          style: TextStyle(
+                                            fontSize: 44,
+                                            fontWeight: FontWeight.w900,
+                                            color: isDark ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                                            height: 1.0,
+                                            letterSpacing: -2,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Upcoming Events',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                            color: isDark ? AppTheme.darkMuted : AppTheme.mutedColor(context),
+                                            letterSpacing: 0.2,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ],
@@ -339,17 +394,16 @@ class _HomeScreenState extends State<HomeScreen> {
                             // Search Bar
                             TextField(
                               decoration: InputDecoration(
-                                prefixIcon: Icon(Icons.search_rounded, size: 24, color: AppTheme.mutedColor(context)),
+                                prefixIcon: Icon(Icons.search_rounded, size: 24,
+                                    color: isDark ? AppTheme.darkMuted : AppTheme.mutedColor(context)),
                                 hintText: 'Search clubs or events...',
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                fillColor: Theme.of(context).brightness == Brightness.dark ? AppTheme.cardBg(context) : const Color(0xFFF8FAFC),
+                                fillColor: isDark ? AppTheme.darkElevated : const Color(0xFFF8FAFC),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
                                   borderSide: BorderSide(
-                                    color: Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.white.withValues(alpha: 0.05)
-                                        : Colors.blueGrey.withValues(alpha: 0.08),
-                                    width: 1.2,
+                                    color: isDark ? AppTheme.darkBorder : Colors.blueGrey.withValues(alpha: 0.08),
+                                    width: 1,
                                   ),
                                 ),
                               ),
@@ -361,13 +415,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               const SizedBox(height: 12),
                               Container(
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).cardColor,
+                                  color: isDark ? AppTheme.darkSurface : Theme.of(context).cardColor,
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.white.withValues(alpha: 0.08)
-                                        : Theme.of(context).dividerColor,
-                                    width: 1.5,
+                                    color: isDark ? AppTheme.darkBorder : Theme.of(context).dividerColor,
+                                    width: 1,
                                   ),
                                 ),
                                 child: Column(
@@ -387,8 +439,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                               width: 38,
                                               height: 38,
                                               decoration: BoxDecoration(
-                                                color: Theme.of(context).brightness == Brightness.dark
-                                                    ? AppTheme.accent(context).withValues(alpha: 0.15)
+                                                color: isDark
+                                                    ? AppTheme.darkElevated
                                                     : const Color(0xFFEFF6FF),
                                                 borderRadius: BorderRadius.circular(10),
                                               ),
@@ -467,7 +519,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                   },
                                   child: Text(
                                     'View Month',
-                                    style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.accent(context)),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? Colors.white : AppTheme.accent(context),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -477,7 +532,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             
                             // Horizontal scroll date list
                             SizedBox(
-                              height: 98,
+                              height: 80,
                               child: ShaderMask(
                                 shaderCallback: (Rect bounds) {
                                   return const LinearGradient(
@@ -497,7 +552,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   controller: _calendarScrollController,
                                   scrollDirection: Axis.horizontal,
                                   itemCount: 31,
-                                  separatorBuilder: (_, _) => const SizedBox(width: 12),
+                                  separatorBuilder: (_, _) => const SizedBox(width: 8),
                                   itemBuilder: (context, index) {
                                     final cellDate = calendarDays[index];
                                     final isSelected = _selectedDate != null &&
@@ -505,7 +560,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                         _selectedDate!.month == cellDate.month &&
                                         _selectedDate!.day == cellDate.day;
                                     final hasEvent = _dateHasEvents(cellDate);
-                                    final isDark = Theme.of(context).brightness == Brightness.dark;
                                     
                                     return GestureDetector(
                                       onTap: () {
@@ -517,62 +571,61 @@ class _HomeScreenState extends State<HomeScreen> {
                                           }
                                         });
                                       },
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Container(
-                                            width: 54,
-                                            height: 76,
-                                            decoration: BoxDecoration(
-                                              color: isSelected
-                                                  ? Theme.of(context).colorScheme.primary
-                                                  : (isDark ? AppTheme.cardBg(context) : const Color(0xFFF8FAFC)),
-                                              borderRadius: BorderRadius.circular(18),
-                                              border: Border.all(
+                                      child: SizedBox(
+                                        width: 44,
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          children: [
+                                            // Day abbreviation
+                                            Text(
+                                              weekdaysShort[cellDate.weekday - 1],
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w700,
+                                                letterSpacing: 0.5,
                                                 color: isSelected
-                                                    ? Theme.of(context).colorScheme.primary
-                                                    : (isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0)),
-                                                width: 1.5,
+                                                    ? (isDark ? Colors.white : Theme.of(context).colorScheme.primary)
+                                                    : (isDark ? AppTheme.darkMuted : AppTheme.mutedColor(context)),
                                               ),
                                             ),
-                                            child: Column(
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                Text(
-                                                  weekdaysShort[cellDate.weekday - 1],
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: isSelected
-                                                        ? Colors.white.withValues(alpha: 0.8)
-                                                        : AppTheme.mutedColor(context),
-                                                  ),
+                                            const SizedBox(height: 6),
+                                            // Number — white circle only when selected
+                                            Container(
+                                              width: 38,
+                                              height: 38,
+                                              decoration: BoxDecoration(
+                                                color: isSelected
+                                                    ? (isDark ? Colors.white : Theme.of(context).colorScheme.primary)
+                                                    : Colors.transparent,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              alignment: Alignment.center,
+                                              child: Text(
+                                                '${cellDate.day}',
+                                                style: TextStyle(
+                                                  fontSize: 17,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: isSelected
+                                                      ? (isDark ? AppTheme.darkBackground : Colors.white)
+                                                      : (isDark ? Colors.white : AppTheme.textColor(context)),
                                                 ),
-                                                const SizedBox(height: 6),
-                                                Text(
-                                                  '${cellDate.day}',
-                                                  style: TextStyle(
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.w800,
-                                                    color: isSelected
-                                                        ? Theme.of(context).cardColor : AppTheme.textColor(context),
-                                                  ),
-                                                ),
-                                              ],
+                                              ),
                                             ),
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Container(
-                                            width: 5,
-                                            height: 5,
-                                            decoration: BoxDecoration(
-                                              color: hasEvent
-                                                  ? (isSelected ? Theme.of(context).colorScheme.primary : const Color(0xFF22C55E))
-                                                  : Colors.transparent,
-                                              shape: BoxShape.circle,
+                                            const SizedBox(height: 5),
+                                            // Event dot
+                                            Container(
+                                              width: 4,
+                                              height: 4,
+                                              decoration: BoxDecoration(
+                                                color: hasEvent
+                                                    ? (isDark ? Colors.white.withValues(alpha: isSelected ? 0.3 : 0.7) : const Color(0xFF22C55E))
+                                                    : Colors.transparent,
+                                                shape: BoxShape.circle,
+                                              ),
                                             ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
                                     );
                                   },
@@ -616,11 +669,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).brightness == Brightness.dark ? AppTheme.cardBg(context) : const Color(0xFFF8FAFC),
+                                  color: isDark ? AppTheme.darkSurface : const Color(0xFFF8FAFC),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.05) : Theme.of(context).dividerColor,
-                                    width: 1.5,
+                                    color: isDark ? AppTheme.darkBorder : Theme.of(context).dividerColor,
+                                    width: 1,
                                   ),
                                 ),
                                 child: Column(
@@ -678,81 +731,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Metric Card Helper Widget Builder
-  Widget _buildMetricCard({
-    required BuildContext context,
-    required IconData icon,
-    required String value,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 155,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.blueGrey.withValues(alpha: 0.08),
-            width: 1.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.015),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Outlined Custom Icon Box
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: isDark ? AppTheme.accent(context).withValues(alpha: 0.15) : const Color(0xFFEFF6FF), // Light blue-purple tint
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFDBEAFE),
-                  width: 1,
-                ),
-              ),
-              child: Icon(
-                icon,
-                color: AppTheme.accent(context),
-                size: 24,
-              ),
-            ),
-            const Spacer(),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 32,
-                    color: Theme.of(context).colorScheme.onSurface,
-                    height: 1.0,
-                  ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.mutedColor(context),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
+
 
 // Redesigned Carousel Card Widget matching visual mockups
 // Premium Announcement Card for home updates carousel
@@ -845,14 +825,17 @@ class _HomeTopBar extends StatelessWidget {
               },
             ),
           const SizedBox(width: 8),
-          GestureDetector(
+           GestureDetector(
             onTap: onProfileTap,
             child: Container(
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: isDark ? AppTheme.accent(context).withValues(alpha: 0.2) : const Color(0xFFE0E7FF),
+                color: isDark ? AppTheme.accent(context).withValues(alpha: 0.15) : const Color(0xFFE0E7FF),
                 shape: BoxShape.circle,
+                border: isDark
+                    ? Border.all(color: AppTheme.accent(context).withValues(alpha: 0.3))
+                    : null,
               ),
               child: Center(
                 child: Text(

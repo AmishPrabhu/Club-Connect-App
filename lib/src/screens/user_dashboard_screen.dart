@@ -207,18 +207,19 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                             color: Theme.of(context).cardColor,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: isDark ? Colors.white.withValues(alpha: 0.08) : Theme.of(context).dividerColor,
-                              width: 1.5,
+                              color: isDark ? AppTheme.darkBorder : Theme.of(context).dividerColor,
+                              width: 1,
                             ),
                           ),
                           child: ListTile(
                             leading: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: isDark ? AppTheme.accent(context).withValues(alpha: 0.15) : const Color(0xFFEFF6FF),
+                                color: isDark ? AppTheme.darkElevated : const Color(0xFFEFF6FF),
                                 shape: BoxShape.circle,
+                                border: isDark ? Border.all(color: AppTheme.darkBorder) : null,
                               ),
-                              child: Icon(icon, color: AppTheme.accent(context), size: 20),
+                              child: Icon(icon, color: isDark ? Colors.white : AppTheme.accent(context), size: 20),
                             ),
                             title: Text(
                               title,
@@ -288,6 +289,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final session = widget.appState.session;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (session == null) {
       return const Center(child: Text('Please sign in to view your dashboard.'));
     }
@@ -669,31 +671,31 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF4F46E5),
+                                      color: isDark ? Colors.white : const Color(0xFF4F46E5),
                                       borderRadius: BorderRadius.circular(24),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: const Color(0xFF4F46E5).withValues(alpha: 0.2),
+                                          color: isDark ? Colors.black.withValues(alpha: 0.1) : const Color(0xFF4F46E5).withValues(alpha: 0.2),
                                           blurRadius: 8,
                                           offset: const Offset(0, 3),
                                         ),
                                       ],
                                     ),
-                                    child: const Row(
+                                    child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Text(
                                           'Go to Club Management',
                                           style: TextStyle(
-                                            color: Colors.white,
+                                            color: isDark ? Colors.black : Colors.white,
                                             fontWeight: FontWeight.w800,
                                             fontSize: 13,
                                           ),
                                         ),
-                                        SizedBox(width: 8),
+                                        const SizedBox(width: 8),
                                         Icon(
                                           Icons.chevron_right_rounded,
-                                          color: Colors.white,
+                                          color: isDark ? Colors.black : Colors.white,
                                           size: 16,
                                         ),
                                       ],
@@ -1133,15 +1135,16 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 6),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFDCFCE7), // Light green
+                                color: isDark ? AppTheme.darkElevated : const Color(0xFFDCFCE7),
                                 borderRadius: BorderRadius.circular(12),
+                                border: isDark ? Border.all(color: AppTheme.darkBorder) : null,
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Going',
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF15803D), // Dark green
+                                  color: isDark ? Colors.white : const Color(0xFF15803D),
                                 ),
                               ),
                             ),
@@ -1529,6 +1532,7 @@ class _ActivityStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: GlassCard(
@@ -1538,10 +1542,15 @@ class _ActivityStatCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: bgColor,
+                color: isDark ? AppTheme.darkElevated : bgColor,
                 shape: BoxShape.circle,
+                border: isDark ? Border.all(color: AppTheme.darkBorder) : null,
               ),
-              child: Icon(icon, color: iconColor, size: 20),
+              child: Icon(
+                icon,
+                color: isDark ? Colors.white : iconColor,
+                size: 20,
+              ),
             ),
             const SizedBox(height: 10),
             Text(

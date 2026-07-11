@@ -64,6 +64,7 @@ class ClubTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tags = _getTags(club);
+    final isDark = AppTheme.isDark(context);
 
     return GestureDetector(
       onTap: onTap,
@@ -146,13 +147,14 @@ class ClubTile extends StatelessWidget {
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _getTagBgColor(tag),
+                      color: isDark ? Colors.white.withValues(alpha: 0.08) : _getTagBgColor(tag),
                       borderRadius: BorderRadius.circular(6),
+                      border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.1), width: 0.8) : null,
                     ),
                     child: Text(
                       tag,
                       style: TextStyle(
-                        color: _getTagTextColor(tag),
+                        color: isDark ? Colors.white.withValues(alpha: 0.8) : _getTagTextColor(tag),
                         fontSize: 9,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.3,

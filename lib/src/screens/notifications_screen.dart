@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
 import '../state/app_state.dart';
 import '../widgets/glass_card.dart';
 import 'notification_detail_screen.dart';
@@ -63,8 +64,15 @@ class NotificationsScreen extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 24,
-                        backgroundColor: item.color.withValues(alpha: 0.12),
-                        child: Icon(item.icon, color: item.color),
+                        backgroundColor: Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.darkElevated
+                            : item.color.withValues(alpha: 0.12),
+                        child: Icon(
+                          item.icon,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : item.color,
+                        ),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
@@ -86,7 +94,9 @@ class NotificationsScreen extends StatelessWidget {
                                     width: 10,
                                     height: 10,
                                     decoration: BoxDecoration(
-                                      color: item.color,
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? Colors.white
+                                          : item.color,
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                   ),

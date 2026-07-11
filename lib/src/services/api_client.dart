@@ -27,8 +27,8 @@ class ApiClient {
     }
     if (kDebugMode) {
       if (!kIsWeb && Platform.isAndroid) {
-        // Using adb reverse to map the device's port 5001 to the PC's port 5001
-        return 'http://127.0.0.1:5001/api';
+        // Android emulator uses 10.0.2.2 to reach the host machine's localhost
+        return 'http://10.0.2.2:5001/api';
       }
       return 'http://127.0.0.1:5001/api';
     }

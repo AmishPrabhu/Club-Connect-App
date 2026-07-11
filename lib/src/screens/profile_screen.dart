@@ -394,10 +394,10 @@ class _ProfileBodyState extends State<_ProfileBody> {
                   ),
                 ],
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.camera_alt_rounded,
                 size: 16,
-                color: Color(0xFF7C3AED),
+                color: isDark ? const Color(0xFFD8B4FE) : const Color(0xFF7C3AED),
               ),
             ),
           ),
@@ -465,10 +465,11 @@ class _ProfileBodyState extends State<_ProfileBody> {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: isDark ? bgColor.withValues(alpha: 0.15) : bgColor,
+                    color: isDark ? AppTheme.darkElevated : bgColor,
                     borderRadius: BorderRadius.circular(12),
+                    border: isDark ? Border.all(color: AppTheme.darkBorder) : null,
                   ),
-                  child: Icon(icon, color: iconColor, size: 22),
+                  child: Icon(icon, color: isDark ? Colors.white : iconColor, size: 22),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -508,11 +509,15 @@ class _ProfileBodyState extends State<_ProfileBody> {
   }
 
   Widget _buildLogoutTile() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
+        color: isDark ? const Color(0xFF1D0E0E) : const Color(0xFFFEF2F2),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFEE2E2), width: 1.5),
+        border: Border.all(
+          color: isDark ? const Color(0xFF3F1B1B) : const Color(0xFFFEE2E2),
+          width: 1,
+        ),
       ),
       child: Material(
         color: Colors.transparent,
@@ -534,13 +539,18 @@ class _ProfileBodyState extends State<_ProfileBody> {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFEE2E2),
+                    color: isDark ? const Color(0xFF2D1414) : const Color(0xFFFEE2E2),
                     borderRadius: BorderRadius.circular(12),
+                    border: isDark ? Border.all(color: const Color(0xFF3F1B1B)) : null,
                   ),
-                  child: const Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 22),
+                  child: Icon(
+                    Icons.logout_rounded,
+                    color: isDark ? Colors.white : const Color(0xFFEF4444),
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(width: 14),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -565,7 +575,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
                 ),
                 Icon(
                   Icons.chevron_right_rounded,
-                  color: const Color(0xFFF87171).withValues(alpha: 0.5),
+                  color: isDark ? Colors.white30 : const Color(0xFFF87171).withValues(alpha: 0.5),
                   size: 20,
                 ),
               ],
@@ -732,14 +742,15 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   }
 
   Widget _buildDeleteAccountTile() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
+        border: Border.all(color: isDark ? AppTheme.darkBorder : AppTheme.surfaceBg(context), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.015),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.015),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -764,13 +775,18 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFEF2F2),
+                    color: isDark ? const Color(0xFF2D1414) : const Color(0xFFFEF2F2),
                     borderRadius: BorderRadius.circular(12),
+                    border: isDark ? Border.all(color: const Color(0xFF3F1B1B)) : null,
                   ),
-                  child: const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444), size: 22),
+                  child: Icon(
+                    Icons.delete_outline_rounded,
+                    color: isDark ? Colors.white : const Color(0xFFEF4444),
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(width: 14),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -795,7 +811,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 ),
                 Icon(
                   Icons.chevron_right_rounded,
-                  color: const Color(0xFFF87171).withValues(alpha: 0.5),
+                  color: isDark ? Colors.white30 : const Color(0xFFF87171).withValues(alpha: 0.5),
                   size: 20,
                 ),
               ],

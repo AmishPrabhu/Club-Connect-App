@@ -24,7 +24,7 @@ class _RootScreenState extends State<RootScreen> {
     final isSelected = _index == index;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final color = isSelected
-        ? (isDark ? Theme.of(context).colorScheme.primary : AppTheme.navy)
+        ? (isDark ? Colors.white : AppTheme.navy)
         : (isDark ? AppTheme.darkMuted : AppTheme.muted);
 
     return Expanded(
@@ -43,8 +43,8 @@ class _RootScreenState extends State<RootScreen> {
               decoration: BoxDecoration(
                 color: isSelected
                     ? (isDark
-                        ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15)
-                        : AppTheme.navy.withValues(alpha: 0.08)) // Soft navy capsule background
+                        ? Colors.white.withValues(alpha: 0.12)
+                        : AppTheme.navy.withValues(alpha: 0.08)) // Soft capsule background
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(24),
               ),

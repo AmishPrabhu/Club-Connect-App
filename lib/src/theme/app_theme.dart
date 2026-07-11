@@ -1,37 +1,23 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 
 class AppTheme {
-  static Color get navy {
-    try {
-      final brightness = PlatformDispatcher.instance.platformBrightness;
-      return brightness == Brightness.dark ? const Color(0xFFF8FAFC) : const Color(0xFF002147);
-    } catch (_) {
-      return const Color(0xFF002147);
-    }
-  }
+  static const Color navy = Color(0xFF002147);
   static const Color surface = Color(0xFFF4F7FB);
   static const Color card = Colors.white;
   static const Color text = Color(0xFF162033);
   static const Color muted = Color(0xFF6E7A8A);
   static const Color cyan = Color(0xFF38BDF8);
-  
-  static Color get blue {
-    try {
-      final brightness = PlatformDispatcher.instance.platformBrightness;
-      return brightness == Brightness.dark ? darkAccent : const Color(0xFF2563EB);
-    } catch (_) {
-      return const Color(0xFF2563EB);
-    }
-  }
-
+  static const Color blue = Color(0xFF2563EB);
   static const Color purple = Color(0xFF7C3AED);
 
-  static const Color darkBackground = Color(0xFF000000);
-  static const Color darkSurface = Color(0xFF111111);
-  static const Color darkText = Color(0xFFF8FAFC);
-  static const Color darkMuted = Color(0xFF94A3B8);
-  static const Color darkAccent = Color(0xFF818CF8);
+  static const Color darkBackground = Color(0xFF080808);
+  static const Color darkSurface    = Color(0xFF131313);
+  static const Color darkElevated   = Color(0xFF1C1C1C);
+  static const Color darkText       = Color(0xFFFFFFFF);
+  static const Color darkMuted      = Color(0xFF7A7A7A);
+  static const Color darkSubtle     = Color(0xFF444444);
+  static const Color darkAccent     = Color(0xFF818CF8);
+  static const Color darkBorder     = Color(0xFF242424);
 
   static ThemeData light() {
     final base = ThemeData(
@@ -164,19 +150,19 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+          side: const BorderSide(color: darkBorder),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: darkSurface,
+        fillColor: darkElevated,
         hintStyle: const TextStyle(color: darkMuted),
         prefixIconColor: darkMuted,
         labelStyle: const TextStyle(color: darkMuted),
         contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+          borderSide: const BorderSide(color: darkBorder),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -184,8 +170,22 @@ class AppTheme {
         ),
       ),
       chipTheme: base.chipTheme.copyWith(
-        side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+        backgroundColor: darkElevated,
+        selectedColor: Colors.white,
+        disabledColor: darkSurface,
+        side: const BorderSide(color: darkBorder),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        labelStyle: TextStyle(
+          color: WidgetStateColor.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return darkBackground;
+            }
+            return darkText;
+          }),
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
+        secondaryLabelStyle: const TextStyle(color: darkBackground, fontSize: 13, fontWeight: FontWeight.w700),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
@@ -211,7 +211,7 @@ class AppTheme {
           ),
         ),
       ),
-      dividerColor: Colors.white.withValues(alpha: 0.1),
+      dividerColor: darkBorder,
     );
   }
 
@@ -244,4 +244,12 @@ class AppTheme {
   /// Navy text color that adapts to light/dark mode.
   static Color navyColor(BuildContext context) =>
       isDark(context) ? darkText : navy;
+
+  /// Elevated surface (inputs, nested cards) — darker than card in dark mode.
+  static Color elevatedBg(BuildContext context) =>
+      isDark(context) ? darkElevated : Colors.white;
+
+  /// Unified border color across all widgets.
+  static Color borderColor(BuildContext context) =>
+      isDark(context) ? darkBorder : Colors.blueGrey.withValues(alpha: 0.1);
 }

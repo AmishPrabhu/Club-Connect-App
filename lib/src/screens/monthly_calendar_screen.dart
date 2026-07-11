@@ -241,10 +241,10 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                               child: Text(
                                 header,
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 12,
-                                  color: AppTheme.muted,
+                                  color: AppTheme.mutedColor(context),
                                 ),
                               ),
                             );
@@ -352,20 +352,20 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                         const Divider(color: Color(0xFFF1F5F9)),
                         const SizedBox(height: 8),
                         // Legend
-                        const Row(
+                        Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.circle,
                               size: 10,
                               color: Color(0xFF22C55E),
                             ),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Text(
                               'Events are marked with green',
                               style: TextStyle(
                                 fontSize: 13,
-                                color: AppTheme.muted,
+                                color: AppTheme.mutedColor(context),
                               ),
                             ),
                           ],
@@ -414,7 +414,7 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                           Icon(
                             Icons.event_busy_rounded,
                             size: 48,
-                            color: AppTheme.muted.withValues(alpha: 0.5),
+                            color: AppTheme.mutedColor(context).withValues(alpha: 0.5),
                           ),
                           const SizedBox(height: 12),
                           Text(
@@ -422,8 +422,8 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                                 ? 'No events scheduled for this week.'
                                 : 'No events scheduled for this day.',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: AppTheme.muted,
+                            style: TextStyle(
+                              color: AppTheme.mutedColor(context),
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),

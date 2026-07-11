@@ -29,6 +29,7 @@ class EventCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final date = post.date ?? DateTime.now();
     final month = _months[date.month - 1];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GestureDetector(
       onTap: onTap,
@@ -95,7 +96,7 @@ class EventCard extends StatelessWidget {
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 fontWeight: FontWeight.w800,
-                                color: AppTheme.accent(context),
+                                color: isDark ? Colors.white : AppTheme.accent(context),
                               ),
                         ),
                       ),
@@ -106,7 +107,9 @@ class EventCard extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: post.isUpcoming
-                              ? const Color(0xFF15803D).withValues(alpha: 0.12)
+                              ? (isDark
+                                  ? AppTheme.darkElevated
+                                  : const Color(0xFF15803D).withValues(alpha: 0.12))
                               : AppTheme.mutedColor(context).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(999),
                         ),
@@ -116,7 +119,7 @@ class EventCard extends StatelessWidget {
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
                             color: post.isUpcoming
-                                ? const Color(0xFF15803D)
+                                ? (isDark ? Colors.white : const Color(0xFF15803D))
                                 : AppTheme.mutedColor(context),
                           ),
                         ),
@@ -218,7 +221,7 @@ class _Meta extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: AppTheme.purple),
+        Icon(icon, size: 16, color: AppTheme.accent(context)),
         const SizedBox(width: 6),
         Text(
           label,
