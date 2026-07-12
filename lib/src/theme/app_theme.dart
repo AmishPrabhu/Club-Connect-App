@@ -97,6 +97,8 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
+          backgroundColor: text,
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -104,6 +106,8 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
+          backgroundColor: text,
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -116,6 +120,13 @@ class AppTheme {
           ),
         ),
       ),
+      tabBarTheme: TabBarThemeData(
+        labelColor: text,
+        unselectedLabelColor: muted,
+        indicatorColor: text,
+        indicatorSize: TabBarIndicatorSize.tab,
+      ),
+      dividerColor: const Color(0xFFE2E8F0),
     );
   }
 
@@ -189,8 +200,8 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: darkAccent,
-          foregroundColor: Colors.white,
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -198,6 +209,8 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -210,6 +223,12 @@ class AppTheme {
             borderRadius: BorderRadius.circular(16),
           ),
         ),
+      ),
+      tabBarTheme: const TabBarThemeData(
+        labelColor: Colors.white,
+        unselectedLabelColor: darkMuted,
+        indicatorColor: Colors.white,
+        indicatorSize: TabBarIndicatorSize.tab,
       ),
       dividerColor: darkBorder,
     );
@@ -251,5 +270,5 @@ class AppTheme {
 
   /// Unified border color across all widgets.
   static Color borderColor(BuildContext context) =>
-      isDark(context) ? darkBorder : Colors.blueGrey.withValues(alpha: 0.1);
+      isDark(context) ? darkBorder : const Color(0xFFE2E8F0);
 }

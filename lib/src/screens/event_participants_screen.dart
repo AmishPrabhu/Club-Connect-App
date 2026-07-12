@@ -365,9 +365,6 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
         elevation: 0,
         bottom: TabBar(
           controller: _tabController,
-          labelColor: AppTheme.navyColor(context),
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: AppTheme.accent(context),
           tabs: const [
             Tab(icon: Icon(Icons.people_outline), text: 'Attendance'),
             Tab(icon: Icon(Icons.badge_outlined), text: 'Certificates'),
@@ -687,37 +684,43 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
             // Bulk actions card
             Card(
               elevation: 0,
-              color: Colors.green.shade50,
+              color: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkElevated : const Color(0xFFF1F5F9),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.green.shade100),
+                side: BorderSide(
+                  color: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkBorder : const Color(0xFFE2E8F0),
+                ),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Batch Certificate Generation',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.green),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: AppTheme.textColor(context),
+                      ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'This will generate Cloudinary stamp templates and update certificates for all participants marked as present.',
-                      style: TextStyle(fontSize: 12, color: Colors.black87),
+                      style: TextStyle(fontSize: 12, color: AppTheme.mutedColor(context)),
                     ),
                     const SizedBox(height: 14),
 
                     if (_isGenerating) ...[
                       LinearProgressIndicator(
                         value: _generationTotal > 0 ? _generationProgress / _generationTotal : 0,
-                        backgroundColor: Colors.green.shade100,
-                        color: Colors.green,
+                        backgroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.white10 : Colors.black12,
+                        color: AppTheme.textColor(context),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         'Generating $_generationProgress of $_generationTotal...',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textColor(context)),
                       ),
                       const SizedBox(height: 12),
                     ],
@@ -726,7 +729,10 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: _isGenerating ? null : _generateCertificates,
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.accent(context),
+                          foregroundColor: Colors.white,
+                        ),
                         icon: const Icon(Icons.offline_pin_rounded),
                         label: const Text('Generate & Update Certificates'),
                       ),

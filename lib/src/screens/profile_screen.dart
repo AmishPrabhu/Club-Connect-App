@@ -747,7 +747,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? AppTheme.darkBorder : AppTheme.surfaceBg(context), width: 1),
+        border: Border.all(color: AppTheme.borderColor(context), width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.015),

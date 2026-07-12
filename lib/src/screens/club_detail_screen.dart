@@ -227,7 +227,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.image_outlined, color: Colors.purple, size: 20),
+              Icon(Icons.image_outlined, color: AppTheme.textColor(context), size: 20),
               const SizedBox(width: 8),
               Text(
                 'Club Profile Picture',
@@ -308,7 +308,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.chat_bubble_outline_rounded, color: Colors.green, size: 20),
+              Icon(Icons.chat_bubble_outline_rounded, color: AppTheme.textColor(context), size: 20),
               const SizedBox(width: 8),
               Text(
                 'WhatsApp Community',
@@ -335,7 +335,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
           if (hasLink)
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.open_in_new_rounded, color: Colors.green, size: 20),
+              leading: Icon(Icons.open_in_new_rounded, color: AppTheme.textColor(context), size: 20),
               title: const Text(
                 'Open WhatsApp Group',
                 style: TextStyle(fontWeight: FontWeight.w600),
@@ -404,7 +404,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.camera_alt_outlined, color: Colors.pink, size: 20),
+              Icon(Icons.camera_alt_outlined, color: AppTheme.textColor(context), size: 20),
               const SizedBox(width: 8),
               Text(
                 'Instagram Page',
@@ -431,7 +431,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
           if (hasLink)
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.open_in_new_rounded, color: Colors.pink, size: 20),
+              leading: Icon(Icons.open_in_new_rounded, color: AppTheme.textColor(context), size: 20),
               title: const Text(
                 'Open Instagram Page',
                 style: TextStyle(fontWeight: FontWeight.w600),
@@ -502,7 +502,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.edit_note_rounded, color: Colors.purple, size: 20),
+                  Icon(Icons.edit_note_rounded, color: AppTheme.textColor(context), size: 20),
                   const SizedBox(width: 8),
                   Text(
                     'Full Form',

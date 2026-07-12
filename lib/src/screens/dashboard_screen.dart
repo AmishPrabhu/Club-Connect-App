@@ -464,42 +464,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
           shrinkWrap: true,
           children: sections.map((sec) {
             IconData icon = Icons.bookmark_outline_rounded;
-            Color iconColor = AppTheme.accent(ctx);
             if (sec == 'Overview') {
               icon = Icons.trending_up_rounded;
-              iconColor = AppTheme.accent(ctx);
             } else if (sec == 'Members') {
               icon = Icons.people_outline_rounded;
-              iconColor = Colors.purple;
-            } else if (sec == 'Drafts & Posts') {
+            } else if (sec == 'Drafts & Posts' || sec == 'Posts & Announcements') {
               icon = Icons.edit_note_rounded;
-              iconColor = Colors.orange;
             } else if (sec == 'Events') {
               icon = Icons.calendar_month_outlined;
-              iconColor = Colors.green;
             } else if (sec == 'Tasks') {
               icon = Icons.checklist_rtl_rounded;
-              iconColor = Colors.teal;
-            } else if (sec == 'Messages') {
+            } else if (sec == 'Messages' || sec == 'Live Chat') {
               icon = Icons.chat_bubble_outline_rounded;
-              iconColor = Colors.indigo;
             } else if (sec == 'Notifications') {
               icon = Icons.notifications_none_rounded;
-              iconColor = Colors.red;
             } else if (sec == 'Budget' || sec == 'Budgets') {
               icon = Icons.account_balance_wallet_outlined;
-              iconColor = Colors.cyan;
             } else if (sec == 'Reports') {
               icon = Icons.file_copy_outlined;
-              iconColor = Colors.amber;
             } else if (sec == 'Team') {
               icon = Icons.groups_3_outlined;
-              iconColor = Colors.deepOrange;
             }
 
+            final isSelected = _selectedSection == sec;
+            final itemColor = isSelected ? AppTheme.textColor(ctx) : AppTheme.mutedColor(ctx);
+
             return ListTile(
-              leading: Icon(icon, color: iconColor),
-              title: Text(sec, style: const TextStyle(fontWeight: FontWeight.bold)),
+              leading: Icon(icon, color: itemColor),
+              title: Text(
+                sec,
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: itemColor,
+                ),
+              ),
               onTap: () {
                 setState(() => _selectedSection = sec);
                 Navigator.pop(ctx);
@@ -706,7 +704,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? AppTheme.darkBorder : AppTheme.surfaceBg(context),
+          color: AppTheme.borderColor(context),
           width: 1,
         ),
         boxShadow: [
@@ -724,13 +722,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: isDark ? AppTheme.darkElevated : bgColor,
+              color: isDark ? AppTheme.darkElevated : const Color(0xFFF1F5F9),
               shape: BoxShape.circle,
               border: isDark ? Border.all(color: AppTheme.darkBorder) : null,
             ),
             child: Icon(
               icon,
-              color: isDark ? Colors.white : iconColor,
+              color: isDark ? Colors.white : const Color(0xFF475569),
               size: 20,
             ),
           ),
@@ -856,7 +854,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? AppTheme.darkBorder : AppTheme.surfaceBg(context),
+          color: AppTheme.borderColor(context),
           width: 1,
         ),
         boxShadow: [
@@ -888,13 +886,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: isDark ? AppTheme.darkElevated : bgColor,
+                    color: isDark ? AppTheme.darkElevated : const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(12),
                     border: isDark ? Border.all(color: AppTheme.darkBorder) : null,
                   ),
                   child: Icon(
                     icon,
-                    color: isDark ? Colors.white : iconColor,
+                    color: isDark ? Colors.white : const Color(0xFF475569),
                     size: 22,
                   ),
                 ),
@@ -1121,6 +1119,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildRecentEventCard(PostItem post) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -1139,7 +1138,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(16),
         child: Row(
           children: [
-            Container(width: 4, height: 90, color: Colors.cyan.shade600),
+            Container(
+              width: 4,
+              height: 90,
+              color: isDark ? Colors.white : AppTheme.navy,
+            ),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(12),
@@ -1148,10 +1151,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.cyan.shade50,
+                        color: isDark ? AppTheme.darkElevated : const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(Icons.calendar_today_outlined, color: Colors.cyan.shade700, size: 24),
+                      child: Icon(
+                        Icons.calendar_today_outlined,
+                        color: isDark ? Colors.white : const Color(0xFF475569),
+                        size: 24,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -1163,26 +1170,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Colors.cyan.shade100.withValues(alpha: 0.5),
+                                  color: isDark ? AppTheme.darkElevated : const Color(0xFFF1F5F9),
                                   borderRadius: BorderRadius.circular(6),
+                                  border: isDark ? Border.all(color: AppTheme.darkBorder) : null,
                                 ),
-                                child: const Text(
+                                child: Text(
                                   'EVENT',
                                   style: TextStyle(
                                     fontSize: 9,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF006064),
+                                    color: isDark ? Colors.white70 : const Color(0xFF475569),
                                   ),
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              Icon(Icons.access_time, size: 11, color: Theme.of(context).dividerColor),
+                              Icon(Icons.access_time, size: 11, color: AppTheme.mutedColor(context)),
                               const SizedBox(width: 4),
                               Text(
                                 post.date != null
                                     ? '${post.date!.year}-${post.date!.month.toString().padLeft(2, '0')}-${post.date!.day.toString().padLeft(2, '0')}'
                                     : '',
-                                style: TextStyle(fontSize: 10, color: Theme.of(context).dividerColor),
+                                style: TextStyle(fontSize: 10, color: AppTheme.mutedColor(context)),
                               ),
                             ],
                           ),
@@ -1202,13 +1210,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             'Posted by ${post.clubName}',
                             style: TextStyle(
                               fontSize: 11,
-                              color: Theme.of(context).dividerColor,
+                              color: AppTheme.mutedColor(context),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Icon(Icons.chevron_right, color: Theme.of(context).dividerColor),
+                    Icon(Icons.chevron_right, color: AppTheme.mutedColor(context)),
                   ],
                 ),
               ),
@@ -1252,8 +1260,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.cyan.shade50.withValues(alpha: 0.5),
+                  color: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkElevated : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(20),
+                  border: Theme.of(context).brightness == Brightness.dark ? Border.all(color: AppTheme.darkBorder) : null,
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -1261,13 +1270,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Text(
                       'VIEW ALL ACTIVITY',
                       style: TextStyle(
-                        color: Colors.teal.shade700,
+                        color: AppTheme.textColor(context),
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(width: 4),
-                    Icon(Icons.north_east_rounded, size: 12, color: Colors.teal.shade700),
+                    Icon(Icons.north_east_rounded, size: 12, color: AppTheme.textColor(context)),
                   ],
                 ),
               ),
@@ -1319,11 +1328,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           height: 48,
           child: FilledButton.icon(
             style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.accent(context),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: _showCreateClubDialog,
-            icon: const Icon(Icons.add, color: Colors.white),
+            icon: const Icon(Icons.add),
             label: const Text('NEW CLUB', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ),
@@ -1450,7 +1458,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             club.description,
             style: TextStyle(
               fontSize: 13,
-              color: Theme.of(context).dividerColor,
+              color: AppTheme.mutedColor(context),
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -1539,26 +1547,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildCategoryBadge(String category) {
-    Color bgColor = AppTheme.accent(context);
-    Color textColor = AppTheme.accent(context);
-
-    switch (category.toLowerCase()) {
-      case 'academic':
-        bgColor = Colors.green.shade50;
-        textColor = Colors.green.shade700;
-      case 'cultural':
-        bgColor = Colors.purple.shade50;
-        textColor = Colors.purple.shade700;
-      case 'sports':
-        bgColor = Colors.orange.shade50;
-        textColor = Colors.orange.shade700;
-    }
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? AppTheme.darkElevated : const Color(0xFFF1F5F9);
+    final textColor = isDark ? Colors.white70 : const Color(0xFF475569);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(6),
+        border: isDark ? Border.all(color: AppTheme.darkBorder) : null,
       ),
       child: Text(
         category.toUpperCase(),
@@ -1572,18 +1570,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildDeptBadge(String dept) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? AppTheme.darkElevated : const Color(0xFFF1F5F9);
+    final textColor = isDark ? Colors.white70 : const Color(0xFF475569);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.deepPurple.shade50,
+        color: bgColor,
         borderRadius: BorderRadius.circular(6),
+        border: isDark ? Border.all(color: AppTheme.darkBorder) : null,
       ),
       child: Text(
         dept.toUpperCase(),
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.bold,
-          color: Colors.deepPurple.shade700,
+          color: textColor,
         ),
       ),
     );
@@ -1603,12 +1606,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Text(
                   '$roleLabel: ',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textColor(context)),
                 ),
                 Expanded(
                   child: Text(
                     display,
-                    style: const TextStyle(color: Colors.green, fontSize: 13, fontWeight: FontWeight.w500),
+                    style: TextStyle(color: AppTheme.textColor(context), fontSize: 13, fontWeight: FontWeight.w500),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1653,17 +1656,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           Text(
             '$roleLabel: ',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textColor(context)),
           ),
           GestureDetector(
             onTap: () => _showAssignLeadershipDialog(club, roleLabel, roleKey),
             child: Row(
               children: [
-                Icon(Icons.add, size: 14, color: AppTheme.blue),
+                Icon(Icons.add, size: 14, color: AppTheme.accent(context)),
                 const SizedBox(width: 4),
                 Text(
                   'Assign',
-                  style: TextStyle(color: AppTheme.blue, fontWeight: FontWeight.bold, fontSize: 13),
+                  style: TextStyle(color: AppTheme.accent(context), fontWeight: FontWeight.bold, fontSize: 13),
                 ),
               ],
             ),
@@ -1888,6 +1891,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildAdminPostCard(PostItem post) {
     final isEvent = post.isEvent;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -1906,7 +1910,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(16),
         child: Row(
           children: [
-            Container(width: 4, height: 85, color: isEvent ? Colors.cyan.shade600 : Colors.orange.shade600),
+            Container(
+              width: 4,
+              height: 85,
+              color: isEvent
+                  ? (isDark ? Colors.white : AppTheme.navy)
+                  : AppTheme.mutedColor(context),
+            ),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(12),
@@ -1915,12 +1925,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: isEvent ? Colors.cyan.shade50 : Colors.orange.shade50,
+                        color: isDark ? AppTheme.darkElevated : const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
                         isEvent ? Icons.calendar_today_outlined : Icons.campaign_outlined,
-                        color: isEvent ? Colors.cyan.shade700 : Colors.orange.shade700,
+                        color: isDark ? Colors.white : const Color(0xFF475569),
                         size: 24,
                       ),
                     ),
@@ -1934,27 +1944,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: isEvent
-                                      ? Colors.cyan.shade100.withValues(alpha: 0.5)
-                                      : Colors.orange.shade100.withValues(alpha: 0.5),
+                                  color: isDark ? AppTheme.darkElevated : const Color(0xFFF1F5F9),
                                   borderRadius: BorderRadius.circular(6),
+                                  border: isDark ? Border.all(color: AppTheme.darkBorder) : null,
                                 ),
                                 child: Text(
                                   isEvent ? 'EVENT' : 'ANNOUNCEMENT',
                                   style: TextStyle(
                                     fontSize: 9,
                                     fontWeight: FontWeight.bold,
-                                    color: isEvent ? Colors.cyan.shade800 : Colors.orange.shade800,
+                                    color: isDark ? Colors.white70 : const Color(0xFF475569),
                                   ),
                                 ),
                               ),
                               const SizedBox(width: 8),
                               if (post.date != null) ...[
-                                Icon(Icons.access_time, size: 11, color: Theme.of(context).dividerColor),
+                                Icon(Icons.access_time, size: 11, color: AppTheme.mutedColor(context)),
                                 const SizedBox(width: 4),
                                 Text(
                                   '${post.date!.year}-${post.date!.month.toString().padLeft(2, '0')}-${post.date!.day.toString().padLeft(2, '0')}',
-                                  style: TextStyle(fontSize: 10, color: Theme.of(context).dividerColor),
+                                  style: TextStyle(fontSize: 10, color: AppTheme.mutedColor(context)),
                                 ),
                               ],
                             ],
@@ -1975,7 +1984,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             'Posted by ${post.clubName}',
                             style: TextStyle(
                               fontSize: 11,
-                              color: Theme.of(context).dividerColor,
+                              color: AppTheme.mutedColor(context),
                             ),
                           ),
                         ],
@@ -2043,11 +2052,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(width: 12),
             FilledButton.icon(
               style: FilledButton.styleFrom(
-                backgroundColor: AppTheme.blue,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: _showNotificationDialog,
-              icon: const Icon(Icons.send_rounded, color: Colors.white, size: 16),
+              icon: const Icon(Icons.send_rounded, size: 16),
               label: const Text('NEW BROADCAST', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
             ),
           ],
@@ -2126,7 +2134,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 const SizedBox(width: 6),
                                 Text(
                                   '•  ${n.timeAgo}',
-                                  style: TextStyle(fontSize: 10, color: Theme.of(context).dividerColor),
+                                  style: TextStyle(fontSize: 10, color: AppTheme.mutedColor(context)),
                                 ),
                               ],
                             ],
@@ -2147,7 +2155,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             n.plainMessage,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Theme.of(context).dividerColor,
+                              color: AppTheme.mutedColor(context),
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -2205,7 +2213,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Expanded(
               child: Row(
                 children: [
-                  Container(width: 4, height: 18, color: Colors.green.shade600),
+                  Container(
+                    width: 4,
+                    height: 18,
+                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.navy,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -2224,11 +2236,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(width: 12),
             FilledButton.icon(
               style: FilledButton.styleFrom(
-                backgroundColor: Colors.green.shade600,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: _showAssignTeacherDialog,
-              icon: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 16),
+              icon: const Icon(Icons.person_add_alt_1_rounded, size: 16),
               label: const Text('Add Teacher', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
             ),
           ],
@@ -2237,15 +2248,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.green.shade50,
+            color: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkElevated : const Color(0xFFF1F5F9),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.green.shade100),
+            border: Theme.of(context).brightness == Brightness.dark
+                ? Border.all(color: AppTheme.darkBorder)
+                : Border.all(color: const Color(0xFFE2E8F0)),
           ),
           child: Text(
             'Note: Teachers can monitor event reports from clubs they manage. When you add a teacher by email, they will receive an invitation to create their account.',
             style: TextStyle(
               fontSize: 12,
-              color: Colors.green.shade800,
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : const Color(0xFF475569),
               fontWeight: FontWeight.w500,
               height: 1.4,
             ),
@@ -2382,22 +2395,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   email,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Theme.of(context).dividerColor,
+                    color: AppTheme.mutedColor(context),
                   ),
                 ),
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.teal.shade50.withValues(alpha: 0.8),
+                    color: isDark ? AppTheme.darkElevated : const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(12),
+                    border: isDark ? Border.all(color: AppTheme.darkBorder) : null,
                   ),
                   child: Text(
                     '$managedCount CLUBS MANAGED',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: Colors.teal.shade800,
+                      color: isDark ? Colors.white70 : const Color(0xFF475569),
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -2452,7 +2466,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: isDark ? AppTheme.darkBorder : AppTheme.surfaceBg(context), width: 1),
+                border: Border.all(color: AppTheme.borderColor(context), width: 1),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.015),
@@ -2781,7 +2795,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
+                  border: Border.all(color: AppTheme.borderColor(context), width: 1.5),
                 ),
                 alignment: Alignment.center,
                 child: const Text('No upcoming events scheduled.', style: TextStyle(color: Colors.grey, fontSize: 13)),
@@ -2803,7 +2817,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   decoration: BoxDecoration(
                     color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
+                    border: Border.all(color: AppTheme.borderColor(context), width: 1.5),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.015),
@@ -2988,7 +3002,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
+            border: Border.all(color: AppTheme.borderColor(context), width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.015),
@@ -3286,7 +3300,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     decoration: BoxDecoration(
                       color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: isDark ? AppTheme.darkBorder : AppTheme.surfaceBg(context), width: 1),
+                      border: Border.all(color: AppTheme.borderColor(context), width: 1),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.015),
@@ -3468,7 +3482,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
+            border: Border.all(color: AppTheme.borderColor(context), width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.015),
@@ -3679,7 +3693,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
+                  border: Border.all(color: AppTheme.borderColor(context), width: 1.5),
                 ),
                 child: Column(
                   children: [
@@ -3704,7 +3718,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     decoration: BoxDecoration(
                       color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
+                      border: Border.all(color: AppTheme.borderColor(context), width: 1.5),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -3916,7 +3930,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
+                  border: Border.all(color: AppTheme.borderColor(context), width: 1.5),
                 ),
                 child: Column(
                   children: [
@@ -3948,7 +3962,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     decoration: BoxDecoration(
                       color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
+                      border: Border.all(color: AppTheme.borderColor(context), width: 1.5),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -4095,7 +4109,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
+              border: Border.all(color: AppTheme.borderColor(context), width: 1.5),
             ),
             child: Column(
               children: [
@@ -4118,7 +4132,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
+                  border: Border.all(color: AppTheme.borderColor(context), width: 1.5),
                 ),
                 child: Row(
                   children: [
@@ -4202,7 +4216,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
+              border: Border.all(color: AppTheme.borderColor(context), width: 1.5),
             ),
             child: Column(
               children: [
@@ -4233,7 +4247,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
+                border: Border.all(color: AppTheme.borderColor(context), width: 1.5),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -4318,7 +4332,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
+          border: Border.all(color: AppTheme.borderColor(context), width: 1.5),
         ),
         child: Column(
           children: [
@@ -4344,7 +4358,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
+            border: Border.all(color: AppTheme.borderColor(context), width: 1.5),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -4461,7 +4475,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
+        border: Border.all(color: AppTheme.borderColor(context), width: 1.5),
       ),
       child: Row(
         children: [
@@ -5232,9 +5246,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 12),
           TabBar(
-            labelColor: AppTheme.blue,
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: AppTheme.blue,
             tabs: const [
               Tab(text: 'Upcoming'),
               Tab(text: 'Past'),
@@ -6670,7 +6681,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
 
   Widget _buildHeader(bool isDark) {
     final labels = widget.isEvent ? ['Content', 'Details', 'Registration'] : ['Content', 'Details'];
-    final titleColor = isDark ? Theme.of(context).cardColor : AppTheme.text;
+    final titleColor = AppTheme.textColor(context);
     final subtitleColor = isDark ? AppTheme.darkMuted : AppTheme.mutedColor(context);
     final headerBg = isDark ? AppTheme.darkSurface : Colors.white;
 
@@ -6721,8 +6732,11 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
                 ),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close_rounded, color: Colors.white),
-                  style: IconButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.15), padding: const EdgeInsets.all(6)),
+                  icon: Icon(Icons.close_rounded, color: isDark ? Colors.white : AppTheme.text),
+                  style: IconButton.styleFrom(
+                    backgroundColor: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.05),
+                    padding: const EdgeInsets.all(6),
+                  ),
                 ),
               ],
             ),
@@ -6835,23 +6849,35 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
                 key: const ValueKey('empty'),
                 height: 200, width: double.infinity,
                 decoration: BoxDecoration(
-                  color: isDark ? AppTheme.blue.withValues(alpha: 0.08) : AppTheme.blue.withValues(alpha: 0.05),
+                  color: isDark ? AppTheme.darkSurface : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.blue.withValues(alpha: 0.3), width: 1.5),
+                  border: Border.all(
+                    color: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.blueGrey.withValues(alpha: 0.2),
+                    width: 1.5,
+                  ),
                 ),
                 child: isUploadingCover
                     ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        CircularProgressIndicator(strokeWidth: 2),
-                        SizedBox(height: 10),
+                        const CircularProgressIndicator(strokeWidth: 2),
+                        const SizedBox(height: 10),
                         Text('Uploading...', style: TextStyle(color: AppTheme.mutedColor(context), fontSize: 13)),
                       ]))
                     : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Container(padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(color: AppTheme.blue.withValues(alpha: 0.1), shape: BoxShape.circle),
-                            child: Icon(Icons.add_photo_alternate_outlined, color: AppTheme.blue, size: 30)),
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppTheme.darkElevated : const Color(0xFFE2E8F0),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.add_photo_alternate_outlined,
+                            color: AppTheme.textColor(context),
+                            size: 30,
+                          ),
+                        ),
                         const SizedBox(height: 10),
                         Text('Tap to add Cover Photo / Video',
-                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.blue)),
+                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textColor(context))),
                         const SizedBox(height: 4),
                         Text('Required \u00b7 Max 1', style: TextStyle(fontSize: 12, color: AppTheme.mutedColor(context))),
                       ]),
@@ -7395,7 +7421,6 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
               : FilledButton(
                   onPressed: _nextStep,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppTheme.blue,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                   ),
@@ -7413,15 +7438,14 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
   Widget _publishBtn(bool isDark) => FilledButton(
         onPressed: _isSubmitting ? null : _submit,
         style: FilledButton.styleFrom(
-          backgroundColor: AppTheme.navyColor(context),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           padding: const EdgeInsets.symmetric(horizontal: 20),
         ),
         child: _isSubmitting
-            ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+            ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: isDark ? Colors.black : Colors.white))
             : Text(
                 widget.isEvent ? 'Publish Event' : 'Publish Post',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
               ),
       );
 
@@ -7430,7 +7454,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
   // ── Shared helpers ────────────────────────────────────────────────────────
 
   Widget _fieldLabel(String label, {bool required = false}) => Row(mainAxisSize: MainAxisSize.min, children: [
-    Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.text)),
+    Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.textColor(context))),
     if (required) ...[const SizedBox(width: 4), const Text('*', style: TextStyle(color: Colors.red, fontSize: 14, fontWeight: FontWeight.bold))],
   ]);
 
@@ -7579,7 +7603,7 @@ class _MiniStatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.surfaceBg(context), width: 1.5),
+        border: Border.all(color: AppTheme.borderColor(context), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.01),
@@ -7651,7 +7675,7 @@ class _QuickActionTile extends StatelessWidget {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? AppTheme.darkBorder : AppTheme.surfaceBg(context),
+          color: AppTheme.borderColor(context),
           width: 1,
         ),
         boxShadow: [
@@ -7675,11 +7699,11 @@ class _QuickActionTile extends StatelessWidget {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: isDark ? AppTheme.darkElevated : bgColor,
+                    color: isDark ? AppTheme.darkElevated : const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(10),
                     border: isDark ? Border.all(color: AppTheme.darkBorder) : null,
                   ),
-                  child: Icon(icon, color: isDark ? Colors.white : iconColor, size: 20),
+                  child: Icon(icon, color: isDark ? Colors.white : const Color(0xFF475569), size: 20),
                 ),
                 const SizedBox(width: 14),
                 Expanded(

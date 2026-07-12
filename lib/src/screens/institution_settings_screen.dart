@@ -77,11 +77,11 @@ class _InstitutionSettingsScreenState extends State<InstitutionSettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Institution Settings'),
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.navy,
+        backgroundColor: Colors.transparent,
+        foregroundColor: AppTheme.textColor(context),
         elevation: 0,
       ),
-      backgroundColor: Theme.of(context).dividerColor,
+      backgroundColor: AppTheme.surfaceBg(context),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -214,8 +214,6 @@ class _InstitutionSettingsScreenState extends State<InstitutionSettingsScreen> {
               child: ElevatedButton(
                 onPressed: _saveSettings,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.accent(context),
-                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),

@@ -854,7 +854,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                             fontWeight: FontWeight.bold,
                                             color: role != 'Member'
                                                 ? AppTheme.purple
-                                                : Theme.of(context).dividerColor,
+                                                : AppTheme.mutedColor(context),
                                           ),
                                         ),
                                       ],
@@ -863,7 +863,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                   if (role == 'Member')
                                     Icon(
                                       Icons.chevron_right_rounded,
-                                      color: Theme.of(context).dividerColor,
+                                      color: AppTheme.mutedColor(context),
                                       size: 16,
                                     ),
                                 ],
