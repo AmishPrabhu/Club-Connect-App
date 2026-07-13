@@ -19,6 +19,9 @@ import 'notification_detail_screen.dart';
 import 'institution_settings_screen.dart';
 import 'event_participants_screen.dart';
 import '../widgets/member_form_sheet.dart';
+import '../widgets/create_notification_sheet.dart';
+import '../widgets/assign_teacher_sheet.dart';
+import '../widgets/create_club_sheet.dart';
 import 'notifications_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -5818,75 +5821,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _showNotificationDialog() async {
-    final titleController = TextEditingController();
-    final messageController = TextEditingController();
-    String type = widget.appState.session?.role == 'admin' ? 'system' : 'club';
-
-    await showDialog<void>(
+    final type = widget.appState.session?.role == 'admin' ? 'system' : 'club';
+    await showModalBottomSheet<void>(
       context: context,
-      builder: (context) {
-        final navigator = Navigator.of(context);
-        return AlertDialog(
-          title: const Text('Create Notification'),
-          content: StatefulBuilder(
-            builder: (context, setStateDialog) {
-              return SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: titleController,
-                      decoration: const InputDecoration(labelText: 'Title'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: messageController,
-                      maxLines: 4,
-                      decoration: const InputDecoration(labelText: 'Message'),
-                    ),
-                    _buildMarkdownToolbar(messageController, setStateDialog),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: type,
-                      items: const [
-                        DropdownMenuItem(value: 'system', child: Text('System')),
-                        DropdownMenuItem(value: 'club', child: Text('Club')),
-                        DropdownMenuItem(value: 'announcement', child: Text('Announcement')),
-                        DropdownMenuItem(value: 'event', child: Text('Event')),
-                      ],
-                      onChanged: (value) => setStateDialog(() => type = value ?? 'system'),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                try {
-                  await widget.appState.createNotification(
-                    title: titleController.text.trim(),
-                    message: messageController.text.trim(),
-                    type: type,
-                    clubId: type == 'club' ? _selectedClub?.id : null,
-                  );
-                  _showSuccessSnackBar('Broadcast notification sent successfully!');
-                  navigator.pop();
-                  _reloadSectionData();
-                } catch (e) {
-                  _showErrorSnackBar('Failed to send notification: $e');
-                }
-              },
-              child: const Text('Send'),
-            ),
-          ],
-        );
-      },
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => CreateNotificationSheet(
+        appState: widget.appState,
+        initialType: type,
+        clubId: _selectedClub?.id,
+        onSuccess: (String message) {
+          _showSuccessSnackBar(message);
+          _reloadSectionData();
+        },
+      ),
     );
   }
 
@@ -6026,184 +5976,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _showCreateClubDialog() async {
-    final nameController = TextEditingController();
-    final descriptionController = TextEditingController();
-    final fullFormController = TextEditingController();
-    String category = 'technical';
-    final selectedDepartments = <String>{};
-    String? uploadedImageUrl;
-    bool isUploading = false;
-    const departments = [
-      'Computer Science(CSE)',
-      'Electronics',
-      'Mechanical',
-      'Civil',
-      'Artificial Intelligence and Machine Learning(AIML)',
-      'Information Technology(IT)',
-    ];
-
-    await showDialog<void>(
+    await showModalBottomSheet<void>(
       context: context,
-      builder: (context) {
-        final navigator = Navigator.of(context);
-        return AlertDialog(
-          title: const Text('Create Club'),
-          content: StatefulBuilder(
-            builder: (context, setStateDialog) {
-              return SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Club Name')),
-                    const SizedBox(height: 12),
-                    TextField(controller: fullFormController, decoration: const InputDecoration(labelText: 'Full Form')),
-                    const SizedBox(height: 12),
-                    TextField(controller: descriptionController, maxLines: 3, decoration: const InputDecoration(labelText: 'Description')),
-                    const SizedBox(height: 12),
-                    if (uploadedImageUrl != null)
-                      Container(
-                        height: 80,
-                        width: 80,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          image: DecorationImage(image: NetworkImage(uploadedImageUrl!), fit: BoxFit.cover),
-                        ),
-                      ),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        icon: isUploading
-                            ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                            : const Icon(Icons.add_photo_alternate),
-                        label: Text(isUploading ? 'Uploading...' : 'Upload Club Logo'),
-                        onPressed: isUploading
-                            ? null
-                            : () async {
-                                final picker = ImagePicker();
-                                final picked = await picker.pickImage(source: ImageSource.gallery);
-                                if (picked != null) {
-                                  setStateDialog(() => isUploading = true);
-                                  final url = await CloudinaryService.uploadImage(File(picked.path));
-                                  setStateDialog(() {
-                                    uploadedImageUrl = url;
-                                    isUploading = false;
-                                  });
-                                }
-                              },
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: category,
-                      items: const [
-                        DropdownMenuItem(value: 'technical', child: Text('Technical')),
-                        DropdownMenuItem(value: 'academic', child: Text('Academic')),
-                        DropdownMenuItem(value: 'cultural', child: Text('Cultural')),
-                        DropdownMenuItem(value: 'sports', child: Text('Sports')),
-                      ],
-                      onChanged: (value) => setStateDialog(() => category = value ?? 'technical'),
-                    ),
-                    const SizedBox(height: 12),
-                    ...departments.map((department) {
-                      return CheckboxListTile(
-                        value: selectedDepartments.contains(department),
-                        title: Text(department),
-                        onChanged: (checked) {
-                          setStateDialog(() {
-                            if (checked == true) {
-                              selectedDepartments.add(department);
-                            } else {
-                              selectedDepartments.remove(department);
-                            }
-                          });
-                        },
-                      );
-                    }),
-                  ],
-                ),
-              );
-            },
-          ),
-          actions: [
-            TextButton(onPressed: navigator.pop, child: const Text('Cancel')),
-            FilledButton(
-              onPressed: () async {
-                final name = nameController.text.trim();
-                if (name.isEmpty) {
-                  _showErrorSnackBar('Club name cannot be empty');
-                  return;
-                }
-                try {
-                  await widget.appState.createClub(
-                    name: name,
-                    description: descriptionController.text.trim(),
-                    fullForm: fullFormController.text.trim(),
-                    category: category,
-                    image: uploadedImageUrl ?? '',
-                    departments: selectedDepartments.toList(),
-                  );
-                  _showSuccessSnackBar('Club "$name" created successfully!');
-                  navigator.pop();
-                } catch (e) {
-                  _showErrorSnackBar('Failed to create club: $e');
-                }
-              },
-              child: const Text('Create'),
-            ),
-          ],
-        );
-      },
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => CreateClubSheet(
+        appState: widget.appState,
+        onSuccess: (String message) {
+          _showSuccessSnackBar(message);
+          _reloadSectionData();
+        },
+      ),
     );
   }
 
   Future<void> _showAssignTeacherDialog() async {
-    final nameController = TextEditingController();
-    final emailController = TextEditingController();
-
-    await showDialog<void>(
+    await showModalBottomSheet<void>(
       context: context,
-      builder: (context) {
-        final navigator = Navigator.of(context);
-        return AlertDialog(
-          title: const Text('Assign Teacher'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Teacher Name')),
-              const SizedBox(height: 12),
-              TextField(controller: emailController, decoration: const InputDecoration(labelText: 'Teacher Email')),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: navigator.pop, child: const Text('Cancel')),
-            FilledButton(
-              onPressed: () async {
-                final name = nameController.text.trim();
-                final email = emailController.text.trim();
-                if (name.isEmpty || email.isEmpty) {
-                  _showErrorSnackBar('Please fill in both name and email.');
-                  return;
-                }
-                try {
-                  await widget.appState.assignTeacher(
-                    name: name,
-                    email: email,
-                  );
-                  _showSuccessSnackBar('Teacher "$name" assigned successfully!');
-                  setState(() {
-                    _teachersFuture = widget.appState.fetchTeachers();
-                  });
-                  navigator.pop();
-                } catch (e) {
-                  _showErrorSnackBar('Failed to assign teacher: $e');
-                }
-              },
-              child: const Text('Assign'),
-            ),
-          ],
-        );
-      },
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AssignTeacherSheet(
+        appState: widget.appState,
+        onSuccess: (String message) {
+          _showSuccessSnackBar(message);
+          setState(() {
+            _teachersFuture = widget.appState.fetchTeachers();
+          });
+        },
+      ),
     );
   }
 
@@ -6274,67 +6078,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
-
-  Widget _buildMarkdownToolbar(TextEditingController controller, StateSetter setStateDialog) {
-    void insertText(String template) {
-      final text = controller.text;
-      final selection = controller.selection;
-
-      int start = selection.start;
-      int end = selection.end;
-
-      if (start < 0 || end < 0) {
-        start = text.length;
-        end = text.length;
-      }
-
-      final selectedText = text.substring(start, end);
-      final newText = text.replaceRange(start, end, template.replaceAll('text', selectedText));
-
-      setStateDialog(() {
-        controller.value = TextEditingValue(
-          text: newText,
-          selection: TextSelection.collapsed(offset: start + template.indexOf('text') + selectedText.length),
-        );
-      });
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 6.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          _buildToolbarBtn('B', () => insertText('**text**')),
-          const SizedBox(width: 6),
-          _buildToolbarBtn('I', () => insertText('_text_')),
-          const SizedBox(width: 6),
-          _buildToolbarBtn('H1', () => insertText('# text')),
-          const SizedBox(width: 6),
-          _buildToolbarBtn('List', () => insertText('- text')),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildToolbarBtn(String label, VoidCallback onPressed) {
-    return InkWell(
-      onTap: onPressed,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceBg(context),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: Theme.of(context).dividerColor),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.navyColor(context)),
-        ),
-      ),
-    );
-  }
 }
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Premium Create Post / Event Bottom Sheet Wizard
