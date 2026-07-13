@@ -18,6 +18,7 @@ import 'profile_screen.dart';
 import 'notification_detail_screen.dart';
 import 'institution_settings_screen.dart';
 import 'event_participants_screen.dart';
+import '../widgets/member_form_sheet.dart';
 import 'notifications_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -6207,109 +6208,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _showAddMemberDialog({Map<String, dynamic>? member}) {
-    final isEditing = member != null;
-    final nameController = TextEditingController(text: member?['name']?.toString() ?? '');
-    final emailController = TextEditingController(text: member?['email']?.toString() ?? '');
-    final roleController = TextEditingController(text: member?['role']?.toString() ?? 'Member');
-    String boardType = member?['boardType']?.toString() ?? 'member';
-    String academicYear = member?['academicYear']?.toString() ?? 'FY';
-
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(isEditing ? 'Edit Member' : 'Add New Member'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Name')),
-                TextField(
-                  controller: emailController,
-                  decoration: const InputDecoration(labelText: 'Email (@walchandsangli.ac.in)'),
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: boardType,
-                  decoration: const InputDecoration(labelText: 'Board Type'),
-                  items: const [
-                    DropdownMenuItem(value: 'main', child: Text('Main Board (TY)')),
-                    DropdownMenuItem(value: 'executive', child: Text('Executive Board (SY)')),
-                    DropdownMenuItem(value: 'member', child: Text('Member Board (FY)')),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) {
-                      setDialogState(() {
-                        boardType = val;
-                        if (val == 'member') roleController.text = 'Member';
-                      });
-                    }
-                  },
-                ),
-                if (boardType != 'member')
-                  TextField(controller: roleController, decoration: const InputDecoration(labelText: 'Custom Role')),
-                DropdownButtonFormField<String>(
-                  value: academicYear,
-                  decoration: const InputDecoration(labelText: 'Academic Year'),
-                  items: const [
-                    DropdownMenuItem(value: 'FY', child: Text('FY')),
-                    DropdownMenuItem(value: 'SY', child: Text('SY')),
-                    DropdownMenuItem(value: 'TY', child: Text('TY')),
-                    DropdownMenuItem(value: 'Final Year', child: Text('Final Year')),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) setDialogState(() => academicYear = val);
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
-            FilledButton(
-              onPressed: () async {
-                final name = nameController.text.trim();
-                final email = emailController.text.trim();
-                if (name.isEmpty || email.isEmpty) {
-                  _showErrorSnackBar('Please fill in both name and email.');
-                  return;
-                }
-                try {
-                  if (isEditing) {
-                    final mId = member['_id']?.toString() ?? member['id']?.toString() ?? '';
-                    await widget.appState.updateClubMember(_selectedClub!.id, mId, {
-                      'name': name,
-                      'email': email,
-                      'role': roleController.text.trim(),
-                      'boardType': boardType,
-                      'academicYear': academicYear,
-                    });
-                    _showSuccessSnackBar('Member "$name" updated successfully!');
-                  } else {
-                    await widget.appState.addClubMember(
-                      _selectedClub!.id,
-                      name: name,
-                      email: email,
-                      role: roleController.text.trim(),
-                      boardType: boardType,
-                      academicYear: academicYear,
-                      joinedAt: DateTime.now(),
-                    );
-                    _showSuccessSnackBar('Member "$name" added successfully!');
-                  }
-                  if (mounted) {
-                    Navigator.of(ctx).pop();
-                    _reloadSectionData();
-                  }
-                } catch (e) {
-                  _showErrorSnackBar('Failed to save member: $e');
-                }
-              },
-              child: Text(isEditing ? 'Save Changes' : 'Add Member'),
-            ),
-          ],
-        ),
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => MemberFormSheet(
+        appState: widget.appState,
+        clubId: _selectedClub!.id,
+        member: member,
+        onSuccess: (String message) {
+          _showSuccessSnackBar(message);
+          _reloadSectionData();
+        },
       ),
     );
   }

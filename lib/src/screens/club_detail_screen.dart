@@ -12,6 +12,7 @@ import '../widgets/glass_card.dart';
 import '../services/cloudinary_service.dart';
 import 'member_board_detail_screen.dart';
 import 'post_detail_screen.dart';
+import '../widgets/member_form_sheet.dart';
 
 class ClubDetailScreen extends StatefulWidget {
   const ClubDetailScreen({
@@ -650,138 +651,20 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
   }
 
   void _showMemberDialog({Map<String, dynamic>? member}) {
-    final isEditing = member != null;
-    final nameController = TextEditingController(text: member?['name']?.toString() ?? '');
-    final emailController = TextEditingController(text: member?['email']?.toString() ?? '');
-    final roleController = TextEditingController(text: member?['role']?.toString() ?? 'Member');
-    String boardType = member?['boardType']?.toString() ?? 'member';
-    String academicYear = member?['academicYear']?.toString() ?? 'FY';
-    String? dialogError;
-
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(isEditing ? 'Edit Member' : 'Add New Member'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Name'),
-                ),
-                TextField(
-                  controller: emailController,
-                  decoration: const InputDecoration(labelText: 'Email (@walchandsangli.ac.in)'),
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: boardType,
-                  decoration: const InputDecoration(labelText: 'Board Type'),
-                  items: const [
-                    DropdownMenuItem(value: 'main', child: Text('Main Board (TY)')),
-                    DropdownMenuItem(value: 'executive', child: Text('Executive Board (SY)')),
-                    DropdownMenuItem(value: 'member', child: Text('Member Board (FY)')),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) {
-                      setDialogState(() {
-                        boardType = val;
-                        if (val == 'member') roleController.text = 'Member';
-                      });
-                    }
-                  },
-                ),
-                if (boardType != 'member')
-                  TextField(
-                    controller: roleController,
-                    decoration: const InputDecoration(labelText: 'Custom Role'),
-                  ),
-                DropdownButtonFormField<String>(
-                  value: academicYear,
-                  decoration: const InputDecoration(labelText: 'Academic Year'),
-                  items: const [
-                    DropdownMenuItem(value: 'FY', child: Text('FY')),
-                    DropdownMenuItem(value: 'SY', child: Text('SY')),
-                    DropdownMenuItem(value: 'TY', child: Text('TY')),
-                    DropdownMenuItem(value: 'Final Year', child: Text('Final Year')),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) {
-                      setDialogState(() => academicYear = val);
-                    }
-                  },
-                ),
-                if (dialogError != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    dialogError!,
-                    style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w500),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                final name = nameController.text.trim();
-                final email = emailController.text.trim();
-
-                if (name.isEmpty) {
-                  setDialogState(() => dialogError = 'Name cannot be empty.');
-                  return;
-                }
-                if (email.isEmpty) {
-                  setDialogState(() => dialogError = 'Email cannot be empty.');
-                  return;
-                }
-                if (!email.toLowerCase().endsWith('@walchandsangli.ac.in')) {
-                  setDialogState(() => dialogError = 'Email must end with @walchandsangli.ac.in');
-                  return;
-                }
-
-                try {
-                  if (isEditing) {
-                    final memberId = member['_id']?.toString() ?? member['id']?.toString() ?? '';
-                    await widget.appState.updateClubMember(_club.id, memberId, {
-                      'name': name,
-                      'email': email,
-                      'role': roleController.text.trim(),
-                      'boardType': boardType,
-                      'academicYear': academicYear,
-                    });
-                    _showSuccessSnackBar('Member "$name" updated successfully!');
-                  } else {
-                    await widget.appState.addClubMember(
-                      _club.id,
-                      name: name,
-                      email: email,
-                      role: roleController.text.trim(),
-                      boardType: boardType,
-                      academicYear: academicYear,
-                      joinedAt: DateTime.now(),
-                    );
-                    _showSuccessSnackBar('Member "$name" added successfully!');
-                  }
-                  if (context.mounted) {
-                    Navigator.of(ctx).pop();
-                    _refreshMembers();
-                  }
-                } catch (e) {
-                  setDialogState(() => dialogError = 'Failed to save: $e');
-                }
-              },
-              child: Text(isEditing ? 'Save Changes' : 'Add Member'),
-            ),
-          ],
-        ),
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => MemberFormSheet(
+        appState: widget.appState,
+        clubId: _club.id,
+        member: member,
+        onSuccess: (String message) {
+          _showSuccessSnackBar(message);
+          _refreshMembers();
+        },
       ),
     );
   }
