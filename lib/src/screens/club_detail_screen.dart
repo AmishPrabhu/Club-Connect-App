@@ -822,64 +822,93 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
+                          border: Border.all(
+                            color: _club.startColor.withValues(alpha: 0.12),
+                          ),
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.all(22),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          padding: const EdgeInsets.all(20),
+                          child: Row(
                             children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      _club.name,
-                                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                                        fontWeight: FontWeight.w800,
+                              Container(
+                                width: 64,
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).cardColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.05),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                padding: const EdgeInsets.all(8),
+                                child: _club.imageAsset.startsWith('http')
+                                    ? Image.network(
+                                        _club.imageAsset,
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (_, _, _) => Image.asset(
+                                          'assets/images/club-default.jpg',
+                                          fit: BoxFit.contain,
+                                        ),
+                                      )
+                                    : Image.asset(
+                                        _club.imageAsset.startsWith('/')
+                                            ? 'assets/images${_club.imageAsset}'
+                                            : _club.imageAsset,
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (_, _, _) => Image.asset(
+                                          'assets/images/club-default.jpg',
+                                          fit: BoxFit.contain,
+                                        ),
                                       ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Container(
-                                    width: 72,
-                                    height: 72,
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(context).cardColor,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    padding: const EdgeInsets.all(10),
-                                    child: _club.imageAsset.startsWith('http')
-                                        ? Image.network(
-                                            _club.imageAsset,
-                                            fit: BoxFit.contain,
-                                            errorBuilder: (_, _, _) => Image.asset(
-                                              'assets/images/club-default.jpg',
-                                              fit: BoxFit.contain,
-                                            ),
-                                          )
-                                        : Image.asset(
-                                            _club.imageAsset.startsWith('/')
-                                                ? 'assets/images${_club.imageAsset}'
-                                                : _club.imageAsset,
-                                            fit: BoxFit.contain,
-                                            errorBuilder: (_, _, _) => Image.asset(
-                                              'assets/images/club-default.jpg',
-                                              fit: BoxFit.contain,
-                                            ),
-                                          ),
-                                  ),
-                                ],
                               ),
-                              const SizedBox(height: 16),
-                              Text(
-                                _club.description,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyLarge
-                                    ?.copyWith(
-                                      color: AppTheme.textColor(context).withValues(alpha: 0.8),
-                                      height: 1.4,
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      _club.name,
+                                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: -0.5,
+                                          ),
                                     ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            _club.fullForm.isNotEmpty ? _club.fullForm : 'No full form provided',
+                                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                  color: _club.fullForm.isNotEmpty
+                                                      ? AppTheme.textColor(context).withValues(alpha: 0.7)
+                                                      : Colors.grey,
+                                                  fontWeight: _club.fullForm.isNotEmpty ? FontWeight.w500 : FontWeight.normal,
+                                                  fontStyle: _club.fullForm.isNotEmpty ? FontStyle.normal : FontStyle.italic,
+                                                ),
+                                          ),
+                                        ),
+                                        if (canManageMembers)
+                                          IconButton(
+                                            constraints: const BoxConstraints(),
+                                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                                            icon: const Icon(Icons.edit_outlined, size: 16, color: Colors.grey),
+                                            onPressed: () => _showTextDialog(
+                                              title: 'Edit Full Form',
+                                              fieldKey: 'fullForm',
+                                              currentValue: _club.fullForm,
+                                            ),
+                                            tooltip: 'Edit Full Form',
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -917,7 +946,6 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                       _buildProfilePictureCard(canManageMembers),
                       _buildWhatsAppCard(canManageMembers),
                       _buildInstagramCard(canManageMembers),
-                      _buildFullFormCard(canManageMembers),
                       _buildAboutClubCard(canManageMembers),
                       _buildUpcomingEventsCard(clubPosts),
                       const SizedBox(height: 12),
@@ -928,10 +956,23 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                             'Member Board',
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
-                          if (canManageMembers)
-                            Row(
-                              children: [
-                                 IconButton(
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TextButton.icon(
+                                onPressed: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => MemberBoardDetailScreen(
+                                      appState: widget.appState,
+                                      club: _club,
+                                    ),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.groups_outlined, size: 16),
+                                label: const Text('Full Member Board'),
+                              ),
+                              if (canManageMembers) ...[
+                                IconButton(
                                   onPressed: () {
                                     if (members.isEmpty) {
                                       _showErrorSnackBar('No members available to export.');
@@ -954,7 +995,8 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                                   tooltip: 'Add Member',
                                 ),
                               ],
-                            ),
+                            ],
+                          ),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -973,83 +1015,82 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                           ),
                         )
                       else
-                        GlassCard(
-                          child: Column(
-                            children: members.map((member) {
-                              final memberId = member['_id']?.toString() ?? member['id']?.toString() ?? '';
-                              return ListTile(
-                                contentPadding: EdgeInsets.zero,
-                                leading: CircleAvatar(
-                                  child: Text(
-                                    (member['name']?.toString() ?? 'U')[0],
-                                  ),
+                        Builder(
+                          builder: (context) {
+                            final mainMembers = members.where((m) => (m['boardType']?.toString().toLowerCase() ?? 'member') == 'main').toList();
+                            if (mainMembers.isEmpty) {
+                              return const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(16),
+                                  child: Text('No main board members found.'),
                                 ),
-                                title: Text(
-                                  member['name']?.toString() ?? 'Member',
-                                ),
-                                subtitle: Text(
-                                  member['role']?.toString() ?? 'Member',
-                                ),
-                                trailing: canManageMembers
-                                    ? Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          IconButton(
-                                            icon: const Icon(Icons.edit_outlined, size: 20),
-                                            onPressed: () => _showMemberDialog(member: member),
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(Icons.person_remove, color: Colors.red, size: 20),
-                                            onPressed: () async {
-                                              final confirm = await showDialog<bool>(
-                                                context: context,
-                                                builder: (ctx) => AlertDialog(
-                                                  title: const Text('Remove Member'),
-                                                  content: Text('Are you sure you want to remove ${member['name']}?'),
-                                                  actions: [
-                                                    TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-                                                    FilledButton(style: FilledButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Remove')),
-                                                  ],
-                                                ),
-                                              );
-                                              if (confirm == true) {
-                                                try {
-                                                  await widget.appState.removeClubMember(_club.id, memberId);
-                                                  _showSuccessSnackBar('Member "${member['name']}" removed successfully!');
-                                                  _refreshMembers();
-                                                } catch (e) {
-                                                  _showErrorSnackBar('Failed to remove member: $e');
-                                                }
-                                              }
-                                            },
-                                          ),
-                                        ],
-                                      )
-                                    : null,
                               );
-                            }).toList(),
-                          ),
+                            }
+                            return GlassCard(
+                              child: Column(
+                                children: mainMembers.map((member) {
+                                  final memberId = member['_id']?.toString() ?? member['id']?.toString() ?? '';
+                                  return ListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    leading: CircleAvatar(
+                                      child: Text(
+                                        (member['name']?.toString() ?? 'U')[0],
+                                      ),
+                                    ),
+                                    title: Text(
+                                      member['name']?.toString() ?? 'Member',
+                                    ),
+                                    subtitle: Text(
+                                      member['role']?.toString() ?? 'Member',
+                                    ),
+                                    trailing: canManageMembers
+                                        ? Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              IconButton(
+                                                icon: const Icon(Icons.edit_outlined, size: 20),
+                                                onPressed: () => _showMemberDialog(member: member),
+                                              ),
+                                              IconButton(
+                                                icon: const Icon(Icons.person_remove, color: Colors.red, size: 20),
+                                                onPressed: () async {
+                                                  final confirm = await showDialog<bool>(
+                                                    context: context,
+                                                    builder: (ctx) => AlertDialog(
+                                                      title: const Text('Remove Member'),
+                                                      content: Text('Are you sure you want to remove ${member['name']}?'),
+                                                      actions: [
+                                                        TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+                                                        FilledButton(style: FilledButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Remove')),
+                                                      ],
+                                                    ),
+                                                  );
+                                                  if (confirm == true) {
+                                                    try {
+                                                      await widget.appState.removeClubMember(_club.id, memberId);
+                                                      _showSuccessSnackBar('Member "${member['name']}" removed successfully!');
+                                                      _refreshMembers();
+                                                    } catch (e) {
+                                                      _showErrorSnackBar('Failed to remove member: $e');
+                                                    }
+                                                  }
+                                                },
+                                              ),
+                                            ],
+                                          )
+                                        : null,
+                                  );
+                                }).toList(),
+                              ),
+                            );
+                          }
                         ),
                       const SizedBox(height: 22),
-                      // View Full Member Board button — mirrors MemberBoardDetail.tsx
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
                             'Events & Posts',
                             style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          TextButton.icon(
-                            onPressed: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => MemberBoardDetailScreen(
-                                  appState: widget.appState,
-                                  club: _club,
-                                ),
-                              ),
-                            ),
-                            icon: const Icon(Icons.groups_outlined, size: 16),
-                            label: const Text('Full Member Board'),
                           ),
                         ],
                       ),
@@ -1212,9 +1253,30 @@ class _Metric extends StatelessWidget {
         children: [
           Icon(icon, color: AppTheme.accent(context)),
           const SizedBox(height: 12),
-          Text(value, style: Theme.of(context).textTheme.titleLarge),
+          SizedBox(
+            width: double.infinity,
+            height: 28, // Matches titleLarge typical height to prevent layout jumps
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(title, style: Theme.of(context).textTheme.bodySmall),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
         ],
       ),
     );
