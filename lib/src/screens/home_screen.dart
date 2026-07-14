@@ -568,7 +568,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     'View Month',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      color: isDark ? Colors.white : AppTheme.accent(context),
+                                      color: isDark ? Colors.white70 : const Color(0xFF4B5563),
                                     ),
                                   ),
                                 ),
@@ -708,6 +708,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                         _scrollToDate(todayMidnight, scrollController, sortedDateKeys);
                                       });
                                     },
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: isDark ? Colors.white70 : const Color(0xFF4B5563),
+                                    ),
                                     child: const Text('Clear Filter'),
                                   ),
                               ],

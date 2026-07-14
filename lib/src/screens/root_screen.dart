@@ -171,7 +171,7 @@ class _TopBar extends StatelessWidget {
                   'Club Connect',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                 ),
                 if (session != null)
@@ -179,7 +179,7 @@ class _TopBar extends StatelessWidget {
                     'Signed in as ${session.name}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           fontWeight: FontWeight.w500,
-                          color: AppTheme.muted,
+                          color: AppTheme.mutedColor(context),
                         ),
                   ),
               ],

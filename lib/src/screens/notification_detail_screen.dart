@@ -67,7 +67,7 @@ class NotificationDetailScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
-                          color: isDark ? AppTheme.surfaceBg(context) : Theme.of(context).dividerColor,
+                          color: isDark ? AppTheme.surfaceBg(context) : Colors.grey[200],
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -75,7 +75,7 @@ class NotificationDetailScreen extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white70 : Theme.of(context).dividerColor,
+                            color: isDark ? Colors.white70 : Colors.grey[700],
                             letterSpacing: 0.8,
                           ),
                         ),

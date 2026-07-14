@@ -734,7 +734,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.accent(context),
+                          color: isDark ? Colors.white70 : const Color(0xFF4B5563),
                         ),
                       ),
                     ],
@@ -895,7 +895,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.accent(context),
+                            color: isDark ? Colors.white70 : const Color(0xFF4B5563),
                           ),
                         ),
                       ),
@@ -973,7 +973,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: AppTheme.accent(context),
+                              color: isDark ? Colors.white70 : const Color(0xFF4B5563),
                             ),
                           ),
                         ),
