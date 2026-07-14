@@ -37,6 +37,60 @@ class _HomeScreenState extends State<HomeScreen> {
   double _heroHeight = 415.0;    // fallback until first frame
   double _textHeight = 208.0;    // fallback until first frame
 
+  // Persistent map of date keys to global keys for scrolling
+  final Map<String, GlobalKey> _dateKeys = {};
+
+  String _formatDateKey(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  String _formatHeaderDate(String dateKey) {
+    final date = DateTime.parse(dateKey);
+    final today = DateTime.now();
+    final todayMidnight = DateTime(today.year, today.month, today.day);
+    final tomorrowMidnight = todayMidnight.add(const Duration(days: 1));
+    final dateMidnight = DateTime(date.year, date.month, date.day);
+    
+    if (dateMidnight.year == todayMidnight.year &&
+        dateMidnight.month == todayMidnight.month &&
+        dateMidnight.day == todayMidnight.day) {
+      return 'Today - ${_formatFullDate(date)}';
+    } else if (dateMidnight.year == tomorrowMidnight.year &&
+               dateMidnight.month == tomorrowMidnight.month &&
+               dateMidnight.day == tomorrowMidnight.day) {
+      return 'Tomorrow - ${_formatFullDate(date)}';
+    }
+    return _formatFullDate(date);
+  }
+
+  void _scrollToDate(DateTime date, ScrollController controller, List<String> sortedKeys) {
+    final dateKey = _formatDateKey(date);
+    
+    // Find the first date key that is >= target date key
+    String? targetKey;
+    for (final key in sortedKeys) {
+      if (key.compareTo(dateKey) >= 0) {
+        targetKey = key;
+        break;
+      }
+    }
+    
+    targetKey ??= sortedKeys.isNotEmpty ? sortedKeys.last : null;
+    
+    if (targetKey != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final key = _dateKeys[targetKey];
+        if (key != null && key.currentContext != null) {
+          Scrollable.ensureVisible(
+            key.currentContext!,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -56,18 +110,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Calendar scroll offset
       if (_calendarScrollController.hasClients) {
-        // Use available width minus safe-area insets so the midpoint is accurate
-        // on wide iPhones with side notches/rounded corners.
-        final mq = MediaQuery.of(context);
-        final availableWidth = mq.size.width - mq.padding.horizontal;
         const todayIndex = 15; // middle of 31 days
-        const itemWidth = 54.0;
-        const separatorWidth = 12.0;
+        const itemWidth = 44.0;
+        const separatorWidth = 8.0;
         const itemSpace = itemWidth + separatorWidth;
-        const listHorizontalPadding = 20.0; // matches EdgeInsets.fromLTRB(20,...)
 
-        // Offset so today's item centre aligns with the screen centre
-        final targetOffset = (todayIndex * itemSpace) - (availableWidth / 2) + (itemWidth / 2) + listHorizontalPadding;
+        // Offset so today's item aligns with the left side of the screen
+        final targetOffset = todayIndex * itemSpace;
         _calendarScrollController.jumpTo(targetOffset.clamp(0.0, double.infinity));
       }
     });
@@ -79,17 +128,13 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  DateTime _startOfCurrentWeek() {
-    final now = DateTime.now();
-    final daysToSubtract = now.weekday - 1;
-    return DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: daysToSubtract));
-  }
+
 
   bool _dateHasEvents(DateTime date) {
     return widget.appState.posts.any((post) =>
         post.isEvent &&
         post.date != null &&
+        post.isUpcoming &&
         post.date!.year == date.year &&
         post.date!.month == date.month &&
         post.date!.day == date.day);
@@ -143,12 +188,6 @@ class _HomeScreenState extends State<HomeScreen> {
       return text.contains(_query.toLowerCase());
     }).toList();
 
-    // Calculate current week days
-    final startOfWeek = _startOfCurrentWeek();
-    final currentWeekDays = List.generate(
-      7,
-      (index) => startOfWeek.add(Duration(days: index)),
-    );
 
     final today = DateTime.now();
     final todayMidnight = DateTime(today.year, today.month, today.day);
@@ -157,26 +196,36 @@ class _HomeScreenState extends State<HomeScreen> {
       (index) => todayMidnight.add(Duration(days: index - 15)),
     );
 
-    final List<PostItem> displayedEvents;
-    final String eventsHeader;
+    final String eventsHeader = 'Events Schedule';
+    final calendarEvents = widget.appState.posts.where((post) {
+      if (!post.isEvent || post.date == null || !post.isUpcoming) return false;
+      
+      // Filter out events before the selected date if a filter is active
+      if (_selectedDate != null) {
+        final postDateMidnight = DateTime(post.date!.year, post.date!.month, post.date!.day);
+        if (postDateMidnight.isBefore(_selectedDate!)) {
+          return false;
+        }
+      }
+      
+      return post.date!.isAfter(calendarDays.first.subtract(const Duration(days: 1))) &&
+             post.date!.isBefore(calendarDays.last.add(const Duration(days: 1)));
+    }).toList();
 
-    if (_selectedDate == null) {
-      eventsHeader = 'Weekly Events';
-      displayedEvents = widget.appState.posts.where((post) {
-        if (!post.isEvent || post.date == null) return false;
-        return currentWeekDays.any((day) =>
-            post.date!.year == day.year &&
-            post.date!.month == day.month &&
-            post.date!.day == day.day);
-      }).toList();
-    } else {
-      eventsHeader = 'Events on ${_formatFullDate(_selectedDate!)}';
-      displayedEvents = widget.appState.posts.where((post) {
-        if (!post.isEvent || post.date == null) return false;
-        return post.date!.year == _selectedDate!.year &&
-            post.date!.month == _selectedDate!.month &&
-            post.date!.day == _selectedDate!.day;
-      }).toList();
+    final Map<String, List<PostItem>> groupedEvents = {};
+    for (final post in calendarEvents) {
+      final dateKey = _formatDateKey(post.date!);
+      groupedEvents.putIfAbsent(dateKey, () => []).add(post);
+    }
+
+    final sortedDateKeys = groupedEvents.keys.toList()..sort();
+
+    final List<_FeedItem> feedItems = [];
+    for (final dateKey in sortedDateKeys) {
+      feedItems.add(_FeedItem(dateKey: dateKey));
+      for (final post in groupedEvents[dateKey]!) {
+        feedItems.add(_FeedItem(post: post));
+      }
     }
 
     final weekdaysShort = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
@@ -566,8 +615,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                         setState(() {
                                           if (isSelected) {
                                             _selectedDate = null;
+                                            _scrollToDate(todayMidnight, scrollController, sortedDateKeys);
                                           } else {
                                             _selectedDate = cellDate;
+                                            _scrollToDate(cellDate, scrollController, sortedDateKeys);
                                           }
                                         });
                                       },
@@ -656,6 +707,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     onPressed: () {
                                       setState(() {
                                         _selectedDate = null;
+                                        _scrollToDate(todayMidnight, scrollController, sortedDateKeys);
                                       });
                                     },
                                     child: const Text('Clear Filter'),
@@ -665,7 +717,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             
                             const SizedBox(height: 12),
                             
-                            if (displayedEvents.isEmpty)
+                            if (feedItems.isEmpty)
                               Container(
                                 padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
                                 decoration: BoxDecoration(
@@ -686,9 +738,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                     const SizedBox(height: 12),
                                     Text(
-                                      _selectedDate == null
-                                          ? 'No events scheduled for this week.'
-                                          : 'No events scheduled for this day.',
+                                      'No events scheduled in this period.',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: AppTheme.mutedColor(context),
@@ -699,24 +749,53 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ],
                                 ),
                               )
-                            else
-                              ListView.separated(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: displayedEvents.length,
-                                separatorBuilder: (_, _) => const SizedBox(height: 12),
-                                itemBuilder: (context, index) => EventCard(
-                                  post: displayedEvents[index],
-                                  onTap: () => Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => PostDetailScreen(
-                                        appState: widget.appState,
-                                        initialPost: displayedEvents[index],
+                            else ...[
+                              for (int index = 0; index < feedItems.length; index++) ...[
+                                if (feedItems[index].dateKey != null) ...[
+                                  Container(
+                                    key: _dateKeys.putIfAbsent(
+                                      feedItems[index].dateKey!,
+                                      () => GlobalKey(),
+                                    ),
+                                    padding: const EdgeInsets.only(top: 16, bottom: 8),
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          _formatHeaderDate(feedItems[index].dateKey!),
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w800,
+                                            color: isDark ? Colors.white70 : AppTheme.navyColor(context).withValues(alpha: 0.8),
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Divider(
+                                            color: isDark ? AppTheme.darkBorder : Colors.blueGrey.withValues(alpha: 0.12),
+                                            thickness: 1,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ] else ...[
+                                  EventCard(
+                                    post: feedItems[index].post!,
+                                    onTap: () => Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => PostDetailScreen(
+                                          appState: widget.appState,
+                                          initialPost: feedItems[index].post!,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ),
+                                  if (index + 1 < feedItems.length && feedItems[index + 1].dateKey == null)
+                                    const SizedBox(height: 12),
+                                ],
+                              ],
+                            ],
                           ],
                         ),
                       ),
@@ -853,4 +932,10 @@ class _HomeTopBar extends StatelessWidget {
       ),
     );
   }
+}
+
+class _FeedItem {
+  final String? dateKey;
+  final PostItem? post;
+  _FeedItem({this.dateKey, this.post});
 }

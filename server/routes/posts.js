@@ -193,9 +193,11 @@ router.post('/', verifyClubOfficer, async (req, res) => {
         const allowedFields = [
             'title', 'content', 'image', 'coverImage', 'type', 'status',
             'clubId', 'clubName', 'clubImage', // These are validated by verifyClubOfficer implicitly but nice to be explicit
-            'date', 'time', 'location', 'locationType', 'locationUrl',
+            'date', 'time', 'timeFrom', 'timeTo', 'location', 'locationType', 'locationUrl',
             'registrationStart', 'registrationStartTime', 'registrationEnd', 'registrationEndTime',
-            'attachments', 'totalSessions'
+            'registrationLink', 'responseSpreadsheetUrl', 'eventWhatsappLink',
+            'attachments', 'descriptionImages', 'totalSessions',
+            'relatedEventId', 'relatedEventTitle'
         ];
 
         const postData = {};
@@ -363,11 +365,12 @@ router.put('/:id', verifyToken, async (req, res) => {
         const allowedUpdates = [
             'title', 'content', 'image', 'coverImage', 'type', 'status',
             // 'clubId', 'clubName' - prevented from changing club ownership
-            'date', 'time', 'location', 'locationType', 'locationUrl',
+            'date', 'time', 'timeFrom', 'timeTo', 'location', 'locationType', 'locationUrl',
             'registrationStart', 'registrationStartTime', 'registrationEnd', 'registrationEndTime',
             'registrationLink', 'responseSpreadsheetUrl', 'eventWhatsappLink',
-            'attachments',
+            'attachments', 'descriptionImages',
             'eventPhotos', 'totalSessions',
+            'relatedEventId', 'relatedEventTitle'
             // Budget image allowed to be updated here or via specific route, 
             // but if updated here, we must reset verification (handled below or safely excluded)
             // Let's exclude budgetImage here to force use of the dedicated route which handles logic overrides

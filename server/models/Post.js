@@ -62,6 +62,12 @@ const postSchema = new mongoose.Schema({
     time: {
         type: String, // "2:30 PM - 5:00 PM"
     },
+    timeFrom: {
+        type: String,
+    },
+    timeTo: {
+        type: String,
+    },
     location: {
         type: String,
     },
@@ -114,6 +120,10 @@ const postSchema = new mongoose.Schema({
 
     // Attachments
     attachments: [attachmentSchema], // Description images (uploaded when creating post)
+    descriptionImages: {
+        type: [String],
+        default: [],
+    },
     eventPhotos: [attachmentSchema], // Event photos/videos (uploaded after event by secretary)
 
 
