@@ -233,6 +233,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final screenHeight = constraints.maxHeight;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final campusImagePath = isDark ? 'assets/images/wce-campus-dark.png' : 'assets/images/wce-campus.png';
         
         // VL-01: Use measured hero height (updated after first frame via GlobalKey)
         const double headerBarHeight = 66.0;
@@ -252,62 +254,58 @@ class _HomeScreenState extends State<HomeScreen> {
               left: 0,
               right: 0,
               height: _heroHeight,
-              child: Container(
-                color: Colors.transparent,
-                child: SingleChildScrollView(
-                  physics: const NeverScrollableScrollPhysics(),
-                  child: Column(
-                    key: _heroKey,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              child: ClipRect(
+                child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                    _HomeTopBar(
-                      appState: widget.appState,
-                      onProfileTap: widget.onOpenProfile,
+                    Image.asset(
+                      campusImagePath,
+                      fit: BoxFit.cover,
+                      alignment: const Alignment(0.35, -0.5),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Walchand College\nof Engineering',
-                            style: TextStyle(
-                              fontFamily: 'serif',
-                              fontSize: 34,
-                              height: 1.15,
-                              fontWeight: FontWeight.w800,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Discover communities, track club activity, and join the next wave of campus events.',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppTheme.mutedColor(context),
-                              height: 1.4,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          RepaintBoundary(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: Image.asset(
-                                'assets/images/wce-campus.png',
-                                width: double.infinity,
-                                height: 175,
-                                fit: BoxFit.cover,
+                    Column(
+                      key: _heroKey,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _HomeTopBar(
+                          appState: widget.appState,
+                          onProfileTap: widget.onOpenProfile,
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Walchand College\nof Engineering',
+                                style: TextStyle(
+                                  fontFamily: 'serif',
+                                  fontSize: 28,
+                                  height: 1.15,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDark ? Colors.white : Colors.black,
+                                ),
                               ),
-                            ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Sangli • Since 1947',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: isDark ? Colors.white70 : Colors.black,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 150), // Spacing to show the building below the text
+                      ],
                     ),
                   ],
                 ),
               ),
-            ),
             ),
             
             // 2. Interactive Sliding Panel (Foreground)
@@ -843,7 +841,7 @@ class _HomeTopBar extends StatelessWidget {
                   'Club Connect',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: isDark ? Colors.white : Colors.black,
                       ),
                 ),
                 if (session != null)
