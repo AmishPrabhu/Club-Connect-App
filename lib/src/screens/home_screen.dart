@@ -918,14 +918,20 @@ class _HomeTopBar extends StatelessWidget {
                     : null,
               ),
               child: Center(
-                child: Text(
-                  session?.name.isNotEmpty == true ? session!.name[0].toUpperCase() : 'A',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? AppTheme.accent(context) : const Color(0xFF312E81),
-                  ),
-                ),
+                child: session != null
+                    ? Text(
+                        session.name.isNotEmpty == true ? session.name[0].toUpperCase() : '?',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? AppTheme.accent(context) : const Color(0xFF312E81),
+                        ),
+                      )
+                    : Icon(
+                        Icons.person_rounded,
+                        size: 20,
+                        color: isDark ? AppTheme.accent(context) : const Color(0xFF312E81),
+                      ),
               ),
             ),
           ),

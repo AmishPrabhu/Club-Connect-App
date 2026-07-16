@@ -175,14 +175,19 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
         children: [
           // Background Decor (matches RootScreen background)
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFFF8FAFC),
-                  Color(0xFFF1F5F9),
-                ],
+                colors: Theme.of(context).brightness == Brightness.dark
+                    ? [
+                        AppTheme.surfaceBg(context),
+                        AppTheme.surfaceBg(context),
+                      ]
+                    : const [
+                        Color(0xFFF8FAFC),
+                        Color(0xFFF1F5F9),
+                      ],
               ),
             ),
           ),
@@ -301,7 +306,9 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: isSelected
-                                      ? AppTheme.accent(context)
+                                      ? (Theme.of(context).brightness == Brightness.dark
+                                          ? Colors.white
+                                          : AppTheme.accent(context))
                                       : isToday
                                           ? AppTheme.accent(context).withValues(alpha: 0.1)
                                           : Colors.transparent,
@@ -323,7 +330,10 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                                               : FontWeight.w500,
                                           fontSize: 15,
                                           color: isSelected
-                                              ? Theme.of(context).cardColor : isToday
+                                              ? (Theme.of(context).brightness == Brightness.dark
+                                                  ? Colors.black
+                                                  : Theme.of(context).cardColor)
+                                              : isToday
                                                   ? AppTheme.accent(context)
                                                   : AppTheme.textColor(context),
                                         ),
@@ -337,7 +347,10 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                                           height: 5,
                                           decoration: BoxDecoration(
                                             color: isSelected
-                                                ? Theme.of(context).cardColor : const Color(0xFF22C55E), // Green dot
+                                                ? (Theme.of(context).brightness == Brightness.dark
+                                                    ? Colors.black
+                                                    : Theme.of(context).cardColor)
+                                                : const Color(0xFF22C55E), // Green dot
                                             shape: BoxShape.circle,
                                           ),
                                         ),
@@ -349,7 +362,7 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                           },
                         ),
                         const SizedBox(height: 16),
-                        const Divider(color: Color(0xFFF1F5F9)),
+                        Divider(color: AppTheme.borderColor(context)),
                         const SizedBox(height: 8),
                         // Legend
                         Row(
@@ -396,6 +409,11 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                               _selectedDate = null;
                             });
                           },
+                          style: TextButton.styleFrom(
+                            foregroundColor: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF94A3B8)
+                                : AppTheme.accent(context),
+                          ),
                           child: const Text('Clear Filter'),
                         ),
                     ],

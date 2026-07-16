@@ -92,9 +92,10 @@ class AppState extends ChangeNotifier {
       _apiClient.setToken(token);
       try {
         session = await _fetchCurrentUser();
-        // Initialize push notifications manager and sync token
-        await PushNotificationsManager.instance.init(this);
-        await PushNotificationsManager.instance.syncToken();
+        // Initialize push notifications manager and sync token in the background so it doesn't block startup
+        PushNotificationsManager.instance.init(this).then((_) {
+          PushNotificationsManager.instance.syncToken();
+        });
       } catch (_) {
         await prefs.remove(_tokenKey);
         _apiClient.setToken(null);

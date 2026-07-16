@@ -250,16 +250,24 @@ class _TopBar extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               child: Center(
-                child: Text(
-                  session?.name.isNotEmpty == true ? session!.name[0].toUpperCase() : 'A',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? AppTheme.accent(context)
-                        : const Color(0xFF312E81), // Dark indigo text color
-                  ),
-                ),
+                child: session != null
+                    ? Text(
+                        session.name.isNotEmpty == true ? session.name[0].toUpperCase() : '?',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppTheme.accent(context)
+                              : const Color(0xFF312E81),
+                        ),
+                      )
+                    : Icon(
+                        Icons.person_rounded,
+                        size: 20,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.accent(context)
+                            : const Color(0xFF312E81),
+                      ),
               ),
             ),
           ),

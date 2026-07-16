@@ -45,7 +45,7 @@ class EventCard extends StatelessWidget {
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(16),
                   ),
-                  child: _image(post.coverAsset, height: 190),
+                  child: _image(context, post.coverAsset, height: 190),
                 ),
                 Positioned(
                   top: 16,
@@ -166,17 +166,20 @@ class EventCard extends StatelessWidget {
     );
   }
 
-  Widget _image(String? src, {required double height}) {
+  Widget _image(BuildContext context, String? src, {required double height}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (src == null || src.isEmpty) {
       return Container(
         height: height,
         width: double.infinity,
-        color: const Color(0xFFE2E8F0),
+        color: isDark ? AppTheme.darkElevated : const Color(0xFFE2E8F0),
         alignment: Alignment.center,
         child: Icon(
           Icons.image_outlined,
           size: 40,
-          color: AppTheme.muted.withValues(alpha: 0.6),
+          color: isDark
+              ? AppTheme.darkMuted.withValues(alpha: 0.6)
+              : AppTheme.muted.withValues(alpha: 0.6),
         ),
       );
     }
