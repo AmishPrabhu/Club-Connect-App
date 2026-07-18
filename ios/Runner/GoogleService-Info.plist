@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.example.clubConnectFlutter</string>
+	<string>com.amish.clubConnectFlutter</string>
 	<key>PROJECT_ID</key>
 	<string>club-connect-app-a5c51</string>
 	<key>STORAGE_BUCKET</key>
