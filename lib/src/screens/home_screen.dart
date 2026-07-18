@@ -782,6 +782,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ] else ...[
                                   EventCard(
+                                    appState: widget.appState,
                                     post: feedItems[index].post!,
                                     onTap: () => Navigator.of(context).push(
                                       MaterialPageRoute(

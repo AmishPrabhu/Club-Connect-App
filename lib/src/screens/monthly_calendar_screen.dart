@@ -458,6 +458,7 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                       itemBuilder: (context, index) {
                         final event = displayedEvents[index];
                         return EventCard(
+                          appState: widget.appState,
                           post: event,
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(

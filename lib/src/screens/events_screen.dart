@@ -127,6 +127,7 @@ class _EventsScreenState extends State<EventsScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
                 sliver: SliverList.separated(
                   itemBuilder: (context, index) => EventCard(
+                    appState: widget.appState,
                     post: filtered[index],
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(

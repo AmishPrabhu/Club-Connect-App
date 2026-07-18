@@ -27,29 +27,27 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   bool _submitting = false;
   String? _message;
   late final Future<PostItem> _postFuture;
-  bool _isAlreadyRsvped = false;
+  bool _isInterested = false;
 
   @override
   void initState() {
     super.initState();
     _postFuture = widget.appState.fetchPost(widget.initialPost.id);
-    _checkRsvpStatus();
+    _checkInterestStatus();
   }
 
-  void _checkRsvpStatus() async {
+  void _checkInterestStatus() async {
     final session = widget.appState.session;
     if (session == null) return;
     try {
-      final list = await widget.appState.fetchEventRsvps(widget.initialPost.id);
-      final hasRsvped = list.any((item) =>
-          item['email']?.toString().toLowerCase() == session.email.toLowerCase());
+      final interested = await widget.appState.checkInterest(widget.initialPost.id);
       if (mounted) {
         setState(() {
-          _isAlreadyRsvped = hasRsvped;
+          _isInterested = interested;
         });
       }
     } catch (e) {
-      debugPrint('Error checking RSVP status: $e');
+      debugPrint('Error checking interest status: $e');
     }
   }
 
@@ -161,21 +159,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                              if (post.isEvent) ...[
                               _buildReportSection(post),
                               const SizedBox(height: 18),
-                               SizedBox(
-                                 width: double.infinity,
-                                 child: FilledButton(
-                                   onPressed: (_submitting || !post.isUpcoming || _isAlreadyRsvped)
-                                       ? null
-                                       : () => _rsvp(post.id),
-                                   child: Text(
-                                     _submitting
-                                         ? 'Submitting...'
-                                         : (_isAlreadyRsvped
-                                             ? 'You\'re Registered ✓'
-                                             : (!post.isUpcoming ? 'Event Ended' : 'RSVP')),
-                                   ),
-                                 ),
-                               ),
+                              _buildEventActionButton(post),
                               if (widget.appState.session != null) ...[
                                 Builder(
                                   builder: (ctx) {
@@ -275,22 +259,128 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     );
   }
 
-  Future<void> _rsvp(String eventId) async {
+  /// Builds the appropriate action button based on event state and user login:
+  /// - Event ended → disabled "Event Ended"
+  /// - Before registration & logged in → "I'm Interested" / "You're Interested ✓"
+  /// - Registration open & has link → "Register Now →" (opens external link)
+  /// - Registration open & no link → nothing
+  /// - After registration → nothing
+  /// - No registration dates & logged in & event upcoming → "I'm Interested"
+  Widget _buildEventActionButton(PostItem post) {
+    final isLoggedIn = widget.appState.session != null;
+
+    // Event has ended
+    if (!post.isUpcoming) {
+      return SizedBox(
+        width: double.infinity,
+        child: FilledButton(
+          onPressed: null,
+          child: const Text('Event Ended'),
+        ),
+      );
+    }
+
+    // If registration dates are configured, use the timeline logic
+    if (post.hasRegistrationDates) {
+      // Before registration starts
+      if (post.isBeforeRegistration) {
+        if (!isLoggedIn) {
+          return const SizedBox.shrink(); // Not logged in, no "I'm Interested"
+        }
+        return _buildInterestedButton(post);
+      }
+
+      // Registration is open
+      if (post.isRegistrationOpen) {
+        final link = post.registrationLink;
+        if (link == null || link.isEmpty) {
+          return const SizedBox.shrink(); // No link → show nothing
+        }
+        return SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: () => _openRegistrationLink(link),
+            icon: const Icon(Icons.open_in_new_rounded),
+            label: const Text('Register Now →'),
+          ),
+        );
+      }
+
+      // After registration ended
+      if (post.isAfterRegistration) {
+        return const SizedBox.shrink(); // Show nothing
+      }
+    }
+
+    // No registration dates configured but event is upcoming
+    // Logged-in users see "I'm Interested", logged-out see nothing
+    if (isLoggedIn) {
+      return _buildInterestedButton(post);
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildInterestedButton(PostItem post) {
+    return SizedBox(
+      width: double.infinity,
+      child: _submitting
+          ? const Center(child: Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator()))
+          : FilledButton.icon(
+              onPressed: () => _toggleInterest(post.id),
+              icon: Icon(
+                _isInterested ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+              ),
+              label: Text(
+                _isInterested ? "You're Interested ✓" : "I'm Interested",
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor: _isInterested
+                    ? Theme.of(context).colorScheme.secondary
+                    : null,
+              ),
+            ),
+    );
+  }
+
+  Future<void> _toggleInterest(String eventId) async {
     if (_submitting) return;
     setState(() {
       _submitting = true;
       _message = null;
     });
     try {
-      await widget.appState.rsvpToEvent(eventId);
-      setState(() {
-        _message = 'RSVP submitted successfully.';
-        _isAlreadyRsvped = true;
-      });
+      if (_isInterested) {
+        await widget.appState.removeInterest(eventId);
+        setState(() {
+          _isInterested = false;
+          _message = 'Interest removed.';
+        });
+      } else {
+        await widget.appState.markInterested(eventId);
+        setState(() {
+          _isInterested = true;
+          _message = "You'll be notified about updates to this event.";
+        });
+      }
     } catch (error) {
       setState(() => _message = error.toString());
     } finally {
       if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<void> _openRegistrationLink(String link) async {
+    final uri = Uri.parse(link);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      Clipboard.setData(ClipboardData(text: link));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open link. Copied to clipboard instead.')),
+        );
+      }
     }
   }
 

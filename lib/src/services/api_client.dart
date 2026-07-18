@@ -27,8 +27,8 @@ class ApiClient {
     }
     if (kDebugMode) {
       if (!kIsWeb && Platform.isAndroid) {
-        // Android emulator uses 10.0.2.2 to reach the host machine's localhost
-        return 'http://10.0.2.2:5001/api';
+        // Use the host machine's Wi-Fi IP for physical device testing
+        return 'http://192.168.0.24:5001/api';
       }
       return 'http://127.0.0.1:5001/api';
     }

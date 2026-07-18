@@ -1,14 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/post_item.dart';
+import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import 'glass_card.dart';
 
-class EventCard extends StatelessWidget {
-  const EventCard({super.key, required this.post, this.onTap});
+class EventCard extends StatefulWidget {
+  const EventCard({super.key, required this.post, required this.appState, this.onTap});
 
   final PostItem post;
+  final AppState appState;
   final VoidCallback? onTap;
+
+  @override
+  State<EventCard> createState() => _EventCardState();
+}
+
+class _EventCardState extends State<EventCard> {
+  bool _submitting = false;
 
   static const List<String> _months = [
     'JAN',
@@ -27,12 +38,12 @@ class EventCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final date = post.date ?? DateTime.now();
+    final date = widget.post.date ?? DateTime.now();
     final month = _months[date.month - 1];
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: GlassCard(
         padding: EdgeInsets.zero,
         radius: 16,
@@ -45,7 +56,7 @@ class EventCard extends StatelessWidget {
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(16),
                   ),
-                  child: _image(context, post.coverAsset, height: 190),
+                  child: _image(context, widget.post.coverAsset, height: 190),
                 ),
                 Positioned(
                   top: 16,
@@ -92,7 +103,7 @@ class EventCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          post.clubName,
+                          widget.post.clubName,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 fontWeight: FontWeight.w800,
@@ -106,7 +117,7 @@ class EventCard extends StatelessWidget {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: post.isUpcoming
+                          color: widget.post.isUpcoming
                               ? (isDark
                                   ? AppTheme.darkElevated
                                   : const Color(0xFF15803D).withValues(alpha: 0.12))
@@ -114,11 +125,11 @@ class EventCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
-                          post.isUpcoming ? 'Upcoming' : 'Completed',
+                          widget.post.isUpcoming ? 'Upcoming' : 'Completed',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
-                            color: post.isUpcoming
+                            color: widget.post.isUpcoming
                                 ? (isDark ? Colors.white : const Color(0xFF15803D))
                                 : AppTheme.mutedColor(context),
                           ),
@@ -128,14 +139,14 @@ class EventCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    post.title,
+                    widget.post.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _stripMarkdown(post.content),
+                    _stripMarkdown(widget.post.content),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(
@@ -149,14 +160,16 @@ class EventCard extends StatelessWidget {
                     children: [
                       _Meta(
                         icon: Icons.schedule_rounded,
-                        label: post.time ?? 'All Day',
+                        label: widget.post.time ?? 'All Day',
                       ),
                       _Meta(
                         icon: Icons.place_outlined,
-                        label: post.location ?? 'Campus',
+                        label: widget.post.location ?? 'Campus',
                       ),
                     ],
                   ),
+                  const SizedBox(height: 16),
+                  if (widget.post.isEvent) _buildEventActionButton(widget.post),
                 ],
               ),
             ),
@@ -164,6 +177,99 @@ class EventCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildEventActionButton(PostItem post) {
+    final isLoggedIn = widget.appState.session != null;
+
+    if (!post.isUpcoming) return const SizedBox.shrink();
+
+    if (post.hasRegistrationDates) {
+      if (post.isBeforeRegistration) {
+        if (!isLoggedIn) return const SizedBox.shrink();
+        return _buildInterestedButton(post);
+      }
+      if (post.isRegistrationOpen) {
+        final link = post.registrationLink;
+        if (link == null || link.isEmpty) return const SizedBox.shrink();
+        return SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: () => _openRegistrationLink(link),
+            icon: const Icon(Icons.open_in_new_rounded, size: 18),
+            label: const Text('Register Now →'),
+            style: FilledButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+        );
+      }
+      return const SizedBox.shrink();
+    }
+
+    if (isLoggedIn) {
+      return _buildInterestedButton(post);
+    }
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildInterestedButton(PostItem post) {
+    // Listen to changes in AppState to immediately update UI on the feed when clicked anywhere
+    return AnimatedBuilder(
+      animation: widget.appState,
+      builder: (context, _) {
+        final isInterested = widget.appState.isInterested(post.id);
+        return SizedBox(
+          width: double.infinity,
+          child: _submitting
+              ? const Center(child: Padding(padding: EdgeInsets.all(4), child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))))
+              : FilledButton.icon(
+                  onPressed: () => _toggleInterest(post.id, isInterested),
+                  icon: Icon(
+                    isInterested ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                    size: 18,
+                  ),
+                  label: Text(isInterested ? "You're Interested" : "I'm Interested"),
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    backgroundColor: isInterested ? Theme.of(context).colorScheme.secondary : null,
+                  ),
+                ),
+        );
+      },
+    );
+  }
+
+  Future<void> _toggleInterest(String eventId, bool currentlyInterested) async {
+    if (_submitting) return;
+    setState(() => _submitting = true);
+    try {
+      if (currentlyInterested) {
+        await widget.appState.removeInterest(eventId);
+      } else {
+        await widget.appState.markInterested(eventId);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<void> _openRegistrationLink(String link) async {
+    final uri = Uri.parse(link);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      Clipboard.setData(ClipboardData(text: link));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open link. Copied to clipboard instead.')),
+        );
+      }
+    }
   }
 
   Widget _image(BuildContext context, String? src, {required double height}) {

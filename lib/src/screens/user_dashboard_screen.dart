@@ -1245,7 +1245,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                             if (title.toLowerCase().contains('upcoming') && rsvpId.isNotEmpty)
                               IconButton(
                                 icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent, size: 20),
-                                tooltip: 'Cancel RSVP',
+                                tooltip: 'Cancel Registration',
                                 onPressed: () {
                                   _confirmCancelRsvp(ev, rsvpId);
                                 },
@@ -1280,8 +1280,8 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Cancel RSVP'),
-        content: Text('Are you sure you want to cancel your RSVP for "${event.title}"?'),
+        title: const Text('Cancel Registration'),
+        content: Text('Are you sure you want to cancel your registration for "${event.title}"?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
@@ -1293,19 +1293,19 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                 await widget.appState.cancelRsvp(event.id, rsvpId);
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('RSVP cancelled successfully.')),
+                    const SnackBar(content: Text('Registration cancelled successfully.')),
                   );
                 }
                 _loadUserRsvps();
               } catch (e) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to cancel RSVP: $e')),
+                    SnackBar(content: Text('Failed to cancel registration: $e')),
                   );
                 }
               }
             },
-            child: const Text('Cancel RSVP'),
+            child: const Text('Cancel Registration'),
           ),
         ],
       ),

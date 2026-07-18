@@ -96,6 +96,65 @@ class PostItem {
   bool get isUpcoming =>
       isEvent && date != null && date!.isAfter(DateTime.now());
 
+  /// Parse a date string "YYYY-MM-DD" and optional time string "HH:MM AM/PM"
+  /// into a DateTime. Returns null if the date string is null/empty.
+  static DateTime? _parseDateTime(String? dateStr, String? timeStr) {
+    if (dateStr == null || dateStr.isEmpty) return null;
+    final datePart = DateTime.tryParse(dateStr);
+    if (datePart == null) return null;
+    if (timeStr == null || timeStr.isEmpty) return datePart;
+
+    // Try to parse time like "10:00 AM", "2:30 PM", "14:00", etc.
+    final cleaned = timeStr.trim().toUpperCase();
+    final match = RegExp(r'^(\d{1,2}):(\d{2})\s*(AM|PM)?$').firstMatch(cleaned);
+    if (match != null) {
+      var hour = int.tryParse(match.group(1)!) ?? 0;
+      final minute = int.tryParse(match.group(2)!) ?? 0;
+      final ampm = match.group(3);
+      if (ampm == 'PM' && hour < 12) hour += 12;
+      if (ampm == 'AM' && hour == 12) hour = 0;
+      return DateTime(datePart.year, datePart.month, datePart.day, hour, minute);
+    }
+    return datePart;
+  }
+
+  /// Parsed registration start date+time
+  DateTime? get registrationStartDateTime =>
+      _parseDateTime(registrationStart, registrationStartTime);
+
+  /// Parsed registration end date+time
+  DateTime? get registrationEndDateTime =>
+      _parseDateTime(registrationEnd, registrationEndTime);
+
+  /// True if registration window hasn't opened yet
+  bool get isBeforeRegistration {
+    final start = registrationStartDateTime;
+    if (start == null) return false;
+    return DateTime.now().isBefore(start);
+  }
+
+  /// True if we are currently within the registration window
+  bool get isRegistrationOpen {
+    final start = registrationStartDateTime;
+    final end = registrationEndDateTime;
+    final now = DateTime.now();
+    if (start == null) return false;
+    if (now.isBefore(start)) return false;
+    if (end != null && now.isAfter(end)) return false;
+    return true;
+  }
+
+  /// True if registration window has closed
+  bool get isAfterRegistration {
+    final end = registrationEndDateTime;
+    if (end == null) return false;
+    return DateTime.now().isAfter(end);
+  }
+
+  /// True if registration dates are configured at all
+  bool get hasRegistrationDates =>
+      registrationStart != null && registrationStart!.isNotEmpty;
+
   factory PostItem.fromJson(Map<String, dynamic> json) {
     final attachments = <String>[];
     for (final key in ['attachments', 'eventPhotos']) {

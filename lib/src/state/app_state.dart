@@ -81,6 +81,7 @@ class AppState extends ChangeNotifier {
   List<Club> clubs = const [];
   List<PostItem> posts = const [];
   List<NotificationItem> notifications = const [];
+  Set<String> interestedEventIds = {};
 
   Future<void> bootstrap() async {
     isBootstrapping = true;
@@ -129,6 +130,17 @@ class AppState extends ChangeNotifier {
             (item) => NotificationItem.fromJson(item as Map<String, dynamic>),
           )
           .toList();
+
+      if (session != null) {
+        try {
+          final interestsResponse = await _apiClient.get('/posts/user/interests') as List<dynamic>;
+          interestedEventIds = interestsResponse.map((id) => id.toString()).toSet();
+        } catch (_) {
+          // Ignore failures for interest fetching
+        }
+      } else {
+        interestedEventIds.clear();
+      }
     } catch (err) {
       error = err.toString();
     } finally {
@@ -360,7 +372,7 @@ class AppState extends ChangeNotifier {
   Future<void> rsvpToEvent(String eventId) async {
     final current = session;
     if (current == null) {
-      throw ApiException('Please sign in to RSVP.');
+      throw ApiException('Please sign in to Register.');
     }
 
     await _apiClient.post(
@@ -373,6 +385,28 @@ class AppState extends ChangeNotifier {
     await _apiClient.delete('/posts/$eventId/rsvps/$rsvpId');
     await refreshAll();
   }
+
+  Future<void> markInterested(String eventId) async {
+    final current = session;
+    if (current == null) {
+      throw ApiException('Please sign in first.');
+    }
+    await _apiClient.post('/posts/$eventId/interest');
+    interestedEventIds.add(eventId);
+    notifyListeners();
+  }
+
+  Future<void> removeInterest(String eventId) async {
+    await _apiClient.delete('/posts/$eventId/interest');
+    interestedEventIds.remove(eventId);
+    notifyListeners();
+  }
+
+  Future<bool> checkInterest(String eventId) async {
+    return interestedEventIds.contains(eventId);
+  }
+
+  bool isInterested(String eventId) => interestedEventIds.contains(eventId);
 
   Future<void> submitEventReport(String postId, String reportUrl, String reportFilename) async {
     await _apiClient.put(

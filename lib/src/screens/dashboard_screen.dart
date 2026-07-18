@@ -4161,7 +4161,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               Icon(Icons.people_alt_rounded, size: 14, color: Theme.of(context).dividerColor),
                               const SizedBox(width: 4),
                               Text(
-                                '${event.rsvps ?? 0} RSVPs',
+                                '${event.rsvps ?? 0} Registrations',
                                 style: TextStyle(fontSize: 12, color: AppTheme.mutedColor(context)),
                               ),
                             ],
@@ -5285,7 +5285,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             leading: const CircleAvatar(child: Icon(Icons.event_available)),
             title: Text(e.title, style: const TextStyle(fontWeight: FontWeight.bold)),
             subtitle: Text(e.date != null ? '${e.date!.day}/${e.date!.month}/${e.date!.year} · ${e.time ?? "All Day"}' : 'No date'),
-            trailing: e.rsvps != null ? Chip(label: Text('${e.rsvps} RSVPs')) : null,
+            trailing: e.rsvps != null ? Chip(label: Text('${e.rsvps} Registrations')) : null,
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => PostDetailScreen(appState: widget.appState, initialPost: e),

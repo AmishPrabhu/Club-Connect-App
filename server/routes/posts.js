@@ -6,12 +6,13 @@ import Club from '../models/Club.js';
 import Notification from '../models/Notification.js';
 import { verifyToken, verifyClubOfficer } from '../middleware/auth.js';
 import { sendEventUpdateEmail } from '../services/emailService.js';
-import { sendPushToClubMembers } from '../services/pushService.js';
+import { sendPushToClubMembers, sendPushToUsers } from '../services/pushService.js';
 
 const router = express.Router();
 
-
 import EventRSVP from '../models/EventRSVP.js';
+import EventInterest from '../models/EventInterest.js';
+import User from '../models/User.js';
 
 // Get user RSVPs by email (for viewing registered events and certificates)
 // Moved to top to avoid shadowing by /:id/rsvps
@@ -182,6 +183,76 @@ router.post('/:id/rsvps/add', verifyToken, async (req, res) => {
         res.status(201).json(newRSVP);
     } catch (error) {
         res.status(500).json({ message: error.message });
+    }
+});
+
+// Get all interested events for the current user
+router.get('/user/interests', verifyToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const interests = await EventInterest.find({ userId });
+        res.json(interests.map(i => i.eventId));
+    } catch (error) {
+        console.error('Error fetching user interests:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// ==================== INTEREST ROUTES ====================
+
+// Mark interest in an event (logged-in users only)
+router.post('/:id/interest', verifyToken, async (req, res) => {
+    try {
+        const eventId = req.params.id;
+        const userId = req.user.id;
+        const email = req.user.email;
+        const name = req.user.name || 'User';
+
+        // Check event exists
+        const event = await Post.findById(eventId);
+        if (!event) return res.status(404).json({ message: 'Event not found' });
+
+        // Check for duplicate
+        const existing = await EventInterest.findOne({ eventId, userId });
+        if (existing) {
+            return res.status(400).json({ message: 'You are already interested in this event.' });
+        }
+
+        const interest = new EventInterest({ eventId, userId, email, name });
+        await interest.save();
+
+        res.status(201).json(interest);
+    } catch (error) {
+        console.error('Error marking interest:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Remove interest in an event
+router.delete('/:id/interest', verifyToken, async (req, res) => {
+    try {
+        await EventInterest.findOneAndDelete({
+            eventId: req.params.id,
+            userId: req.user.id,
+        });
+        res.json({ message: 'Interest removed' });
+    } catch (error) {
+        console.error('Error removing interest:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Check if current user is interested in an event
+router.get('/:id/interest/check', verifyToken, async (req, res) => {
+    try {
+        const interest = await EventInterest.findOne({
+            eventId: req.params.id,
+            userId: req.user.id,
+        });
+        res.json({ interested: !!interest });
+    } catch (error) {
+        console.error('Error checking interest:', error);
+        res.status(500).json({ message: 'Server error' });
     }
 });
 
@@ -385,6 +456,41 @@ router.put('/:id', verifyToken, async (req, res) => {
         updates.updatedAt = new Date();
 
         const updatedPost = await Post.findByIdAndUpdate(req.params.id, updates, { new: true });
+
+        // Notify interested users about the event update
+        if (updatedPost && updatedPost.type === 'event') {
+            try {
+                const interests = await EventInterest.find({ eventId: req.params.id });
+                if (interests.length > 0) {
+                    const interestedUserIds = interests.map(i => i.userId).filter(Boolean);
+                    if (interestedUserIds.length > 0) {
+                        // Create a notification in DB for each interested user
+                        const notifTitle = `Event Update: ${updatedPost.title}`;
+                        const notifMessage = `An event you're interested in has been updated.`;
+                        for (const uid of interestedUserIds) {
+                            const notif = new Notification({
+                                title: notifTitle,
+                                message: notifMessage,
+                                type: 'event',
+                                userId: uid,
+                                clubId: updatedPost.clubId,
+                                relatedId: updatedPost._id.toString(),
+                            });
+                            await notif.save();
+                        }
+                        // Also send push notification
+                        sendPushToUsers(interestedUserIds, notifTitle, notifMessage, {
+                            type: 'event',
+                            relatedId: updatedPost._id.toString(),
+                            clubId: updatedPost.clubId.toString(),
+                        }).catch(err => console.error('FCM interest update error:', err));
+                    }
+                }
+            } catch (notifErr) {
+                console.error('Failed to notify interested users:', notifErr);
+            }
+        }
+
         res.json(updatedPost);
     } catch (error) {
         console.error("Error updating post:", error);
