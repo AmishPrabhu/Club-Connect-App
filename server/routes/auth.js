@@ -723,8 +723,6 @@ router.post('/forgot-password', authLimiter, async (req, res) => {
         user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
         await user.save();
 
-        console.log(`\n🔑 [DEV/DEBUG] Password Reset OTP for ${email}: ${resetToken}\n`);
-
         // Send email using Resend
         const result = await sendPasswordResetEmail(user, resetToken);
 
