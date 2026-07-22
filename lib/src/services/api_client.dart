@@ -26,9 +26,10 @@ class ApiClient {
       return envUrl;
     }
     if (kDebugMode) {
-      if (!kIsWeb && Platform.isAndroid) {
-        // Use the host machine's Wi-Fi IP for physical device testing
-        return 'http://192.168.0.24:5001/api';
+      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+        // Use the host machine's Wi-Fi IP for physical device testing.
+        // Update this IP if your computer's local Wi-Fi IP changes (or pass --dart-define=API_BASE_URL=http://<IP>:5001/api)
+        return 'http://10.105.207.129:5001/api';
       }
       return 'http://127.0.0.1:5001/api';
     }
