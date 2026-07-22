@@ -1,12 +1,18 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import 'package:csv/csv.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_filex/open_filex.dart';
 import '../models/post_item.dart';
 import '../state/app_state.dart';
 import '../services/cloudinary_service.dart';
 import '../theme/app_theme.dart';
+import 'package:share_plus/share_plus.dart';
 
 class EventParticipantsScreen extends StatefulWidget {
   const EventParticipantsScreen({
@@ -38,6 +44,8 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
 
   bool _isSavingTemplate = false;
   bool _isGenerating = false;
+  bool _isImporting = false;
+  bool _isExporting = false;
   int _generationProgress = 0;
   int _generationTotal = 0;
   Size? _templateImageSize; // FI-16: actual pixel dimensions of the loaded template
@@ -388,6 +396,96 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
     );
   }
 
+  Future<void> _importFromGoogleSheet() async {
+    final sheetUrl = widget.event.responseSpreadsheetUrl;
+    if (sheetUrl == null || sheetUrl.isEmpty) {
+      _showSnackBar('Please add a Response Spreadsheet URL in the Event details first.', isError: true);
+      return;
+    }
+
+    setState(() => _isImporting = true);
+
+    try {
+      String csvUrl = sheetUrl;
+      final RegExp sheetIdRegExp = RegExp(r'/d/([a-zA-Z0-9-_]+)');
+      final match = sheetIdRegExp.firstMatch(sheetUrl);
+      
+      if (match != null) {
+        final sheetId = match.group(1);
+        csvUrl = 'https://docs.google.com/spreadsheets/d/$sheetId/export?format=csv';
+      } else if (sheetUrl.contains('/edit')) {
+        csvUrl = sheetUrl.replaceAll(RegExp(r'/edit.*$'), '/export?format=csv');
+      }
+
+      final response = await http.get(Uri.parse(csvUrl));
+      if (response.statusCode != 200) {
+        throw Exception('Failed to fetch spreadsheet. Make sure it is public.');
+      }
+
+      final csvString = utf8.decode(response.bodyBytes);
+      final List<List<dynamic>> rows = const CsvDecoder().convert(csvString);
+      
+      if (rows.isEmpty || rows.length < 2) {
+        throw Exception('Spreadsheet is empty or has no data rows.');
+      }
+      
+      final headers = rows.first.map((e) => e.toString().toLowerCase().trim()).toList();
+      
+      int nameIndex = headers.indexWhere((h) => h.contains('name') || h == 'full name');
+      int emailIndex = headers.indexWhere((h) => h.contains('email') || h == 'email address');
+      
+      if (nameIndex == -1 || emailIndex == -1) {
+        throw Exception('Could not find Name and Email columns in the sheet. Please ensure they exist.');
+      }
+
+      int addedCount = 0;
+      
+      for (int i = 1; i < rows.length; i++) {
+        final row = rows[i];
+        if (row.length <= nameIndex || row.length <= emailIndex) continue;
+        
+        final name = row[nameIndex].toString().trim();
+        final email = row[emailIndex].toString().trim();
+        
+        if (name.isNotEmpty && email.isNotEmpty && email.contains('@')) {
+          try {
+            await widget.appState.addEventParticipant(widget.event.id, name, email);
+            addedCount++;
+          } catch (e) {
+            // Ignore duplicates silently
+          }
+        }
+      }
+      
+      _showSnackBar('Import complete. Added $addedCount new participants.');
+      await _loadRsvps();
+    } catch (e) {
+      _showSnackBar(e.toString().replaceAll('Exception: ', ''), isError: true);
+    } finally {
+      setState(() => _isImporting = false);
+    }
+  }
+
+  Future<void> _exportAttendance() async {
+    if (_rsvps.isEmpty) {
+      _showSnackBar('No participants to export', isError: true);
+      return;
+    }
+    
+    setState(() => _isExporting = true);
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final path = '${directory.path}/attendance_${widget.event.id}.pdf';
+      await widget.appState.exportEventAttendance(widget.event.id, path);
+      
+      Share.shareXFiles([XFile(path)], text: 'Event Attendance Report');
+    } catch (e) {
+      _showSnackBar('Failed to export: $e', isError: true);
+    } finally {
+      setState(() => _isExporting = false);
+    }
+  }
+
   Widget _buildAttendanceTab() {
     if (_isLoadingRsvps) {
       return const Center(child: CircularProgressIndicator());
@@ -395,11 +493,189 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
 
     final totalSessions = widget.event.totalSessions;
     final sessionList = List.generate(totalSessions, (i) => i + 1);
+    
+    final int totalRegistered = _rsvps.length;
+    final int presentCount = _rsvps.where((r) => r['attendance'] == 'present').length;
+    final int absentCount = _rsvps.where((r) => r['attendance'] == 'absent').length;
+    final int pendingCount = _rsvps.where((r) => r['attendance'] == 'pending' || r['attendance'] == null).length;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Attendance Overview
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkElevated : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.people, color: AppTheme.accent(context)),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Attendance Overview',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.navyColor(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: _isExporting ? null : _exportAttendance,
+                      icon: _isExporting 
+                          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.picture_as_pdf, size: 14),
+                      label: const Text('Export to PDF', style: TextStyle(fontSize: 12)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard('Total Registered', totalRegistered.toString(), Colors.purple.shade50, Colors.purple),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildStatCard('Present', presentCount.toString(), Colors.green.shade50, Colors.green),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatCard('Absent', absentCount.toString(), Colors.red.shade50, Colors.red),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildStatCard('Pending', pendingCount.toString(), Colors.blueGrey.shade50, Colors.blueGrey),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          
+          // Add Participant Form
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkElevated : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.person_add, color: AppTheme.accent(context)),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Add Participant (from Google Form)',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.navyColor(context),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Manually add participants from your Google Form responses.',
+                  style: TextStyle(fontSize: 12, color: AppTheme.mutedColor(context)),
+                ),
+                const SizedBox(height: 16),
+                
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _addParticipant,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Participant Manually'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.navyColor(context),
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+                
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16.0),
+                  child: Divider(),
+                ),
+                
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Import from Google Sheet', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Publish your response sheet as CSV (File → Share → Publish to web → CSV)',
+                            style: TextStyle(fontSize: 11, color: AppTheme.mutedColor(context)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: (_isImporting || widget.event.responseSpreadsheetUrl == null || widget.event.responseSpreadsheetUrl!.isEmpty) 
+                          ? null 
+                          : _importFromGoogleSheet,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppTheme.navyColor(context),
+                        side: BorderSide(color: AppTheme.navyColor(context).withValues(alpha: 0.3)),
+                      ),
+                      child: _isImporting 
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Text('Import'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 24),
+          
           // Session Picker Row
           if (totalSessions > 1) ...[
             SingleChildScrollView(
@@ -427,56 +703,84 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
             ),
             const SizedBox(height: 12),
           ],
-
-          Expanded(
-            child: _rsvps.isEmpty
-                ? const Center(
+          
+          Text('Participants List', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.navyColor(context))),
+          const SizedBox(height: 8),
+          
+          // List
+          _rsvps.isEmpty
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32.0),
                     child: Text('No participants registered for this event.'),
-                  )
-                : ListView.separated(
-                    itemCount: _rsvps.length,
-                    separatorBuilder: (_, __) => const Divider(),
-                    itemBuilder: (context, index) {
-                      final rsvp = _rsvps[index];
-                      final sessionKey = _selectedSession.toString();
-                      final sessionAttendance = rsvp['sessionAttendance'] as Map<String, dynamic>? ?? {};
-                      final status = sessionAttendance[sessionKey]?.toString() ?? 'absent';
-                      final isPresent = status == 'present';
-                      final rsvpId = rsvp['_id']?.toString() ?? rsvp['id']?.toString() ?? '';
-
-                      return ListTile(
-                        title: Text(
-                          rsvp['name']?.toString() ?? 'No Name',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(rsvp['email']?.toString() ?? 'No Email'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            TextButton.icon(
-                              onPressed: () => _toggleAttendance(rsvp, status),
-                              icon: Icon(
-                                isPresent ? Icons.check_circle_rounded : Icons.cancel_rounded,
-                                color: isPresent ? Colors.green : Colors.red,
-                              ),
-                              label: Text(
-                                isPresent ? 'Present' : 'Absent',
-                                style: TextStyle(
-                                  color: isPresent ? Colors.green : Colors.red,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.grey),
-                              onPressed: () => _deleteParticipant(rsvpId),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
                   ),
-          ),
+                )
+              : ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _rsvps.length,
+                  separatorBuilder: (_, __) => const Divider(),
+                  itemBuilder: (context, index) {
+                    final rsvp = _rsvps[index];
+                    final sessionKey = _selectedSession.toString();
+                    final sessionAttendance = rsvp['sessionAttendance'] as Map<String, dynamic>? ?? {};
+                    final status = sessionAttendance[sessionKey]?.toString() ?? 'absent';
+                    final isPresent = status == 'present';
+                    final rsvpId = rsvp['_id']?.toString() ?? rsvp['id']?.toString() ?? '';
+
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        rsvp['name']?.toString() ?? 'No Name',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(rsvp['email']?.toString() ?? 'No Email'),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextButton.icon(
+                            onPressed: () => _toggleAttendance(rsvp, status),
+                            icon: Icon(
+                              isPresent ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                              color: isPresent ? Colors.green : Colors.red,
+                            ),
+                            label: Text(
+                              isPresent ? 'Present' : 'Absent',
+                              style: TextStyle(
+                                color: isPresent ? Colors.green : Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline_rounded, color: Colors.grey),
+                            onPressed: () => _deleteParticipant(rsvpId),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String title, String value, Color bgColor, Color textColor) {
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? bgColor.withValues(alpha: 0.1) : bgColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: isDark ? bgColor.withValues(alpha: 0.2) : bgColor.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? textColor.withValues(alpha: 0.8) : textColor)),
+          const SizedBox(height: 4),
+          Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textColor)),
         ],
       ),
     );

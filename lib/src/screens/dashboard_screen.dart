@@ -5082,7 +5082,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final path = '${dir.path}/members_template.xlsx';
       await widget.appState.downloadMemberTemplate(path);
       _showSuccessSnackBar('Template downloaded!');
-      OpenFilex.open(path);
+      Share.shareXFiles([XFile(path)], text: 'Members Template');
     } catch (e) {
       _showErrorSnackBar('Failed to download template: $e');
     }

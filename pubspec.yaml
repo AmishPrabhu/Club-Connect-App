@@ -47,6 +47,7 @@ dependencies:
   flutter_local_notifications: ^21.0.0
   path_provider: ^2.1.2
   open_filex: ^4.5.0
+  csv: ^8.0.0
 
 dev_dependencies:
   flutter_test:

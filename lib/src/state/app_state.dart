@@ -896,4 +896,8 @@ class AppState extends ChangeNotifier {
   Future<void> exportClubMembers(String clubId, String savePath) async {
     await _apiClient.downloadFile('/clubs/$clubId/members/export', savePath);
   }
+
+  Future<void> exportEventAttendance(String eventId, String savePath) async {
+    await _apiClient.downloadFile('/posts/$eventId/rsvps/export-pdf', savePath);
+  }
 }

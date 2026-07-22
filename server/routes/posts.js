@@ -1,4 +1,5 @@
 import express from 'express';
+import PDFDocument from 'pdfkit';
 import Post from '../models/Post.js';
 import Task from '../models/Task.js';
 import ClubMember from '../models/ClubMember.js';
@@ -68,6 +69,61 @@ router.get('/:id/rsvps', verifyToken, async (req, res) => {
         res.json(rsvps);
     } catch (error) {
         res.status(500).json({ message: error.message });
+    }
+});
+
+// Export RSVPs to PDF
+router.get('/:id/rsvps/export-pdf', verifyToken, async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id);
+        if (!post) return res.status(404).json({ message: 'Post not found' });
+        
+        const rsvps = await EventRSVP.find({ eventId: req.params.id }).sort({ name: 1 });
+        
+        const doc = new PDFDocument({ margin: 50 });
+        
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=attendance_${req.params.id}.pdf`);
+        
+        doc.pipe(res);
+        
+        // Header
+        doc.fontSize(20).text(`Attendance Report: ${post.title}`, { align: 'center' });
+        doc.moveDown();
+        doc.fontSize(12).text(`Total Registered: ${rsvps.length}`);
+        doc.moveDown();
+        
+        // Table Header
+        const tableTop = doc.y;
+        doc.font('Helvetica-Bold');
+        doc.text('Name', 50, tableTop);
+        doc.text('Email', 250, tableTop);
+        doc.text('Status', 450, tableTop);
+        
+        doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
+        
+        let y = tableTop + 25;
+        doc.font('Helvetica');
+        
+        rsvps.forEach((rsvp, i) => {
+            if (y > 700) {
+                doc.addPage();
+                y = 50;
+            }
+            doc.text(rsvp.name || 'N/A', 50, y, { width: 190, lineBreak: false });
+            doc.text(rsvp.email || 'N/A', 250, y, { width: 190, lineBreak: false });
+            doc.text(rsvp.attendance || 'Pending', 450, y);
+            y += 20;
+            
+            // Draw faint line
+            doc.strokeColor('#e0e0e0').moveTo(50, y-5).lineTo(550, y-5).stroke();
+            doc.strokeColor('black');
+        });
+        
+        doc.end();
+    } catch (error) {
+        console.error('PDF Export Error:', error);
+        if (!res.headersSent) res.status(500).json({ message: 'Error generating PDF' });
     }
 });
 
