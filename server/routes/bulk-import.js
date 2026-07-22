@@ -259,4 +259,104 @@ router.post('/:clubId/members/bulk-import', verifyToken, upload.single('file'), 
     }
 });
 
+// Export members to Excel
+router.get('/:clubId/members/export', verifyToken, async (req, res) => {
+    try {
+        const { clubId } = req.params;
+        const { id: userId, role } = req.user;
+
+        // Check authorization - only club officer or admin
+        if (role !== 'admin') {
+            const officer = await ClubMember.findOne({
+                clubId,
+                userId,
+                role: { $in: ['Secretary', 'President', 'Treasurer', 'Advisor'] }
+            });
+            if (!officer) {
+                return res.status(403).json({ message: 'Unauthorized to export members for this club' });
+            }
+        }
+
+        const members = await ClubMember.find({ clubId });
+        
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Members');
+        
+        worksheet.columns = [
+            { header: 'Name', key: 'name', width: 20 },
+            { header: 'Email', key: 'email', width: 30 },
+            { header: 'Role', key: 'role', width: 15 },
+            { header: 'Board Type', key: 'boardType', width: 15 },
+            { header: 'Academic Year', key: 'academicYear', width: 15 },
+            { header: 'Year Joined', key: 'joinedAt', width: 15 }
+        ];
+        
+        members.forEach(member => {
+            worksheet.addRow({
+                name: member.name || '',
+                email: member.email || '',
+                role: member.role || '',
+                boardType: member.boardType || '',
+                academicYear: member.academicYear || '',
+                joinedAt: member.joinedAt ? new Date(member.joinedAt).getFullYear() : ''
+            });
+        });
+        
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=members.xlsx');
+        
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (error) {
+        console.error('Export error:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ message: 'Failed to export members', error: error.message });
+        }
+    }
+});
+
+// Download members template
+router.get('/template/members', async (req, res) => {
+    try {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Template');
+        
+        worksheet.columns = [
+            { header: 'Name', key: 'name', width: 20 },
+            { header: 'Email', key: 'email', width: 30 },
+            { header: 'Role', key: 'role', width: 15 },
+            { header: 'Board Type', key: 'boardType', width: 15 },
+            { header: 'Academic Year', key: 'academicYear', width: 15 },
+            { header: 'Year Joined', key: 'joinedAt', width: 15 }
+        ];
+        
+        worksheet.addRow({
+            name: 'John Doe',
+            email: 'john@example.com',
+            role: 'member',
+            boardType: 'member',
+            academicYear: 'SY',
+            joinedAt: '2023'
+        });
+        worksheet.addRow({
+            name: 'Jane Smith',
+            email: 'jane@example.com',
+            role: 'club-secretary',
+            boardType: 'core',
+            academicYear: 'TY',
+            joinedAt: '2022'
+        });
+        
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=template.xlsx');
+        
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (error) {
+        console.error('Template error:', error);
+        res.status(500).json({ message: 'Failed to download template', error: error.message });
+    }
+});
+
 export default router;
+

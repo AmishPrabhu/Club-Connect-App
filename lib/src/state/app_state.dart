@@ -888,4 +888,12 @@ class AppState extends ChangeNotifier {
   Future<dynamic> bulkImportMembers(String clubId, String filePath) async {
     return await _apiClient.uploadFile('/clubs/$clubId/members/bulk-import', filePath);
   }
+
+  Future<void> downloadMemberTemplate(String savePath) async {
+    await _apiClient.downloadFile('/clubs/template/members', savePath);
+  }
+
+  Future<void> exportClubMembers(String clubId, String savePath) async {
+    await _apiClient.downloadFile('/clubs/$clubId/members/export', savePath);
+  }
 }

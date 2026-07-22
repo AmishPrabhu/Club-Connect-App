@@ -44,8 +44,8 @@ app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/clubs', clubRoutes);
 app.use('/api/clubs', bulkImportRoutes);
+app.use('/api/clubs', clubRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/users', userRoutes);

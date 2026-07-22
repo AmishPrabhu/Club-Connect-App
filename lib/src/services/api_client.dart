@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io' show Platform;
+import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:http/http.dart' as http;
@@ -164,5 +164,25 @@ class ApiClient {
     }
 
     return payload;
+  }
+
+  Future<void> downloadFile(String path, String savePath) async {
+    final uri = Uri.parse('$baseUrl$path');
+    final headers = <String, String>{};
+    if (_token != null && _token!.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $_token';
+    }
+
+    final response = await _httpClient.get(uri, headers: headers);
+    
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final file = File(savePath);
+      await file.writeAsBytes(response.bodyBytes);
+    } else {
+      throw ApiException(
+        'Failed to download file: ${response.statusCode}',
+        statusCode: response.statusCode,
+      );
+    }
   }
 }

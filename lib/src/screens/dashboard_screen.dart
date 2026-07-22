@@ -4,6 +4,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_filex/open_filex.dart';
 import '../services/cloudinary_service.dart';
 import 'dart:io';
 
@@ -3867,7 +3869,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
-                  onPressed: () => _exportRoster(filteredMembers.cast<Map<String, dynamic>>()),
+                  onPressed: () => _exportRoster(),
                   icon: const Icon(Icons.download_rounded, size: 14),
                   label: const Text('Export', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                 ),
@@ -4974,18 +4976,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   if (canEdit) ...[
                     Expanded(
                       child: OutlinedButton.icon(
-                        icon: const Icon(Icons.file_upload_outlined, size: 16),
-                        label: const Text('Import Excel/CSV', style: TextStyle(fontSize: 12)),
+                        icon: const Icon(Icons.download_outlined, size: 12),
+                        label: const Text('Download Template', style: TextStyle(fontSize: 11)),
+                        onPressed: () => _downloadTemplate(),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.file_upload_outlined, size: 12),
+                        label: const Text('Import Excel', style: TextStyle(fontSize: 11)),
                         onPressed: () => _importRoster(),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 4),
                   ],
                   Expanded(
                     child: OutlinedButton.icon(
-                      icon: const Icon(Icons.file_download_outlined, size: 16),
-                      label: const Text('Export Roster', style: TextStyle(fontSize: 12)),
-                      onPressed: () => _exportRoster(members),
+                      icon: const Icon(Icons.file_download_outlined, size: 12),
+                      label: const Text('Export Roster', style: TextStyle(fontSize: 11)),
+                      onPressed: () => _exportRoster(),
                     ),
                   ),
                 ],
@@ -5065,6 +5075,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Future<void> _downloadTemplate() async {
+    try {
+      _showSuccessSnackBar('Downloading template...');
+      final dir = await getApplicationDocumentsDirectory();
+      final path = '${dir.path}/members_template.xlsx';
+      await widget.appState.downloadMemberTemplate(path);
+      _showSuccessSnackBar('Template downloaded!');
+      OpenFilex.open(path);
+    } catch (e) {
+      _showErrorSnackBar('Failed to download template: $e');
+    }
+  }
+
   Future<void> _importRoster() async {
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -5082,7 +5105,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       if (response != null && response['summary'] != null) {
         final summary = response['summary'];
-        _showSuccessSnackBar('Import complete! Added: ${summary['added']}, Failed: ${summary['failed']}.');
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Import Results'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Total Processed: ${summary['total']}'),
+                Text('Added: ${summary['added']}'),
+                Text('Updated: ${summary['updated']}'),
+                Text('Failed: ${summary['failed']}', style: const TextStyle(color: Colors.red)),
+                if (summary['emailsSent'] > 0)
+                  Text('Invitation Emails Sent: ${summary['emailsSent']}'),
+              ],
+            ),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
       } else {
         _showSuccessSnackBar('Roster bulk imported successfully.');
       }
@@ -5091,19 +5137,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  void _exportRoster(List<Map<String, dynamic>> members) {
-    if (members.isEmpty) {
-      _showErrorSnackBar('Roster is empty.');
-      return;
+  Future<void> _exportRoster() async {
+    if (_selectedClub == null) return;
+    try {
+      _showSuccessSnackBar('Generating roster export...');
+      final dir = await getApplicationDocumentsDirectory();
+      final path = '${dir.path}/${_selectedClub!.name.replaceAll(' ', '_')}_Roster.xlsx';
+      await widget.appState.exportClubMembers(_selectedClub!.id, path);
+      _showSuccessSnackBar('Roster exported successfully!');
+      OpenFilex.open(path);
+    } catch (e) {
+      _showErrorSnackBar('Failed to export roster: $e');
     }
-    final csv = StringBuffer();
-    csv.writeln('Name,Email,Role,Board Type,Academic Year');
-    for (final m in members) {
-      csv.writeln('"${m['name'] ?? ''}","${m['email'] ?? ''}","${m['role'] ?? ''}","${m['boardType'] ?? ''}","${m['academicYear'] ?? ''}"');
-    }
-
-    Share.share(csv.toString(), subject: '${_selectedClub?.name ?? 'Club'} Member Roster');
-    _showSuccessSnackBar('Roster CSV generated. Opening sharing options...');
   }
 
   // ─── DRAFTS & POSTS TAB ────────────────────────────────────────────────────
