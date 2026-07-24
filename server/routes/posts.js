@@ -908,12 +908,6 @@ router.patch('/:id/rsvps/:rsvpId/certificate', verifyToken, async (req, res) => 
         );
 
         res.json(updatedRsvp);
-
-        if (!rsvp) {
-            return res.status(404).json({ message: 'RSVP not found' });
-        }
-
-        res.json(rsvp);
     } catch (error) {
         console.error('Error updating certificate:', error);
         res.status(500).json({ message: 'Server error' });
