@@ -338,4 +338,39 @@ export async function sendPasswordChangeEmail({ email, name }) {
     });
 }
 
-export default { sendEmail, sendPasswordResetEmail, sendClubInvitationEmail, sendTeacherInvitationEmail, sendOtpEmail, sendDeleteAccountOtpEmail, sendTaskAssignmentEmail, sendEventUpdateEmail, sendPasswordChangeEmail };
+/**
+ * Send certificate email to participant
+ */
+export async function sendCertificateEmail({ recipientEmail, recipientName, eventTitle, clubName, certificateUrl }) {
+    return sendEmail({
+        to: recipientEmail,
+        subject: `Certificate of Participation - ${eventTitle}`,
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: #002147; padding: 20px; text-align: center;">
+                    <h1 style="color: #DAA520; margin: 0;">Club Connect</h1>
+                </div>
+                <div style="padding: 30px; background: #f9f9f9; border: 1px solid #e2e8f0;">
+                    <h2 style="color: #002147; border-bottom: 2px solid #DAA520; padding-bottom: 10px;">Certificate of Participation</h2>
+                    <p>Congratulations <strong>${recipientName || 'Participant'}</strong>!</p>
+                    <p>Thank you for successfully attending all sessions of <strong>${eventTitle}</strong> organized by <strong>${clubName}</strong>.</p>
+                    <p>Your official certificate of participation has been generated and is ready!</p>
+                    
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${certificateUrl}" target="_blank" style="background: #DAA520; color: #002147; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+                            View & Download Certificate
+                        </a>
+                    </div>
+
+                    <p style="color: #666; font-size: 14px;">You can also view and download this certificate anytime from your profile inside the Club Connect app.</p>
+                </div>
+                <div style="background: #002147; padding: 15px; text-align: center;">
+                    <p style="color: #888; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} Club Connect - Walchand College of Engineering</p>
+                </div>
+            </div>
+        `,
+    });
+}
+
+export default { sendEmail, sendPasswordResetEmail, sendClubInvitationEmail, sendTeacherInvitationEmail, sendOtpEmail, sendDeleteAccountOtpEmail, sendTaskAssignmentEmail, sendEventUpdateEmail, sendPasswordChangeEmail, sendCertificateEmail };
+

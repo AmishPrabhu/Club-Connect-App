@@ -1,4 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:open_filex/open_filex.dart';
 
 import '../models/club.dart';
 import '../models/post_item.dart';
@@ -1354,9 +1359,37 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                     itemBuilder: (context, index) {
                       final ev = items[index]['event'] as PostItem;
                       final rsvp = items[index]['rsvp'] as Map<String, dynamic>;
-                      final url = rsvp['certificateUrl'].toString();
+                      final url = rsvp['certificateUrl']?.toString() ?? '';
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
+                        leading: url.isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: Image.network(
+                                  url,
+                                  width: 48,
+                                  height: 48,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    width: 48,
+                                    height: 48,
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.accent(context).withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Icon(Icons.workspace_premium_rounded, color: AppTheme.accent(context), size: 24),
+                                  ),
+                                ),
+                              )
+                            : Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.accent(context).withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Icon(Icons.workspace_premium_rounded, color: AppTheme.accent(context), size: 24),
+                              ),
                         title: Text(
                           ev.title,
                           style: const TextStyle(
@@ -1364,22 +1397,66 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                         ),
                         subtitle: Text(ev.clubName,
                             style: const TextStyle(fontSize: 12)),
-                        trailing: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content: Text(
-                                      'Opening certificate link: $url')),
-                            );
-                          },
-                          icon: const Icon(Icons.download_rounded, size: 14),
-                          label: const Text('View',
-                              style: TextStyle(fontSize: 11)),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                          ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // View in Browser
+                            IconButton(
+                              tooltip: 'View Certificate',
+                              icon: const Icon(Icons.open_in_new_rounded, size: 20),
+                              color: AppTheme.accent(context),
+                              onPressed: url.isNotEmpty
+                                  ? () async {
+                                      final uri = Uri.parse(url);
+                                      if (await canLaunchUrl(uri)) {
+                                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                      } else {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Could not open certificate URL.')),
+                                          );
+                                        }
+                                      }
+                                    }
+                                  : null,
+                            ),
+                            // Download to device
+                            IconButton(
+                              tooltip: 'Download Certificate',
+                              icon: const Icon(Icons.download_rounded, size: 20),
+                              color: Colors.green,
+                              onPressed: url.isNotEmpty
+                                  ? () async {
+                                      try {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Downloading certificate...')),
+                                        );
+                                        final response = await http.get(Uri.parse(url));
+                                        if (response.statusCode == 200) {
+                                          final dir = await getApplicationDocumentsDirectory();
+                                          final safeTitle = ev.title.replaceAll(RegExp(r'[^\w\s]'), '').replaceAll(' ', '_');
+                                          final file = File('${dir.path}/certificate_$safeTitle.jpg');
+                                          await file.writeAsBytes(response.bodyBytes);
+                                          await OpenFilex.open(file.path);
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('Certificate saved to ${file.path}')),
+                                            );
+                                          }
+                                        } else {
+                                          throw Exception('Download failed: ${response.statusCode}');
+                                        }
+                                      } catch (e) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('Download failed: $e')),
+                                          );
+                                        }
+                                      }
+                                    }
+                                  : null,
+                            ),
+                          ],
                         ),
                       );
                     },

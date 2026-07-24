@@ -67,6 +67,14 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
         _fontFamily = pos['fontFamily']?.toString() ?? 'Arial';
         _fontColor = pos['color']?.toString() ?? '#000000';
       }
+
+      if (_templateUrl != null && _templateUrl!.isNotEmpty) {
+        _getNetworkImageSize(_templateUrl!).then((img) {
+          if (mounted) {
+            setState(() => _templateImageSize = Size(img.width.toDouble(), img.height.toDouble()));
+          }
+        });
+      }
     }
     
     _loadRsvps();
@@ -102,8 +110,13 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
     );
   }
 
-  Future<void> _toggleAttendance(Map<String, dynamic> rsvp, String currentStatus) async {
-    final newStatus = currentStatus == 'present' ? 'absent' : 'present';
+  Future<void> _toggleAttendance(Map<String, dynamic> rsvp, String currentStatus, [String? targetStatus]) async {
+    final newStatus = targetStatus ??
+        (currentStatus == 'present'
+            ? 'absent'
+            : currentStatus == 'absent'
+                ? 'pending'
+                : 'present');
     final rsvpId = rsvp['_id']?.toString() ?? rsvp['id']?.toString() ?? '';
     
     try {
@@ -123,9 +136,9 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
           attendanceMap[sessionKey] = newStatus;
           _rsvps[index]['sessionAttendance'] = attendanceMap;
 
-          // Check if present across all sessions
+          // Check overall attendance across all sessions
           final allValues = attendanceMap.values.toList();
-          if (allValues.every((val) => val == 'present')) {
+          if (allValues.isNotEmpty && allValues.every((val) => val == 'present')) {
             _rsvps[index]['attendance'] = 'present';
           } else if (allValues.any((val) => val == 'absent')) {
             _rsvps[index]['attendance'] = 'absent';
@@ -290,16 +303,181 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
     return completer.future;
   }
 
+  Future<void> _previewDemoCertificate() async {
+    if (_templateUrl == null) {
+      _showSnackBar('Please upload a template background image first.', isError: true);
+      return;
+    }
+
+    try {
+      _showSnackBar('Generating sample preview...');
+      final img = await _getNetworkImageSize(_templateUrl!);
+      final imgWidth = img.width;
+      final imgHeight = img.height;
+
+      final targetX = (((_nameX / 100) * imgWidth) - (imgWidth / 2)).round();
+      final targetY = (((_nameY / 100) * imgHeight) - (imgHeight / 2)).round();
+
+      final uploadIndex = _templateUrl!.indexOf('/upload/');
+      if (uploadIndex == -1) {
+        throw Exception('Invalid template URL format.');
+      }
+      final baseUrl = _templateUrl!.substring(0, uploadIndex + 8);
+      final restUrl = _templateUrl!.substring(uploadIndex + 8);
+
+      final colorHex = _fontColor.replaceAll('#', '');
+      final fontMap = {
+        'Arial': 'Arial',
+        'Times New Roman': 'Times',
+        'Georgia': 'Georgia',
+        'Verdana': 'Verdana'
+      };
+      final resolvedFont = fontMap[_fontFamily] ?? 'Arial';
+
+      final sampleName = _rsvps.isNotEmpty ? (_rsvps.first['name']?.toString() ?? 'John Doe') : 'Sample Student';
+      final transformOverlay = 'co_rgb:$colorHex,l_text:${resolvedFont}_${_fontSize.toInt()}_bold:${Uri.encodeComponent(sampleName)}/fl_layer_apply,g_center,x_$targetX,y_$targetY/';
+      final sampleUrl = '$baseUrl$transformOverlay$restUrl';
+
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (ctx) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Sample Certificate Preview',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Stamped name sample for: "$sampleName"',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    sampleUrl,
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return SizedBox(
+                        height: 200,
+                        child: const Center(child: CircularProgressIndicator()),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Looks Good!'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } catch (e) {
+      _showSnackBar('Failed to generate preview: $e', isError: true);
+    }
+  }
+
   Future<void> _generateCertificates() async {
+    // Only participants present in ALL sessions qualify (via 'attendance' virtual == 'present')
     final presentParticipants = _rsvps.where((r) => r['attendance'] == 'present').toList();
     if (presentParticipants.isEmpty) {
-      _showSnackBar('No participants are marked as present.', isError: true);
+      _showSnackBar('No participants are marked as present in all sessions.', isError: true);
       return;
     }
     if (_templateUrl == null) {
       _showSnackBar('Please upload a template background image first.', isError: true);
       return;
     }
+
+    // --- Confirmation dialog before generation ---
+    final totalSessions = widget.event.totalSessions;
+    if (!mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.workspace_premium_rounded, color: AppTheme.accent(context)),
+            const SizedBox(width: 8),
+            const Text('Generate & Send Certificates?'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'This will create personalized certificates for:',
+              style: TextStyle(color: AppTheme.mutedColor(context), fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle_rounded, color: Colors.green, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${presentParticipants.length} participant${presentParticipants.length == 1 ? '' : 's'} present in all $totalSessions session${totalSessions == 1 ? '' : 's'}',
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              "Once sent, certificates will appear in each participant's profile under \"My Certificates\" and they can download them.",
+              style: TextStyle(color: AppTheme.mutedColor(context), fontSize: 12),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.accent(context),
+              foregroundColor: Colors.white,
+            ),
+            icon: const Icon(Icons.send_rounded, size: 18),
+            label: const Text('Generate & Send'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
 
     setState(() {
       _isGenerating = true;
@@ -313,11 +491,12 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
       final imgWidth = img.width;
       final imgHeight = img.height;
 
-      final textCenterX = (_nameX / 100) * imgWidth;
-      final textCenterY = (_nameY / 100) * imgHeight;
-
-      final offsetX = (textCenterX - (imgWidth / 2)).round();
-      final offsetY = (textCenterY - (imgHeight / 2)).round();
+      // Cloudinary overlay coordinates:
+      // g_center positions text relative to the middle of the certificate background.
+      // Offset x = (_nameX% * width) - (width / 2)
+      // Offset y = (_nameY% * height) - (height / 2)
+      final targetX = (((_nameX / 100) * imgWidth) - (imgWidth / 2)).round();
+      final targetY = (((_nameY / 100) * imgHeight) - (imgHeight / 2)).round();
 
       final uploadIndex = _templateUrl!.indexOf('/upload/');
       if (uploadIndex == -1) {
@@ -341,7 +520,8 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
         final pName = p['name']?.toString() ?? 'Participant';
         final pId = p['_id']?.toString() ?? p['id']?.toString() ?? '';
 
-        final transformOverlay = 'co_rgb:$colorHex,l_text:${resolvedFont}_${_fontSize.toInt()}_bold:${Uri.encodeComponent(pName)}/fl_layer_apply,g_center,x_$offsetX,y_$offsetY/';
+        // Using g_center with calculated center offset ensures exact center-to-center alignment
+        final transformOverlay = 'co_rgb:$colorHex,l_text:${resolvedFont}_${_fontSize.toInt()}_bold:${Uri.encodeComponent(pName)}/fl_layer_apply,g_center,x_$targetX,y_$targetY/';
         final dynamicUrl = '$baseUrl$transformOverlay$restUrl';
 
         if (pId.isNotEmpty) {
@@ -354,8 +534,46 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
         });
       }
 
-      _showSnackBar('Successfully generated $successCount certificates!');
-      _loadRsvps();
+      await _loadRsvps();
+
+      // Show success summary dialog
+      if (mounted && successCount > 0) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle_rounded, color: Colors.green, size: 28),
+                SizedBox(width: 8),
+                Text('Certificates Sent!'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$successCount certificate${successCount == 1 ? '' : 's'} have been generated and sent.',
+                  style: const TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Participants can now log in and download their certificate from their profile under "My Certificates".',
+                  style: TextStyle(fontSize: 12, color: AppTheme.mutedColor(context)),
+                ),
+              ],
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                child: const Text('Done'),
+              ),
+            ],
+          ),
+        );
+      }
     } catch (e) {
       _showSnackBar('Generation failed: $e', isError: true);
     } finally {
@@ -381,18 +599,12 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
       ),
       body: TabBarView(
         controller: _tabController,
+        physics: const NeverScrollableScrollPhysics(), // Prevent tab swipes interfering with drag positioning
         children: [
           _buildAttendanceTab(),
           _buildCertificatesTab(),
         ],
       ),
-      floatingActionButton: _tabController.index == 0
-          ? FloatingActionButton(
-              onPressed: _addParticipant,
-              backgroundColor: AppTheme.accent(context),
-              child: const Icon(Icons.person_add_alt_1_rounded),
-            )
-          : null,
     );
   }
 
@@ -660,9 +872,9 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
                           ? null 
                           : _importFromGoogleSheet,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: AppTheme.navyColor(context),
-                        side: BorderSide(color: AppTheme.navyColor(context).withValues(alpha: 0.3)),
+                        backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkElevated : Colors.white,
+                        foregroundColor: AppTheme.textColor(context),
+                        side: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkBorder : const Color(0xFFCBD5E1)),
                       ),
                       child: _isImporting 
                           ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
@@ -724,9 +936,26 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
                     final rsvp = _rsvps[index];
                     final sessionKey = _selectedSession.toString();
                     final sessionAttendance = rsvp['sessionAttendance'] as Map<String, dynamic>? ?? {};
-                    final status = sessionAttendance[sessionKey]?.toString() ?? 'absent';
-                    final isPresent = status == 'present';
+                    final status = sessionAttendance[sessionKey]?.toString() ?? 'pending';
                     final rsvpId = rsvp['_id']?.toString() ?? rsvp['id']?.toString() ?? '';
+
+                    Color statusColor;
+                    IconData statusIcon;
+                    String statusLabel;
+
+                    if (status == 'present') {
+                      statusColor = Colors.green;
+                      statusIcon = Icons.check_circle_rounded;
+                      statusLabel = 'Present';
+                    } else if (status == 'absent') {
+                      statusColor = Colors.red;
+                      statusIcon = Icons.cancel_rounded;
+                      statusLabel = 'Absent';
+                    } else {
+                      statusColor = Colors.orange;
+                      statusIcon = Icons.hourglass_empty_rounded;
+                      statusLabel = 'Pending';
+                    }
 
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
@@ -738,20 +967,67 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          TextButton.icon(
-                            onPressed: () => _toggleAttendance(rsvp, status),
-                            icon: Icon(
-                              isPresent ? Icons.check_circle_rounded : Icons.cancel_rounded,
-                              color: isPresent ? Colors.green : Colors.red,
-                            ),
-                            label: Text(
-                              isPresent ? 'Present' : 'Absent',
-                              style: TextStyle(
-                                color: isPresent ? Colors.green : Colors.red,
-                                fontWeight: FontWeight.bold,
+                          PopupMenuButton<String>(
+                            tooltip: 'Change Attendance Status',
+                            onSelected: (newVal) => _toggleAttendance(rsvp, status, newVal),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: statusColor.withValues(alpha: 0.4)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(statusIcon, size: 16, color: statusColor),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    statusLabel,
+                                    style: TextStyle(
+                                      color: statusColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const Icon(Icons.arrow_drop_down, size: 18, color: Colors.grey),
+                                ],
                               ),
                             ),
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'present',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.check_circle_rounded, color: Colors.green, size: 20),
+                                    SizedBox(width: 8),
+                                    Text('Present', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'absent',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.cancel_rounded, color: Colors.red, size: 20),
+                                    SizedBox(width: 8),
+                                    Text('Absent', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'pending',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.hourglass_empty_rounded, color: Colors.orange, size: 20),
+                                    SizedBox(width: 8),
+                                    Text('Pending', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
+                          const SizedBox(width: 4),
                           IconButton(
                             icon: const Icon(Icons.delete_outline_rounded, color: Colors.grey),
                             onPressed: () => _deleteParticipant(rsvpId),
@@ -766,21 +1042,26 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
     );
   }
 
-  Widget _buildStatCard(String title, String value, Color bgColor, Color textColor) {
-    bool isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget _buildStatCard(String title, String value, Color lightBgColor, Color accentColor) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? AppTheme.darkElevated : lightBgColor;
+    final cardBorder = isDark ? AppTheme.darkBorder : accentColor.withValues(alpha: 0.3);
+    final titleColor = isDark ? Colors.white70 : accentColor;
+    final valueColor = isDark ? Colors.white : accentColor;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? bgColor.withValues(alpha: 0.1) : bgColor,
+        color: cardBg,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: isDark ? bgColor.withValues(alpha: 0.2) : bgColor.withValues(alpha: 0.5)),
+        border: Border.all(color: cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? textColor.withValues(alpha: 0.8) : textColor)),
+          Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: titleColor)),
           const SizedBox(height: 4),
-          Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textColor)),
+          Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: valueColor)),
         ],
       ),
     );
@@ -813,47 +1094,95 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
                       : (1.0 / 0.7); // portrait fallback ~1.43
                   final previewHeight = constraints.maxWidth / imgAspect;
 
-                  return Stack(
-                    children: [
-                      Image.network(
-                        _templateUrl!,
-                        fit: BoxFit.contain,
-                        width: constraints.maxWidth,
-                      ),
-                      Positioned(
-                        left: constraints.maxWidth * (_nameX / 100),
-                        top: previewHeight * (_nameY / 100),
-                        child: FractionalTranslation(
-                          translation: const Offset(-0.5, -0.5),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.red, style: BorderStyle.solid, width: 1.5),
-                              color: Colors.red.withValues(alpha: 0.15),
-                            ),
-                            child: Text(
-                              '[Participant Name]',
-                              style: TextStyle(
-                                fontSize: _fontSize * (constraints.maxWidth / 700), // scale dynamically
-                                color: Color(int.parse(_fontColor.replaceAll('#', '0xff'))),
-                                fontWeight: FontWeight.bold,
-                                fontFamily: _fontFamily,
+                  return SizedBox(
+                    width: constraints.maxWidth,
+                    height: previewHeight,
+                    child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onPanUpdate: (details) {
+                      final RenderBox renderBox = context.findRenderObject() as RenderBox;
+                      final localPos = renderBox.globalToLocal(details.globalPosition);
+                      setState(() {
+                        final newX = (localPos.dx / constraints.maxWidth) * 100;
+                        final newY = (localPos.dy / previewHeight) * 100;
+                        _nameX = newX.clamp(0.0, 95.0);
+                        _nameY = newY.clamp(0.0, 95.0);
+                      });
+                    },
+                    onTapDown: (details) {
+                      final RenderBox renderBox = context.findRenderObject() as RenderBox;
+                      final localPos = renderBox.globalToLocal(details.globalPosition);
+                      setState(() {
+                        final newX = (localPos.dx / constraints.maxWidth) * 100;
+                        final newY = (localPos.dy / previewHeight) * 100;
+                        _nameX = newX.clamp(0.0, 95.0);
+                        _nameY = newY.clamp(0.0, 95.0);
+                      });
+                    },
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: Image.network(
+                            _templateUrl!,
+                            fit: BoxFit.fill,
+                            width: constraints.maxWidth,
+                            height: previewHeight,
+                          ),
+                        ),
+                        Positioned(
+                          left: constraints.maxWidth * (_nameX / 100),
+                          top: previewHeight * (_nameY / 100),
+                          child: FractionalTranslation(
+                            translation: const Offset(-0.5, -0.5),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.red, style: BorderStyle.solid, width: 1.5),
+                                color: Colors.red.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '[Participant Name]',
+                                style: TextStyle(
+                                  // Scale font relative to real image width → preview width ratio
+                                  fontSize: (_templateImageSize != null && _templateImageSize!.width > 0)
+                                      ? (_fontSize * (constraints.maxWidth / _templateImageSize!.width))
+                                      : (_fontSize * (constraints.maxWidth / 1000)),
+                                  color: Color(int.parse(_fontColor.replaceAll('#', '0xff'))),
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: _fontFamily,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                  ),
                   );
                 },
               ),
             ),
-            const SizedBox(height: 4),
-            const Center(
-              child: Text(
-                'Red dashed box represents name stamp bounds',
-                style: TextStyle(fontSize: 11, color: Colors.grey),
-              ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Expanded(
+                  child: Text(
+                    '👆 Tap or drag anywhere on the certificate to position the name stamp.',
+                    style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _previewDemoCertificate,
+                  icon: const Icon(Icons.visibility_rounded, size: 16),
+                  label: const Text('Preview Demo Certificate', style: TextStyle(fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.accent(context),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
           ] else ...[
@@ -900,33 +1229,15 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Position & Styling Settings', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        const Text('Styling Settings', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                         ElevatedButton.icon(
                           onPressed: _pickTemplateImage,
                           icon: const Icon(Icons.sync_rounded, size: 16),
-                          label: const Text('Replace', style: TextStyle(fontSize: 12)),
+                          label: const Text('Replace Image', style: TextStyle(fontSize: 12)),
                         ),
                       ],
                     ),
                     const Divider(),
-                    
-                    // Name X coordinates
-                    Text('Horizontal Position (X: ${_nameX.toStringAsFixed(1)}%)', style: const TextStyle(fontSize: 12)),
-                    Slider(
-                      value: _nameX,
-                      min: 0,
-                      max: 100,
-                      onChanged: (val) => setState(() => _nameX = val),
-                    ),
-
-                    // Name Y coordinates
-                    Text('Vertical Position (Y: ${_nameY.toStringAsFixed(1)}%)', style: const TextStyle(fontSize: 12)),
-                    Slider(
-                      value: _nameY,
-                      min: 0,
-                      max: 100,
-                      onChanged: (val) => setState(() => _nameY = val),
-                    ),
 
                     // Font Size
                     Text('Font Size: ${_fontSize.toInt()} px', style: const TextStyle(fontSize: 12)),
@@ -1001,7 +1312,7 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Batch Certificate Generation',
+                      'Generate & Send Certificates',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
@@ -1010,7 +1321,7 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'This will generate Cloudinary stamp templates and update certificates for all participants marked as present.',
+                      'Generates personalized certificates for all registered participants who are present in ALL sessions. Certificates are automatically sent to their profile for download.',
                       style: TextStyle(fontSize: 12, color: AppTheme.mutedColor(context)),
                     ),
                     const SizedBox(height: 14),
@@ -1036,9 +1347,10 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.accent(context),
                           foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        icon: const Icon(Icons.offline_pin_rounded),
-                        label: const Text('Generate & Update Certificates'),
+                        icon: const Icon(Icons.send_rounded),
+                        label: const Text('Generate & Send Certificates', style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],

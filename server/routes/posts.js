@@ -62,8 +62,44 @@ router.get('/:id', async (req, res) => {
 
 // ==================== RSVP ROUTES ====================
 
-// GET RSVPs for an event
-router.get('/:id/rsvps', verifyToken, async (req, res) => {
+// Helper middleware to check if user is an officer of the event's club or super admin
+const verifyEventClubOfficer = async (req, res, next) => {
+    try {
+        if (req.user.role === 'admin') return next();
+
+        const post = await Post.findById(req.params.id);
+        if (!post) return res.status(404).json({ message: 'Event not found' });
+
+        const isOfficer = await ClubMember.findOne({
+            clubId: post.clubId,
+            $and: [
+                {
+                    $or: [
+                        { userId: req.user.id },
+                        { email: { $regex: new RegExp(`^${req.user.email}$`, 'i') } }
+                    ]
+                },
+                {
+                    $or: [
+                        { role: { $in: ['Secretary', 'President', 'Treasurer', 'Advisor', 'secretary', 'president', 'treasurer', 'advisor'] } },
+                        { boardType: { $in: ['main', 'executive'] } }
+                    ]
+                }
+            ]
+        });
+
+        if (!isOfficer) {
+            return res.status(403).json({ message: 'Access denied. You are not an officer of the club managing this event.' });
+        }
+        req.post = post;
+        next();
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// GET RSVPs for an event (Club Officer / Admin only)
+router.get('/:id/rsvps', verifyToken, verifyEventClubOfficer, async (req, res) => {
     try {
         const rsvps = await EventRSVP.find({ eventId: req.params.id }).sort({ rsvpedAt: -1 });
         res.json(rsvps);
@@ -72,10 +108,10 @@ router.get('/:id/rsvps', verifyToken, async (req, res) => {
     }
 });
 
-// Export RSVPs to PDF
-router.get('/:id/rsvps/export-pdf', verifyToken, async (req, res) => {
+// Export RSVPs to PDF (Club Officer / Admin only)
+router.get('/:id/rsvps/export-pdf', verifyToken, verifyEventClubOfficer, async (req, res) => {
     try {
-        const post = await Post.findById(req.params.id);
+        const post = req.post || await Post.findById(req.params.id);
         if (!post) return res.status(404).json({ message: 'Post not found' });
         
         const rsvps = await EventRSVP.find({ eventId: req.params.id }).sort({ name: 1 });
@@ -168,10 +204,10 @@ router.post('/:id/rsvp', async (req, res) => {
 });
 
 // Update Participant Attendance (Secretary/Admin only) - session-based
-router.patch('/:id/rsvps/:rsvpId', verifyToken, async (req, res) => {
+router.patch('/:id/rsvps/:rsvpId', verifyToken, verifyEventClubOfficer, async (req, res) => {
     try {
         const { status, session } = req.body;
-        if (!['present', 'absent'].includes(status)) {
+        if (!['present', 'absent', 'pending'].includes(status)) {
             return res.status(400).json({ message: 'Invalid status' });
         }
 
@@ -189,7 +225,7 @@ router.patch('/:id/rsvps/:rsvpId', verifyToken, async (req, res) => {
 });
 
 // Delete Participant (Secretary/Admin only)
-router.delete('/:id/rsvps/:rsvpId', verifyToken, async (req, res) => {
+router.delete('/:id/rsvps/:rsvpId', verifyToken, verifyEventClubOfficer, async (req, res) => {
     try {
         await EventRSVP.findByIdAndDelete(req.params.rsvpId);
 
@@ -204,7 +240,7 @@ router.delete('/:id/rsvps/:rsvpId', verifyToken, async (req, res) => {
 });
 
 // Add Manual Participant (Secretary/Admin only)
-router.post('/:id/rsvps/add', verifyToken, async (req, res) => {
+router.post('/:id/rsvps/add', verifyToken, verifyEventClubOfficer, async (req, res) => {
     try {
         const { name, email, source } = req.body;
         const eventId = req.params.id;
@@ -216,7 +252,7 @@ router.post('/:id/rsvps/add', verifyToken, async (req, res) => {
         }
 
         // Get event's totalSessions to initialize sessionAttendance
-        const event = await Post.findById(eventId);
+        const event = req.post || await Post.findById(eventId);
         const totalSessions = event?.totalSessions || 1;
         const sessionAttendance = new Map();
         for (let i = 1; i <= totalSessions; i++) {
