@@ -14,7 +14,9 @@ class NotificationsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final notifications = appState.notifications;
 
-    return CustomScrollView(
+    return RefreshIndicator(
+      onRefresh: appState.refreshAll,
+      child: CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
@@ -125,6 +127,7 @@ class NotificationsScreen extends StatelessWidget {
           ),
         ),
       ],
+    ),
     );
   }
 }

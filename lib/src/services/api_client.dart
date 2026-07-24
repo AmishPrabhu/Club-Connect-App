@@ -30,12 +30,11 @@ class ApiClient {
         return 'http://127.0.0.1:5001/api';
       }
       if (Platform.isAndroid) {
-        // Physical Android Phone on Wi-Fi: 10.105.207.128
-        // (Use 10.0.2.2 only if using Android Studio Emulator)
-        return 'http://10.105.207.128:5001/api';
+        // Physical Phone on local Wi-Fi network:
+        return 'http://10.139.54.164:5001/api';
       }
       if (Platform.isIOS) {
-        return 'http://10.105.207.128:5001/api';
+        return 'http://10.139.54.164:5001/api';
       }
       return 'http://127.0.0.1:5001/api';
     }
