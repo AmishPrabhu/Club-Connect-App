@@ -583,6 +583,18 @@ router.put('/:id', verifyToken, async (req, res) => {
             }
         }
 
+        // Broadcast a silent FCM push to ALL club members so background devices refresh their feed
+        sendPushToClubMembers(
+            updatedPost.clubId,
+            "", // silent push — no visible notification title
+            "",
+            {
+                action: 'update_post',
+                relatedId: updatedPost._id.toString(),
+                clubId: updatedPost.clubId.toString(),
+            }
+        ).catch(err => console.error('[FCM] Post update broadcast error:', err));
+
         res.json(updatedPost);
     } catch (error) {
         console.error("Error updating post:", error);
@@ -906,6 +918,44 @@ router.patch('/:id/rsvps/:rsvpId/certificate', verifyToken, async (req, res) => 
             { certificateUrl },
             { new: true }
         );
+
+        // ── Certificate-ready push & DB notification ──
+        // Find the participant's user account by email
+        if (updatedRsvp && updatedRsvp.email) {
+            try {
+                const participantUser = await User.findOne({
+                    email: { $regex: new RegExp(`^${updatedRsvp.email}$`, 'i') }
+                }).select('_id fcmTokens');
+
+                if (participantUser) {
+                    // Create a DB notification so it appears in the app inbox
+                    const certNotif = new Notification({
+                        title: 'Your Certificate is Ready! 🎉',
+                        message: `Your participation certificate for the event is now available. Tap to download it.`,
+                        type: 'event',
+                        userId: participantUser._id,
+                        relatedId: req.params.id,
+                    });
+                    await certNotif.save();
+
+                    // Send FCM push for background/terminated devices
+                    sendPushToUsers(
+                        [participantUser._id.toString()],
+                        'Your Certificate is Ready! 🎉',
+                        'Your participation certificate is now available. Tap to download.',
+                        {
+                            action: 'certificate_ready',
+                            type: 'event',
+                            relatedId: req.params.id,
+                            rsvpId: req.params.rsvpId,
+                            notificationId: certNotif._id.toString(),
+                        }
+                    ).catch(err => console.error('[FCM] Certificate push error:', err));
+                }
+            } catch (certNotifErr) {
+                console.error('[Certificate] Failed to send certificate notification:', certNotifErr);
+            }
+        }
 
         res.json(updatedRsvp);
     } catch (error) {

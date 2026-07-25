@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'screens/root_screen.dart';
 import 'services/push_notifications_manager.dart';
+import 'services/sse_service.dart';
 import 'state/app_state.dart';
 import 'theme/app_theme.dart';
 
@@ -12,13 +13,49 @@ class ClubConnectApp extends StatefulWidget {
   State<ClubConnectApp> createState() => _ClubConnectAppState();
 }
 
-class _ClubConnectAppState extends State<ClubConnectApp> {
+class _ClubConnectAppState extends State<ClubConnectApp>
+    with WidgetsBindingObserver {
   final AppState _appState = AppState();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _appState.bootstrap();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    SSEService.instance.disconnect();
+    super.dispose();
+  }
+
+  /// Manage SSE connection based on app lifecycle.
+  /// Disconnects in background (saves battery/server connections),
+  /// reconnects when coming to foreground.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final token = _appState.currentToken;
+    if (token == null) return;
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // App came back to foreground — reconnect SSE and refresh data
+        SSEService.instance.connect(_appState, token);
+        // Do a quick refresh to catch anything we missed while backgrounded
+        _appState.refreshAll();
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        // App going to background — disconnect SSE to save resources
+        SSEService.instance.disconnect();
+        break;
+      case AppLifecycleState.inactive:
+        // Transitional state — do nothing
+        break;
+    }
   }
 
   @override

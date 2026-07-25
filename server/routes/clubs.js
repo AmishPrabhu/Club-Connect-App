@@ -7,6 +7,7 @@ import ClubMember from '../models/ClubMember.js';
 import ClubMessage from '../models/ClubMessage.js';
 import { verifyToken, verifySuperAdmin, verifyClubOfficer, verifyClubMember } from '../middleware/auth.js';
 import { sendClubInvitationEmail } from '../services/emailService.js';
+import { sendPushToClubMembers } from '../services/pushService.js';
 
 const router = express.Router();
 
@@ -757,6 +758,20 @@ router.post('/:id/messages', verifyClubOfficer, async (req, res) => {
         });
 
         await newMessage.save();
+
+        // Fire-and-forget FCM push to club members for background devices
+        sendPushToClubMembers(
+            clubId,
+            title,
+            `${resolvedSenderName} (${officerRole}): ${body.substring(0, 80)}`,
+            {
+                type: 'club_message',
+                action: 'new_club_message',
+                clubId: clubId.toString(),
+                messageId: newMessage._id.toString(),
+            }
+        ).catch(err => console.error('[FCM] Club message push error:', err));
+
         res.status(201).json(newMessage);
     } catch (error) {
         console.error('Create message error:', error);

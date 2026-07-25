@@ -8,6 +8,7 @@ import '../models/post_item.dart';
 import '../models/user_session.dart';
 import '../services/api_client.dart';
 import '../services/push_notifications_manager.dart';
+import '../services/sse_service.dart';
 
 class GoogleSignupData {
   GoogleSignupData({
@@ -77,6 +78,15 @@ class AppState extends ChangeNotifier {
   bool isLoading = false;
   String? error;
 
+  // Expose base URL so SSEService can build its endpoint URL
+  String get apiBaseUrl => _apiClient.baseUrl;
+
+  // Store current token for SSE reconnect on token refresh
+  String? _currentToken;
+
+  /// Exposes the current JWT token so [SSEService] can reconnect after lifecycle changes.
+  String? get currentToken => _currentToken;
+
   UserSession? session;
   List<Club> clubs = const [];
   List<PostItem> posts = const [];
@@ -87,16 +97,24 @@ class AppState extends ChangeNotifier {
     isBootstrapping = true;
     notifyListeners();
 
+    // Log the API URL so we can confirm it in logcat during debugging
+    if (kDebugMode) {
+      print('[AppState] API base URL: ${_apiClient.baseUrl}');
+    }
+
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(_tokenKey);
     if (token != null && token.isNotEmpty) {
       _apiClient.setToken(token);
+      _currentToken = token;
       try {
         session = await _fetchCurrentUser();
         // Initialize push notifications manager and sync token in the background so it doesn't block startup
         PushNotificationsManager.instance.init(this).then((_) {
           PushNotificationsManager.instance.syncToken();
         });
+        // Connect SSE for real-time updates while app is open
+        SSEService.instance.connect(this, token);
       } catch (_) {
         await prefs.remove(_tokenKey);
         _apiClient.setToken(null);
@@ -149,6 +167,91 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// Refreshes only the posts list — used by targeted FCM/SSE dispatch.
+  Future<void> refreshPosts() async {
+    try {
+      final postsResponse = await _apiClient.get('/posts') as List<dynamic>;
+      posts = postsResponse
+          .map((item) => PostItem.fromJson(item as Map<String, dynamic>))
+          .toList();
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  /// Refreshes only the notifications list — used by targeted FCM/SSE dispatch.
+  Future<void> refreshNotifications() async {
+    try {
+      final notificationsResponse =
+          await _apiClient.get('/notifications') as List<dynamic>;
+      notifications = notificationsResponse
+          .map((item) => NotificationItem.fromJson(item as Map<String, dynamic>))
+          .toList();
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  // ─── Targeted In-Place Update Methods (called by SSEService) ────────────────
+
+  /// Instantly prepends a newly created post without any HTTP call.
+  void applyPostCreated(PostItem post) {
+    // Avoid duplicates (change stream might fire twice in some edge cases)
+    if (posts.any((p) => p.id == post.id)) return;
+    posts = [post, ...posts];
+    notifyListeners();
+  }
+
+  /// Instantly replaces an updated post in-place without any HTTP call.
+  void applyPostUpdated(PostItem post) {
+    final idx = posts.indexWhere((p) => p.id == post.id);
+    if (idx == -1) {
+      // Post not in list yet — prepend it
+      posts = [post, ...posts];
+    } else {
+      final updated = List<PostItem>.from(posts);
+      updated[idx] = post;
+      posts = updated;
+    }
+    notifyListeners();
+  }
+
+  /// Instantly removes a deleted post without any HTTP call.
+  void applyPostDeleted(String id) {
+    posts = posts.where((p) => p.id != id).toList();
+    notifications = notifications.where((n) => n.relatedId != id).toList();
+    notifyListeners();
+  }
+
+  /// Instantly prepends a new notification without any HTTP call.
+  void applyNotificationCreated(NotificationItem notif) {
+    if (notifications.any((n) => n.id == notif.id)) return;
+    notifications = [notif, ...notifications];
+    notifyListeners();
+  }
+
+  /// Instantly updates an existing notification (e.g. read status) without HTTP.
+  void applyNotificationUpdated(NotificationItem notif) {
+    final idx = notifications.indexWhere((n) => n.id == notif.id);
+    if (idx != -1) {
+      final updated = List<NotificationItem>.from(notifications);
+      updated[idx] = notif;
+      notifications = updated;
+      notifyListeners();
+    }
+  }
+
+  /// Instantly replaces an updated club in-place without any HTTP call.
+  void applyClubUpdated(Club club) {
+    final idx = clubs.indexWhere((c) => c.id == club.id);
+    if (idx == -1) {
+      clubs = [...clubs, club]..sort((a, b) => a.name.compareTo(b.name));
+    } else {
+      final updated = List<Club>.from(clubs);
+      updated[idx] = club;
+      clubs = updated;
+    }
+    notifyListeners();
+  }
+
   Future<UserSession> login({
     required String email,
     required String password,
@@ -166,6 +269,7 @@ class AppState extends ChangeNotifier {
     }
 
     _apiClient.setToken(token);
+    _currentToken = token;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token);
 
@@ -223,7 +327,11 @@ class AppState extends ChangeNotifier {
     // Unregister FCM token on logout
     await PushNotificationsManager.instance.unregisterToken();
 
+    // Disconnect SSE stream
+    SSEService.instance.disconnect();
+
     session = null;
+    _currentToken = null;
     _apiClient.setToken(null);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
@@ -309,6 +417,7 @@ class AppState extends ChangeNotifier {
 
   Future<UserSession> _activateToken(String token) async {
     _apiClient.setToken(token);
+    _currentToken = token;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token);
     session = await _fetchCurrentUser();
@@ -316,6 +425,9 @@ class AppState extends ChangeNotifier {
     // Initialize push notifications and sync token
     await PushNotificationsManager.instance.init(this);
     await PushNotificationsManager.instance.syncToken();
+
+    // Connect SSE for real-time updates
+    SSEService.instance.connect(this, token);
 
     await refreshAll();
     notifyListeners();

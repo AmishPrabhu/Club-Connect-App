@@ -91,8 +91,11 @@ class PushNotificationsManager {
           print('Message data: ${message.data}');
         }
 
-        // Always refresh database states on any incoming push (including silent sync pushes)
-        _appState?.refreshAll();
+        // Route to targeted refresh based on 'action' field in data payload.
+        // This avoids fetching all 3 endpoints when only one changed.
+        // NOTE: When app is foreground the SSE stream already handles most updates
+        // in-place without any HTTP call. This FCM listener is a safety net.
+        _applyTargetedRefresh(message.data);
 
         if (message.notification != null) {
           if (kDebugMode) {
@@ -235,10 +238,36 @@ class PushNotificationsManager {
   }
 
   void _handleNotificationClick(RemoteMessage message) {
-    // Refresh app data
-    _appState?.refreshAll();
-    
+    // Use targeted refresh on notification click too
+    _applyTargetedRefresh(message.data);
+
     // You can inspect message.data to perform navigation if needed
     // e.g. Navigator.of(context).push(MaterialPageRoute(...));
+  }
+
+  /// Routes an FCM data payload to the appropriate targeted refresh.
+  /// Called for both foreground messages and notification clicks.
+  void _applyTargetedRefresh(Map<String, dynamic> data) {
+    final action = data['action']?.toString();
+
+    switch (action) {
+      case 'update_post':
+      case 'delete_post':
+        // Only refetch posts, not clubs or notifications
+        _appState?.refreshPosts();
+        break;
+      case 'new_club_message':
+        // Refresh notifications to show the new message badge
+        _appState?.refreshNotifications();
+        break;
+      case 'certificate_ready':
+        // Refresh notifications to show the certificate notification
+        _appState?.refreshNotifications();
+        break;
+      default:
+        // Unknown or no action — do a full refresh as safe fallback
+        _appState?.refreshAll();
+        break;
+    }
   }
 }

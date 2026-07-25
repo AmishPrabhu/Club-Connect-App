@@ -15,6 +15,10 @@ import notificationRoutes from './routes/notifications.js';
 import userRoutes from './routes/users.js';
 import bulkImportRoutes from './routes/bulk-import.js';
 import tasksRoutes from './routes/tasks.js';
+import sseRoutes from './routes/sse.js';
+
+import { startChangeStreams } from './config/changeStreams.js';
+import { sendHeartbeat } from './services/sseService.js';
 
 const app = express();
 const PORT = (process.env.PORT && process.env.PORT != 5000) ? process.env.PORT : 5001;
@@ -50,6 +54,7 @@ app.use('/api/posts', postRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/tasks', tasksRoutes);
+app.use('/api/sse', sseRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
@@ -63,6 +68,12 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/club-conn
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`Server is running on http://0.0.0.0:${PORT}`);
         });
+
+        // Start MongoDB Change Streams for real-time SSE broadcasting
+        startChangeStreams();
+
+        // Send heartbeat every 30 seconds to keep SSE connections alive
+        setInterval(sendHeartbeat, 30000);
     })
     .catch((err) => {
         console.error('Failed to connect to MongoDB', err);

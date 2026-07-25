@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 
 class ApiException implements Exception {
@@ -21,23 +21,28 @@ class ApiClient {
       baseUrl = baseUrl ?? _getDefaultBaseUrl();
 
   static String _getDefaultBaseUrl() {
+    // 1. Explicit override at build time (highest priority)
     const envUrl = String.fromEnvironment('API_BASE_URL');
     if (envUrl.isNotEmpty) {
       return envUrl;
     }
-    if (kDebugMode) {
+
+    // 2. Local dev server — used whenever we're NOT in a release/production build.
+    //    kReleaseMode is the only reliable flag; kDebugMode is false for profile builds.
+    if (!const bool.fromEnvironment('dart.vm.product')) {
+      // Running in debug OR profile mode → use the local server
       if (kIsWeb) {
         return 'http://127.0.0.1:5001/api';
       }
-      if (Platform.isAndroid) {
-        // Physical Phone on local Wi-Fi network:
-        return 'http://10.139.54.164:5001/api';
+      if (Platform.isAndroid || Platform.isIOS) {
+        // Physical device on the same Wi-Fi as this dev machine
+        return 'http://192.168.0.24:5001/api';
       }
-      if (Platform.isIOS) {
-        return 'http://10.139.54.164:5001/api';
-      }
+      // Desktop / simulator fallback
       return 'http://127.0.0.1:5001/api';
     }
+
+    // 3. Production (release build only)
     return 'https://club-connect-7fwy.onrender.com/api';
   }
 
