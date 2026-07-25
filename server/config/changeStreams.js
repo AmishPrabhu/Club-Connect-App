@@ -99,14 +99,11 @@ function watchNotifications() {
                 const opType = change.operationType;
 
                 if (opType === 'insert') {
-                    // Send to specific user if personal, or broadcast if global
+                    // Send to specific user if personal, or broadcast to all online clients if global/club
                     if (doc.userId) {
                         broadcastToUser(doc.userId.toString(), 'notification_created', doc);
-                    } else if (doc.clubId) {
-                        // Club-specific notification: send to all club members
-                        broadcastToClub(doc.clubId.toString(), 'notification_created', doc).catch(() => {});
                     } else {
-                        // Global notification
+                        // Global or Club notification: broadcast to ALL connected users
                         broadcast('notification_created', doc);
                     }
 
