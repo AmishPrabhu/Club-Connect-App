@@ -904,6 +904,18 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> deleteProfileImage() async {
+    final current = session;
+    if (current == null || current.id == null) {
+      throw ApiException('Please sign in first.');
+    }
+    await updateProfile(
+      name: current.name,
+      profileImage: '',
+      bio: current.bio,
+    );
+  }
+
   Future<void> changePassword({
     required String currentPassword,
     required String newPassword,

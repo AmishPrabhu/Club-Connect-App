@@ -239,36 +239,54 @@ class _TopBar extends StatelessWidget {
             ),
           const SizedBox(width: 8),
           GestureDetector(
-            onTap: onProfileTap,
+            onTap: () {
+              if (session != null) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ProfileSettingsScreen(appState: appState),
+                  ),
+                );
+              } else {
+                onProfileTap();
+              }
+            },
             child: Container(
               width: 38,
               height: 38,
               decoration: BoxDecoration(
                 color: Theme.of(context).brightness == Brightness.dark
                     ? AppTheme.accent(context).withValues(alpha: 0.2)
-                    : const Color(0xFFE0E7FF), // Light Indigo background matching screenshot
+                    : const Color(0xFFE0E7FF),
                 shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: session != null
-                    ? Text(
-                        session.name.isNotEmpty == true ? session.name[0].toUpperCase() : '?',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? AppTheme.accent(context)
-                              : const Color(0xFF312E81),
-                        ),
+                image: (session?.profileImage != null && session!.profileImage!.isNotEmpty)
+                    ? DecorationImage(
+                        image: NetworkImage(session.profileImage!),
+                        fit: BoxFit.cover,
                       )
-                    : Icon(
-                        Icons.person_rounded,
-                        size: 20,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? AppTheme.accent(context)
-                            : const Color(0xFF312E81),
-                      ),
+                    : null,
               ),
+              child: (session?.profileImage == null || session!.profileImage!.isEmpty)
+                  ? Center(
+                      child: session != null
+                          ? Text(
+                              session.name.isNotEmpty == true ? session.name[0].toUpperCase() : '?',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? AppTheme.accent(context)
+                                    : const Color(0xFF312E81),
+                              ),
+                            )
+                          : Icon(
+                              Icons.person_rounded,
+                              size: 20,
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? AppTheme.accent(context)
+                                  : const Color(0xFF312E81),
+                            ),
+                    )
+                  : null,
             ),
           ),
         ],

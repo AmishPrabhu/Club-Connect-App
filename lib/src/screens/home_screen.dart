@@ -8,6 +8,7 @@ import 'club_detail_screen.dart';
 import 'post_detail_screen.dart';
 import 'monthly_calendar_screen.dart';
 import 'notifications_screen.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -906,8 +907,18 @@ class _HomeTopBar extends StatelessWidget {
               },
             ),
           const SizedBox(width: 8),
-           GestureDetector(
-            onTap: onProfileTap,
+          GestureDetector(
+            onTap: () {
+              if (session != null) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ProfileSettingsScreen(appState: appState),
+                  ),
+                );
+              } else {
+                onProfileTap();
+              }
+            },
             child: Container(
               width: 38,
               height: 38,
@@ -917,23 +928,31 @@ class _HomeTopBar extends StatelessWidget {
                 border: isDark
                     ? Border.all(color: AppTheme.accent(context).withValues(alpha: 0.3))
                     : null,
-              ),
-              child: Center(
-                child: session != null
-                    ? Text(
-                        session.name.isNotEmpty == true ? session.name[0].toUpperCase() : '?',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? AppTheme.accent(context) : const Color(0xFF312E81),
-                        ),
+                image: (session?.profileImage != null && session!.profileImage!.isNotEmpty)
+                    ? DecorationImage(
+                        image: NetworkImage(session.profileImage!),
+                        fit: BoxFit.cover,
                       )
-                    : Icon(
-                        Icons.person_rounded,
-                        size: 20,
-                        color: isDark ? AppTheme.accent(context) : const Color(0xFF312E81),
-                      ),
+                    : null,
               ),
+              child: (session?.profileImage == null || session!.profileImage!.isEmpty)
+                  ? Center(
+                      child: session != null
+                          ? Text(
+                              session.name.isNotEmpty == true ? session.name[0].toUpperCase() : '?',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? AppTheme.accent(context) : const Color(0xFF312E81),
+                              ),
+                            )
+                          : Icon(
+                              Icons.person_rounded,
+                              size: 20,
+                              color: isDark ? AppTheme.accent(context) : const Color(0xFF312E81),
+                            ),
+                    )
+                  : null,
             ),
           ),
         ],

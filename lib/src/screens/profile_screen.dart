@@ -141,6 +141,167 @@ class _ProfileBodyState extends State<_ProfileBody> {
     }
   }
 
+  Future<void> _deleteProfilePicture() async {
+    setState(() {
+      _isUploading = true;
+    });
+    try {
+      await widget.appState.deleteProfileImage();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile picture deleted successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete profile picture: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+      }
+    }
+  }
+
+  void _confirmDeleteProfilePicture() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Delete Profile Picture?',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        content: const Text(
+          'Are you sure you want to remove your profile picture?',
+          style: TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () {
+              Navigator.of(context).pop();
+              _deleteProfilePicture();
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showProfileImageOptions(UserSession session) {
+    final hasImage = session.profileImage != null && session.profileImage!.isNotEmpty;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Text(
+                  'Profile Picture',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF2E1065) : const Color(0xFFF5F3FF),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.photo_library_outlined,
+                      color: Color(0xFF7C3AED),
+                      size: 22,
+                    ),
+                  ),
+                  title: Text(
+                    hasImage ? 'Edit / Change Picture' : 'Upload Picture',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    hasImage ? 'Choose a new photo from gallery' : 'Choose a photo from gallery',
+                    style: TextStyle(fontSize: 12, color: AppTheme.mutedColor(context)),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _pickAndUploadImage();
+                  },
+                ),
+                if (hasImage) ...[
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFEF2F2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: Colors.redAccent,
+                        size: 22,
+                      ),
+                    ),
+                    title: const Text(
+                      'Delete Picture',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.redAccent,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Remove your current profile picture',
+                      style: TextStyle(fontSize: 12, color: AppTheme.mutedColor(context)),
+                    ),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      _confirmDeleteProfilePicture();
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+
   void _showEditProfileDialog(String currentName, String? currentBio) {
     final nameController = TextEditingController(text: currentName);
     final bioController = TextEditingController(text: currentBio ?? '');
@@ -328,8 +489,9 @@ class _ProfileBodyState extends State<_ProfileBody> {
 
   Widget _buildCenteredAvatar(UserSession session) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hasImage = session.profileImage != null && session.profileImage!.isNotEmpty;
     return GestureDetector(
-      onTap: _isUploading ? null : _pickAndUploadImage,
+      onTap: _isUploading ? null : () => _showProfileImageOptions(session),
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -340,14 +502,14 @@ class _ProfileBodyState extends State<_ProfileBody> {
               color: isDark ? const Color(0xFF2E1065) : const Color(0xFFEDE9FE),
               shape: BoxShape.circle,
               border: Border.all(color: const Color(0xFFC084FC), width: 2),
-              image: session.profileImage != null && session.profileImage!.isNotEmpty
+              image: hasImage
                   ? DecorationImage(
                       image: NetworkImage(session.profileImage!),
                       fit: BoxFit.cover,
                     )
                   : null,
             ),
-            child: session.profileImage == null || session.profileImage!.isEmpty
+            child: !hasImage
                 ? Center(
                     child: Text(
                       session.name.isNotEmpty ? session.name[0].toUpperCase() : 'U',
@@ -395,7 +557,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
                 ],
               ),
               child: Icon(
-                Icons.camera_alt_rounded,
+                hasImage ? Icons.edit_rounded : Icons.camera_alt_rounded,
                 size: 16,
                 color: isDark ? const Color(0xFFD8B4FE) : const Color(0xFF7C3AED),
               ),
