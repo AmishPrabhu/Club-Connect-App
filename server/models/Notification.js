@@ -17,6 +17,10 @@ const notificationSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    readBy: [{
+        type: String,
+        default: [],
+    }],
     type: {
         type: String, // 'info', 'warning', 'success', 'event', 'announcement'
         default: 'info',

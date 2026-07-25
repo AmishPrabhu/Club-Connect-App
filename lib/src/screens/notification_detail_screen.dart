@@ -121,57 +121,58 @@ class NotificationDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // Delete Action button
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      title: const Text('Delete Notification'),
-                      content: const Text('Are you sure you want to delete this notification?'),
-                      actions: [
-                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, true),
-                          style: TextButton.styleFrom(foregroundColor: Colors.red),
-                          child: const Text('Delete'),
-                        ),
-                      ],
-                    ),
-                  );
+            // Delete Action button (Only visible to authorized users: Super Admin, or Main Board officers of this specific club)
+            if (appState.session != null && appState.session!.canDeleteNotification(notification.clubId))
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Delete Notification'),
+                        content: const Text('Are you sure you want to delete this notification?'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            style: TextButton.styleFrom(foregroundColor: Colors.red),
+                            child: const Text('Delete'),
+                          ),
+                        ],
+                      ),
+                    );
 
-                  if (confirm == true) {
-                    try {
-                      await appState.deleteNotification(notification.id);
-                      if (context.mounted) {
-                        Navigator.of(context).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Notification deleted.')),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Failed to delete: $e')),
-                        );
+                    if (confirm == true) {
+                      try {
+                        await appState.deleteNotification(notification.id);
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Notification deleted.')),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Failed to delete: $e')),
+                          );
+                        }
                       }
                     }
-                  }
-                },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.redAccent,
-                  side: BorderSide(color: Colors.red.shade200),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.redAccent,
+                    side: BorderSide(color: Colors.red.shade200),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
+                  icon: const Icon(Icons.delete_outline_rounded),
+                  label: const Text('Delete Notification'),
                 ),
-                icon: const Icon(Icons.delete_outline_rounded),
-                label: const Text('Delete Notification'),
               ),
-            ),
           ],
         ),
       ),

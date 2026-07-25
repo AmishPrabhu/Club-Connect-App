@@ -73,6 +73,39 @@ class UserSession {
     return memberships.any((m) => m.isOfficer);
   }
 
+  /// Check if the user is authorized to delete a notification.
+  /// Rules:
+  /// 1. Super Admin can delete any notification.
+  /// 2. Teachers and Advisors CANNOT delete any notification.
+  /// 3. Main Board officers of the specific club (President, Secretary, Treasurer, boardType=='main')
+  ///    can delete notifications belonging to THEIR club ONLY.
+  bool canDeleteNotification(String? notificationClubId, {Club? club}) {
+    if (role == 'admin') return true;
+
+    final rLower = role.toLowerCase();
+    if (rLower == 'advisor' || rLower == 'teacher') return false;
+
+    if (notificationClubId != null && notificationClubId.isNotEmpty) {
+      final isMainBoardMember = memberships.any((m) =>
+          m.clubId == notificationClubId &&
+          (m.boardType == 'main' ||
+              ['president', 'secretary', 'treasurer'].contains(m.role.toLowerCase())) &&
+          !['advisor', 'teacher'].contains(m.role.toLowerCase()));
+      if (isMainBoardMember) return true;
+
+      if (club != null && club.id == notificationClubId) {
+        final emailLower = email.toLowerCase();
+        if (club.presidentEmail.toLowerCase() == emailLower ||
+            club.secretaryEmail.toLowerCase() == emailLower ||
+            club.treasurerEmail.toLowerCase() == emailLower) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
   /// Get the user's membership for a specific club, if any.
   UserMembership? membershipFor(String clubId) {
     final matches = memberships.where((m) => m.clubId == clubId);

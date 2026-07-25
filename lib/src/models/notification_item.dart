@@ -11,6 +11,7 @@ class NotificationItem {
     required this.icon,
     required this.color,
     this.relatedId,
+    this.clubId,
   });
 
   final String id;
@@ -22,6 +23,7 @@ class NotificationItem {
   final IconData icon;
   final Color color;
   final String? relatedId;
+  final String? clubId;
 
   /// Computed lazily so relative time stays accurate as the app stays open.
   String get timeAgo => _relativeTime(createdAt);
@@ -50,10 +52,11 @@ class NotificationItem {
       icon: _iconForType(type),
       color: _colorForType(type),
       relatedId: json['relatedId']?.toString(),
+      clubId: json['clubId']?.toString(),
     );
   }
 
-  NotificationItem copyWith({bool? isRead}) {
+  NotificationItem copyWith({bool? isRead, String? clubId}) {
     return NotificationItem(
       id: id,
       type: type,
@@ -64,6 +67,7 @@ class NotificationItem {
       icon: icon,
       color: color,
       relatedId: relatedId,
+      clubId: clubId ?? this.clubId,
     );
   }
 
