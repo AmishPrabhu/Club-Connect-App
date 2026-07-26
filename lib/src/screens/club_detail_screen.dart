@@ -833,53 +833,48 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                       _buildUpcomingEventsCard(clubPosts),
                       const SizedBox(height: 12),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
                             'Member Board',
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              TextButton.icon(
-                                onPressed: () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => MemberBoardDetailScreen(
-                                      appState: widget.appState,
-                                      club: _club,
-                                    ),
-                                  ),
+                          const Spacer(),
+                          IconButton(
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => MemberBoardDetailScreen(
+                                  appState: widget.appState,
+                                  club: _club,
                                 ),
-                                icon: const Icon(Icons.groups_outlined, size: 16),
-                                label: const Text('Full Member Board'),
                               ),
-                              if (canManageMembers) ...[
-                                IconButton(
-                                  onPressed: () {
-                                    if (members.isEmpty) {
-                                      _showErrorSnackBar('No members available to export.');
-                                      return;
-                                    }
-                                    final csv = StringBuffer();
-                                    csv.writeln('Name,Email,Role,Board Type,Academic Year');
-                                    for (final m in members) {
-                                      csv.writeln('"${m['name'] ?? ''}","${m['email'] ?? ''}","${m['role'] ?? ''}","${m['boardType'] ?? ''}","${m['academicYear'] ?? ''}"');
-                                    }
-                                    Share.share(csv.toString(), subject: '${_club.name} Member Roster');
-                                    _showSuccessSnackBar('Roster CSV generated. Opening sharing options...');
-                                  },
-                                  icon: Icon(Icons.download_rounded, color: AppTheme.accent(context)),
-                                  tooltip: 'Export Members',
-                                ),
-                                IconButton(
-                                  onPressed: () => _showMemberDialog(),
-                                  icon: Icon(Icons.person_add_alt_1_rounded, color: AppTheme.accent(context)),
-                                  tooltip: 'Add Member',
-                                ),
-                              ],
-                            ],
+                            ),
+                            icon: const Icon(Icons.groups_outlined, size: 20),
+                            tooltip: 'Full Member Board',
                           ),
+                          if (canManageMembers) ...[
+                            IconButton(
+                              onPressed: () {
+                                if (members.isEmpty) {
+                                  _showErrorSnackBar('No members available to export.');
+                                  return;
+                                }
+                                final csv = StringBuffer();
+                                csv.writeln('Name,Email,Role,Board Type,Academic Year');
+                                for (final m in members) {
+                                  csv.writeln('"${m['name'] ?? ''}","${m['email'] ?? ''}","${m['role'] ?? ''}","${m['boardType'] ?? ''}","${m['academicYear'] ?? ''}"');
+                                }
+                                Share.share(csv.toString(), subject: '${_club.name} Member Roster');
+                                _showSuccessSnackBar('Roster CSV generated. Opening sharing options...');
+                              },
+                              icon: Icon(Icons.download_rounded, color: AppTheme.accent(context)),
+                              tooltip: 'Export Members',
+                            ),
+                            IconButton(
+                              onPressed: () => _showMemberDialog(),
+                              icon: Icon(Icons.person_add_alt_1_rounded, color: AppTheme.accent(context)),
+                              tooltip: 'Add Member',
+                            ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 12),

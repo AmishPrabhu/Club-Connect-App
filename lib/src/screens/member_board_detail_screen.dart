@@ -21,8 +21,10 @@ class MemberBoardDetailScreen extends StatefulWidget {
 }
 
 class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
-  late Future<List<Map<String, dynamic>>> _membersFuture;
-  late Future<Map<String, dynamic>> _termsFuture;
+  // Initialized eagerly so FutureBuilder never hits LateInitializationError
+  // on the first build (before the async _loadData() callbacks fire).
+  Future<List<Map<String, dynamic>>> _membersFuture = Future.value([]);
+  Future<Map<String, dynamic>> _termsFuture = Future.value({});
 
   String _boardFilter = '';
   String _selectedTermYear = '';
@@ -168,7 +170,7 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
                   value: 'handover',
                   child: Row(
                     children: [
-                      Icon(Icons.autorenew, color: Colors.blue, size: 20),
+                      Icon(Icons.autorenew, size: 20),
                       SizedBox(width: 8),
                       Text('Start New Academic Year'),
                     ],
@@ -178,7 +180,7 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
                   value: 'promote',
                   child: Row(
                     children: [
-                      Icon(Icons.group_add, color: Colors.emerald, size: 20),
+                      Icon(Icons.group_add, size: 20),
                       SizedBox(width: 8),
                       Text('Promote / Import Roster'),
                     ],
@@ -215,7 +217,14 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
                 // Academic Term Year filter
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedTermYear.isEmpty ? _currentActiveTerm : _selectedTermYear,
+                    // Guard against '' value when terms haven't loaded yet —
+                    // avoids the "exactly one item" assertion crash on first build.
+                    value: _availableTerms.isEmpty
+                        ? null
+                        : (_selectedTermYear.isEmpty
+                            ? _currentActiveTerm
+                            : _selectedTermYear),
+                    isExpanded: true, // Prevents right-overflow of selected text
                     decoration: const InputDecoration(
                       labelText: 'Term Year',
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -228,7 +237,7 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
                         return DropdownMenuItem(
                           value: term,
                           child: Text(
-                            isActive ? '$term (Active)' : '$term (Past)',
+                            isActive ? '$term ✓' : term,
                             overflow: TextOverflow.ellipsis,
                           ),
                         );
@@ -392,15 +401,7 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
           );
         },
       ),
-      floatingActionButton: (_canPerformHandover() && !isPastBoard)
-          ? FloatingActionButton.extended(
-              onPressed: _openStartNewYearSheet,
-              icon: const Icon(Icons.autorenew_rounded),
-              label: const Text('Start New Year'),
-              backgroundColor: AppTheme.accent(context),
-              foregroundColor: Colors.white,
-            )
-          : null,
+      // FAB removed — 'Start New Year' is now at the top of the member list
     );
   }
 }

@@ -24,6 +24,7 @@ import '../widgets/member_form_sheet.dart';
 import '../widgets/create_notification_sheet.dart';
 import '../widgets/assign_teacher_sheet.dart';
 import '../widgets/create_club_sheet.dart';
+import '../widgets/start_new_year_sheet.dart';
 import 'notifications_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -4947,6 +4948,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final members = snapshot.data ?? [];
         return Column(
           children: [
+            // ── Start New Academic Year (top, president only) ──
+            if (activeRole == 'president' && _selectedClub != null) ...[
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _openStartNewYearSheet,
+                  icon: const Icon(Icons.autorenew_rounded, size: 18),
+                  label: const Text('Start New Academic Year'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.accent(context),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -4979,6 +5000,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         icon: const Icon(Icons.download_outlined, size: 12),
                         label: const Text('Download Template', style: TextStyle(fontSize: 11)),
                         onPressed: () => _downloadTemplate(),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white54),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 4),
@@ -4987,6 +5012,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         icon: const Icon(Icons.file_upload_outlined, size: 12),
                         label: const Text('Import Excel', style: TextStyle(fontSize: 11)),
                         onPressed: () => _importRoster(),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white54),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 4),
@@ -4996,6 +5025,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       icon: const Icon(Icons.file_download_outlined, size: 12),
                       label: const Text('Export Roster', style: TextStyle(fontSize: 11)),
                       onPressed: () => _exportRoster(),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white54),
+                      ),
                     ),
                   ),
                 ],
@@ -5072,6 +5105,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         );
       },
+    );
+  }
+
+  void _openStartNewYearSheet() {
+    if (_selectedClub == null) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StartNewYearSheet(
+        club: _selectedClub!,
+        appState: widget.appState,
+        onSuccess: (msg) {
+          _showSuccessSnackBar(msg);
+          _reloadSectionData();
+          setState(() => _selectedSection = 'Overview');
+        },
+      ),
     );
   }
 
