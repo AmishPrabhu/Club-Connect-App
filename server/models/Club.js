@@ -51,6 +51,10 @@ const clubSchema = new mongoose.Schema({
     advisorId: { type: String },
     advisorEmail: { type: String },
     advisorName: { type: String },
+    currentTerm: {
+        type: String,
+        default: '2025-2026',
+    },
 
     members: {
         type: Number,

@@ -39,9 +39,19 @@ const clubMemberSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    termYear: {
+        type: String, // e.g. "2025-2026"
+        default: '2025-2026',
+        index: true,
+    },
+    isCurrent: {
+        type: Boolean, // true for active board, false for archived past board
+        default: true,
+        index: true,
+    },
 });
 
-// Prevent duplicate email in same club
-clubMemberSchema.index({ clubId: 1, email: 1 }, { unique: true });
+// Compound unique index: A student can belong to a club in different academic termYears
+clubMemberSchema.index({ clubId: 1, email: 1, termYear: 1 }, { unique: true });
 
 export default mongoose.model('ClubMember', clubMemberSchema);

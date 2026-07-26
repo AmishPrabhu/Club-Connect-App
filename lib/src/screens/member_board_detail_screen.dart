@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/club.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../widgets/start_new_year_sheet.dart';
+import '../widgets/promote_members_sheet.dart';
 
 class MemberBoardDetailScreen extends StatefulWidget {
   const MemberBoardDetailScreen({
@@ -20,8 +22,13 @@ class MemberBoardDetailScreen extends StatefulWidget {
 
 class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
   late Future<List<Map<String, dynamic>>> _membersFuture;
+  late Future<Map<String, dynamic>> _termsFuture;
+
   String _boardFilter = '';
-  String _yearFilter = DateTime.now().year.toString();
+  String _selectedTermYear = '';
+  String _currentActiveTerm = '';
+  List<String> _availableTerms = [];
+  List<Map<String, dynamic>> _rawMembers = [];
 
   static const _boardOrder = ['main', 'executive', 'member'];
   static const _boardLabels = {
@@ -33,24 +40,102 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _membersFuture = widget.appState.fetchClubMembers(widget.club.id);
+    _loadData();
   }
 
-  List<Map<String, dynamic>> _filterMembers(List<Map<String, dynamic>> all) {
-    if (_yearFilter.isEmpty) return all;
-    final selectedYear = int.tryParse(_yearFilter) ?? DateTime.now().year;
-    return all.where((m) {
-      final joinedAt = m['joinedAt'];
-      if (joinedAt == null) return true;
-      final joinYear = DateTime.tryParse(joinedAt.toString())?.year ?? 0;
-      if (joinYear > selectedYear) return false;
-      final leftAt = m['leftAt'];
-      if (leftAt != null) {
-        final leftYear = DateTime.tryParse(leftAt.toString())?.year ?? 9999;
-        if (leftYear < selectedYear) return false;
+  void _loadData() {
+    _termsFuture = widget.appState.fetchClubTerms(widget.club.id);
+    _termsFuture.then((data) {
+      if (mounted) {
+        setState(() {
+          _currentActiveTerm = data['currentTerm']?.toString() ?? '2025-2026';
+          _availableTerms = List<String>.from(data['terms'] ?? [_currentActiveTerm]);
+          if (_selectedTermYear.isEmpty) {
+            _selectedTermYear = _currentActiveTerm;
+          }
+        });
+        _fetchMembersForTerm(_selectedTermYear);
       }
-      return true;
-    }).toList();
+    }).catchError((_) {
+      _fetchMembersForTerm('');
+    });
+  }
+
+  void _fetchMembersForTerm(String termYear) {
+    setState(() {
+      _membersFuture = widget.appState.fetchClubMembers(
+        widget.club.id,
+        termYear: termYear == 'all' ? null : termYear,
+      );
+    });
+  }
+
+  bool _canPerformHandover() {
+    final session = widget.appState.session;
+    if (session == null) return false;
+    if (session.role == 'admin' || session.role == 'advisor') return true;
+
+    final userEmail = session.email.toLowerCase();
+    final presEmail = widget.club.presidentEmail?.toLowerCase();
+    if (presEmail != null && presEmail == userEmail) return true;
+
+    return false;
+  }
+
+  void _openStartNewYearSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StartNewYearSheet(
+        club: widget.club,
+        appState: widget.appState,
+        onSuccess: (msg) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(msg),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF10B981),
+            ),
+          );
+          _loadData();
+        },
+      ),
+    );
+  }
+
+  void _openPromoteMembersSheet() async {
+    // Fetch previous term members if possible
+    final terms = _availableTerms.where((t) => t != _currentActiveTerm).toList();
+    final prevTerm = terms.isNotEmpty ? terms.first : null;
+    
+    final prevMembers = await widget.appState.fetchClubMembers(
+      widget.club.id,
+      termYear: prevTerm,
+    );
+
+    if (!mounted) return;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => PromoteMembersSheet(
+        club: widget.club,
+        appState: widget.appState,
+        previousMembers: prevMembers,
+        onSuccess: (msg) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(msg),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF10B981),
+            ),
+          );
+          _loadData();
+        },
+      ),
+    );
   }
 
   Map<String, List<Map<String, dynamic>>> _groupByBoard(List<Map<String, dynamic>> members) {
@@ -63,11 +148,47 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isPastBoard = _selectedTermYear.isNotEmpty &&
+        _selectedTermYear != 'all' &&
+        _selectedTermYear != _currentActiveTerm;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.club.name),
+        actions: [
+          if (_canPerformHandover())
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              onSelected: (val) {
+                if (val == 'handover') _openStartNewYearSheet();
+                if (val == 'promote') _openPromoteMembersSheet();
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'handover',
+                  child: Row(
+                    children: [
+                      Icon(Icons.autorenew, color: Colors.blue, size: 20),
+                      SizedBox(width: 8),
+                      Text('Start New Academic Year'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'promote',
+                  child: Row(
+                    children: [
+                      Icon(Icons.group_add, color: Colors.emerald, size: 20),
+                      SizedBox(width: 8),
+                      Text('Promote / Import Roster'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+        ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(52),
+          preferredSize: const Size.fromHeight(58),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Row(
@@ -77,12 +198,12 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
                   child: DropdownButtonFormField<String>(
                     value: _boardFilter,
                     decoration: const InputDecoration(
-                      labelText: 'Board',
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      labelText: 'Board Tier',
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       isDense: true,
                     ),
                     items: const [
-                      DropdownMenuItem(value: '', child: Text('All Boards')),
+                      DropdownMenuItem(value: '', child: Text('All Tiers')),
                       DropdownMenuItem(value: 'main', child: Text('Main (TY)')),
                       DropdownMenuItem(value: 'executive', child: Text('Executive (SY)')),
                       DropdownMenuItem(value: 'member', child: Text('Member (FY)')),
@@ -91,23 +212,34 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Year filter
+                // Academic Term Year filter
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _yearFilter,
+                    value: _selectedTermYear.isEmpty ? _currentActiveTerm : _selectedTermYear,
                     decoration: const InputDecoration(
-                      labelText: 'Year',
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      labelText: 'Term Year',
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       isDense: true,
                     ),
-                    items: const [
-                      DropdownMenuItem(value: '', child: Text('All Years')),
-                      DropdownMenuItem(value: '2024', child: Text('2024')),
-                      DropdownMenuItem(value: '2025', child: Text('2025')),
-                      DropdownMenuItem(value: '2026', child: Text('2026')),
-                      DropdownMenuItem(value: '2027', child: Text('2027')),
+                    items: [
+                      const DropdownMenuItem(value: 'all', child: Text('All Terms')),
+                      ..._availableTerms.map((term) {
+                        final isActive = term == _currentActiveTerm;
+                        return DropdownMenuItem(
+                          value: term,
+                          child: Text(
+                            isActive ? '$term (Active)' : '$term (Past)',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }),
                     ],
-                    onChanged: (v) => setState(() => _yearFilter = v ?? ''),
+                    onChanged: (v) {
+                      if (v != null) {
+                        setState(() => _selectedTermYear = v);
+                        _fetchMembersForTerm(v);
+                      }
+                    },
                   ),
                 ),
               ],
@@ -122,118 +254,168 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           final allMembers = snapshot.data ?? [];
-          final filtered = _filterMembers(allMembers);
-          final grouped = _groupByBoard(filtered);
+          _rawMembers = allMembers;
 
           final displayBoards = _boardFilter.isEmpty
               ? _boardOrder
               : [_boardFilter];
 
-          if (allMembers.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.groups_outlined, size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 12),
-                  Text('No members found', style: Theme.of(context).textTheme.titleMedium),
-                ],
-              ),
-            );
-          }
+          final grouped = _groupByBoard(allMembers);
 
-          if (filtered.isEmpty && allMembers.isNotEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.filter_list_off, size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 12),
-                  Text(
-                    'No members match your filters',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Try clearing the year or board filter.',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 13),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return CustomScrollView(
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final boardType = displayBoards[index];
-                      final boardMembers = grouped[boardType] ?? [];
-                      if (boardMembers.isEmpty) return const SizedBox.shrink();
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (index > 0) const SizedBox(height: 24),
-                          Row(
-                            children: [
-                              Container(width: 4, height: 20, decoration: BoxDecoration(color: AppTheme.accent(context), borderRadius: BorderRadius.circular(2))),
-                              const SizedBox(width: 10),
-                              Text(
-                                _boardLabels[boardType] ?? boardType,
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.accent(context).withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text('${boardMembers.length}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.accent(context))),
-                              ),
-                            ],
+          return Column(
+            children: [
+              // Past Board Banner indicator
+              if (isPastBoard)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  color: Colors.amber.shade900.withOpacity(0.15),
+                  child: Row(
+                    children: [
+                      Icon(Icons.history, color: Colors.amber.shade700, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Viewing $_selectedTermYear Past Board Archive (Read-Only)',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.amber.shade300
+                                : Colors.amber.shade900,
                           ),
-                          const SizedBox(height: 12),
-                          ...boardMembers.map((member) => _MemberCard(member: member)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              Expanded(
+                child: allMembers.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.groups_outlined, size: 64, color: Colors.grey[400]),
+                            const SizedBox(height: 12),
+                            Text(
+                              isPastBoard
+                                  ? 'No archived members found for $_selectedTermYear'
+                                  : 'No active members found',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          ],
+                        ),
+                      )
+                    : CustomScrollView(
+                        slivers: [
+                          SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                            sliver: SliverList(
+                              delegate: SliverChildBuilderDelegate(
+                                (context, index) {
+                                  final boardType = displayBoards[index];
+                                  final boardMembers = grouped[boardType] ?? [];
+                                  if (boardMembers.isEmpty) return const SizedBox.shrink();
+
+                                  return Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      if (index > 0) const SizedBox(height: 24),
+                                      Row(
+                                        children: [
+                                          Container(
+                                            width: 4,
+                                            height: 20,
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.accent(context),
+                                              borderRadius: BorderRadius.circular(2),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Text(
+                                            _boardLabels[boardType] ?? boardType,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium
+                                                ?.copyWith(fontWeight: FontWeight.bold),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.accent(context).withOpacity(0.12),
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: Text(
+                                              '${boardMembers.length}',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppTheme.accent(context),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      ...boardMembers.map(
+                                        (member) => _MemberCard(
+                                          member: member,
+                                          termYear: _selectedTermYear.isEmpty
+                                              ? _currentActiveTerm
+                                              : _selectedTermYear,
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                                childCount: displayBoards.length,
+                              ),
+                            ),
+                          ),
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 32),
+                              child: Center(
+                                child: Text(
+                                  'Total: ${allMembers.length} member${allMembers.length == 1 ? '' : 's'}',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
-                      );
-                    },
-                    childCount: displayBoards.length,
-                  ),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 32),
-                  child: Center(
-                    child: Text(
-                      'Total: ${filtered.length} member${filtered.length == 1 ? '' : 's'}',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ),
-                ),
+                      ),
               ),
             ],
           );
         },
       ),
+      floatingActionButton: (_canPerformHandover() && !isPastBoard)
+          ? FloatingActionButton.extended(
+              onPressed: _openStartNewYearSheet,
+              icon: const Icon(Icons.autorenew_rounded),
+              label: const Text('Start New Year'),
+              backgroundColor: AppTheme.accent(context),
+              foregroundColor: Colors.white,
+            )
+          : null,
     );
   }
 }
 
 class _MemberCard extends StatelessWidget {
-  const _MemberCard({required this.member});
+  const _MemberCard({required this.member, required this.termYear});
   final Map<String, dynamic> member;
+  final String termYear;
 
   @override
   Widget build(BuildContext context) {
     final name = member['name']?.toString() ?? 'Unknown';
     final role = member['role']?.toString() ?? 'Member';
     final email = member['email']?.toString() ?? '';
+    final academicYear = member['academicYear']?.toString() ?? '';
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
     final profileImage = member['profileImage']?.toString();
 
@@ -243,19 +425,37 @@ class _MemberCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
+          border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.5)),
         ),
         child: ListTile(
           leading: CircleAvatar(
             backgroundImage: (profileImage != null && profileImage.isNotEmpty)
                 ? NetworkImage(profileImage)
                 : null,
-            backgroundColor: AppTheme.accent(context).withValues(alpha: 0.15),
+            backgroundColor: AppTheme.accent(context).withOpacity(0.15),
             child: (profileImage == null || profileImage.isEmpty)
                 ? Text(initial, style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.accent(context)))
                 : null,
           ),
-          title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+              ),
+              if (academicYear.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    academicYear,
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                  ),
+                ),
+            ],
+          ),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -270,3 +470,4 @@ class _MemberCard extends StatelessWidget {
     );
   }
 }
+

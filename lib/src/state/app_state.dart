@@ -494,10 +494,60 @@ class AppState extends ChangeNotifier {
     await _apiClient.delete('/auth/fcm-token', body: {'token': token});
   }
 
-  Future<List<Map<String, dynamic>>> fetchClubMembers(String clubId) async {
-    final response =
-        await _apiClient.get('/clubs/$clubId/members') as List<dynamic>;
+  Future<List<Map<String, dynamic>>> fetchClubMembers(
+    String clubId, {
+    String? termYear,
+  }) async {
+    final path = termYear != null && termYear.isNotEmpty
+        ? '/clubs/$clubId/members?termYear=${Uri.encodeComponent(termYear)}'
+        : '/clubs/$clubId/members';
+    final response = await _apiClient.get(path) as List<dynamic>;
     return response.cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>> fetchClubTerms(String clubId) async {
+    final response =
+        await _apiClient.get('/clubs/$clubId/terms') as Map<String, dynamic>;
+    return response;
+  }
+
+  Future<void> handoverClubTerm({
+    required String clubId,
+    required String newTermYear,
+    required String newPresidentEmail,
+    String? newSecretaryEmail,
+    String? newTreasurerEmail,
+    String? newPresidentRoleTitle,
+  }) async {
+    await _apiClient.post(
+      '/clubs/$clubId/handover',
+      body: {
+        'newTermYear': newTermYear,
+        'newPresidentEmail': newPresidentEmail,
+        if (newSecretaryEmail != null && newSecretaryEmail.isNotEmpty)
+          'newSecretaryEmail': newSecretaryEmail,
+        if (newTreasurerEmail != null && newTreasurerEmail.isNotEmpty)
+          'newTreasurerEmail': newTreasurerEmail,
+        if (newPresidentRoleTitle != null && newPresidentRoleTitle.isNotEmpty)
+          'newPresidentRoleTitle': newPresidentRoleTitle,
+      },
+    );
+    await refreshAll();
+  }
+
+  Future<void> promoteClubMembers({
+    required String clubId,
+    required List<Map<String, dynamic>> members,
+    String? targetTermYear,
+  }) async {
+    await _apiClient.post(
+      '/clubs/$clubId/members/promote',
+      body: {
+        'members': members,
+        if (targetTermYear != null) 'targetTermYear': targetTermYear,
+      },
+    );
+    await refreshAll();
   }
 
   Future<PostItem> fetchPost(String postId) async {

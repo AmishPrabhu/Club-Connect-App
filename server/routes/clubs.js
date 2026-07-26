@@ -397,13 +397,27 @@ router.delete('/:id', verifySuperAdmin, async (req, res) => {
 
 // ==================== MEMBER ROUTES ====================
 
-// GET members for a club
+// GET members for a club (supports ?termYear=2025-2026 or default active term)
 router.get('/:id/members', async (req, res) => {
     try {
-        const members = await ClubMember.find({ clubId: req.params.id }).sort({ name: 1 }).lean();
+        const { termYear, isCurrent } = req.query;
+        let query = { clubId: req.params.id };
+
+        if (termYear) {
+            query.termYear = termYear;
+        } else if (isCurrent !== undefined) {
+            query.isCurrent = isCurrent === 'true';
+        } else {
+            // Default: try to fetch active term members first
+            const activeCount = await ClubMember.countDocuments({ clubId: req.params.id, isCurrent: true });
+            if (activeCount > 0) {
+                query.isCurrent = true;
+            }
+        }
+
+        const members = await ClubMember.find(query).sort({ name: 1 }).lean();
 
         // Fetch latest profile info from User collection to ensure avatar is up to date
-        // Logic: 1. Try userId 2. Try email (case insensitive)
         const enhancedMembers = await Promise.all(members.map(async (member) => {
             let user = null;
 
@@ -413,7 +427,7 @@ router.get('/:id/members', async (req, res) => {
 
             if (!user && member.email) {
                 user = await User.findOne({
-                    email: { $regex: new RegExp(`^${member.email}$`, 'i') }
+                    email: { $regex: new RegExp(`^${escapeRegExp(member.email)}$`, 'i') }
                 }).select('profileImage');
             }
 
@@ -425,6 +439,178 @@ router.get('/:id/members', async (req, res) => {
 
         res.json(enhancedMembers);
     } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// GET distinct academic terms available for a club
+router.get('/:id/terms', async (req, res) => {
+    try {
+        const terms = await ClubMember.distinct('termYear', { clubId: req.params.id });
+        const club = await Club.findById(req.params.id);
+        const currentTerm = club?.currentTerm || '2025-2026';
+
+        // Filter and sort terms descending
+        const validTerms = terms.filter(Boolean);
+        const allTerms = [...new Set([currentTerm, ...validTerms])].sort().reverse();
+
+        res.json({ currentTerm, terms: allTerms });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// POST Annual Board Handover (Start New Academic Year)
+router.post('/:id/handover', verifyClubOfficer, async (req, res) => {
+    try {
+        const { newTermYear, newPresidentEmail, newSecretaryEmail, newTreasurerEmail, newPresidentRoleTitle } = req.body;
+        const clubId = req.params.id;
+
+        if (!newTermYear || !newPresidentEmail) {
+            return res.status(400).json({ message: 'New academic term and new President email are required.' });
+        }
+
+        const club = await Club.findById(clubId);
+        if (!club) return res.status(404).json({ message: 'Club not found' });
+
+        // 1. Archive current active members for this club
+        await ClubMember.updateMany(
+            { clubId, isCurrent: true },
+            { $set: { isCurrent: false } }
+        );
+
+        // 2. Update Club model with new current term & new officer emails
+        const updates = {
+            currentTerm: newTermYear.trim(),
+            presidentEmail: newPresidentEmail.trim(),
+            updatedAt: Date.now()
+        };
+        if (newSecretaryEmail) updates.secretaryEmail = newSecretaryEmail.trim();
+        if (newTreasurerEmail) updates.treasurerEmail = newTreasurerEmail.trim();
+
+        const updatedClub = await Club.findByIdAndUpdate(clubId, updates, { new: true });
+
+        // 3. Create or update new active ClubMember entries for new President & Officers
+        const presidentRoleTitle = newPresidentRoleTitle || 'President';
+        const newOfficers = [
+            { email: newPresidentEmail.trim(), role: presidentRoleTitle, boardType: 'main' },
+        ];
+        if (newSecretaryEmail) newOfficers.push({ email: newSecretaryEmail.trim(), role: 'Secretary', boardType: 'main' });
+        if (newTreasurerEmail) newOfficers.push({ email: newTreasurerEmail.trim(), role: 'Treasurer', boardType: 'main' });
+
+        for (const officer of newOfficers) {
+            const existingUser = await User.findOne({
+                email: { $regex: new RegExp(`^${escapeRegExp(officer.email)}$`, 'i') }
+            });
+
+            await ClubMember.create({
+                clubId,
+                name: existingUser?.name || officer.role,
+                email: officer.email,
+                role: officer.role,
+                boardType: officer.boardType,
+                userId: existingUser?._id?.toString() || null,
+                termYear: newTermYear.trim(),
+                isCurrent: true,
+                joinedAt: new Date()
+            });
+
+            // Global role sync if user exists
+            if (existingUser) {
+                const roleMap = {
+                    'President': 'president',
+                    'Secretary': 'club-secretary',
+                    'Treasurer': 'treasurer'
+                };
+                const targetRole = roleMap[officer.role] || 'president';
+
+                if (targetRole && existingUser.role !== 'admin') {
+                    if (!existingUser.roles) existingUser.roles = [];
+                    if (!existingUser.roles.includes(targetRole)) existingUser.roles.push(targetRole);
+                    existingUser.role = targetRole;
+                    existingUser.clubId = clubId;
+                    existingUser.clubName = updatedClub.name;
+                    await existingUser.save();
+                }
+            }
+        }
+
+        // Update member count for active board
+        const count = await ClubMember.countDocuments({ clubId, isCurrent: true });
+        await Club.findByIdAndUpdate(clubId, { members: count });
+
+        // Broadcast SSE event for real-time app update
+        try {
+            const { broadcast } = await import('../services/sseService.js');
+            broadcast('club_updated', updatedClub.toObject());
+        } catch (_) {}
+
+        res.json({ success: true, club: updatedClub, message: `Successfully transitioned to ${newTermYear}!` });
+    } catch (error) {
+        console.error('Handover error:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// POST Bulk Promote / Import Members from Previous Term with Assigned Roles
+router.post('/:id/members/promote', verifyClubOfficer, async (req, res) => {
+    try {
+        const { members, targetTermYear } = req.body;
+        const clubId = req.params.id;
+
+        if (!Array.isArray(members) || members.length === 0) {
+            return res.status(400).json({ message: 'No members provided for promotion.' });
+        }
+
+        const club = await Club.findById(clubId);
+        if (!club) return res.status(404).json({ message: 'Club not found' });
+
+        const termToUse = targetTermYear || club.currentTerm || '2026-2027';
+        const results = [];
+
+        for (const item of members) {
+            const { email, name, newRole, newBoardType, newAcademicYear } = item;
+            if (!email) continue;
+
+            const existingUser = await User.findOne({
+                email: { $regex: new RegExp(`^${escapeRegExp(email)}$`, 'i') }
+            });
+
+            let memberDoc = await ClubMember.findOne({
+                clubId,
+                email: { $regex: new RegExp(`^${escapeRegExp(email)}$`, 'i') },
+                termYear: termToUse
+            });
+
+            if (!memberDoc) {
+                memberDoc = await ClubMember.create({
+                    clubId,
+                    name: name || existingUser?.name || 'Member',
+                    email: email.trim(),
+                    role: newRole || 'Member',
+                    boardType: newBoardType || 'executive',
+                    academicYear: newAcademicYear || 'TY',
+                    userId: existingUser?._id?.toString() || null,
+                    termYear: termToUse,
+                    isCurrent: true,
+                    joinedAt: new Date()
+                });
+            } else {
+                memberDoc.role = newRole || memberDoc.role;
+                memberDoc.boardType = newBoardType || memberDoc.boardType;
+                if (newAcademicYear) memberDoc.academicYear = newAcademicYear;
+                memberDoc.isCurrent = true;
+                await memberDoc.save();
+            }
+            results.push(memberDoc);
+        }
+
+        const count = await ClubMember.countDocuments({ clubId, isCurrent: true });
+        await Club.findByIdAndUpdate(clubId, { members: count });
+
+        res.json({ success: true, count: results.length, members: results });
+    } catch (error) {
+        console.error('Promote members error:', error);
         res.status(500).json({ message: error.message });
     }
 });
