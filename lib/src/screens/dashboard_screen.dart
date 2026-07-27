@@ -4957,12 +4957,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   icon: const Icon(Icons.autorenew_rounded, size: 18),
                   label: const Text('Start New Academic Year'),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppTheme.accent(context),
-                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
                   ),
                 ),
               ),
@@ -5001,8 +4996,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         label: const Text('Download Template', style: TextStyle(fontSize: 11)),
                         onPressed: () => _downloadTemplate(),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Colors.white54),
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                         ),
                       ),
                     ),
@@ -5013,8 +5007,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         label: const Text('Import Excel', style: TextStyle(fontSize: 11)),
                         onPressed: () => _importRoster(),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Colors.white54),
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                         ),
                       ),
                     ),
@@ -5026,8 +5019,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       label: const Text('Export Roster', style: TextStyle(fontSize: 11)),
                       onPressed: () => _exportRoster(),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white54),
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                       ),
                     ),
                   ),

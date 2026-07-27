@@ -194,7 +194,7 @@ class _SignupScreenState extends State<SignupScreen> {
                               ? 'Connecting...'
                               : 'Sign up with Google',
                           style: TextStyle(
-                            color: Theme.of(context).brightness == Brightness.dark ? Theme.of(context).cardColor : Colors.black87,
+                            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
