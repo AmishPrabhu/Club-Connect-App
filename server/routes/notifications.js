@@ -4,6 +4,7 @@ import ClubMember from '../models/ClubMember.js';
 import Club from '../models/Club.js';
 import { verifyToken, verifyTokenOptional } from '../middleware/auth.js';
 import { sendPushToUsers, sendPushToClubMembers, sendPushGlobal } from '../services/pushService.js';
+import { broadcast, broadcastToUser } from '../services/sseService.js';
 
 const router = express.Router();
 
@@ -51,9 +52,20 @@ router.post('/', verifyToken, async (req, res) => {
         const newNotification = new Notification(req.body);
         const savedNotification = await newNotification.save();
         
+        const notifObj = savedNotification.toObject();
+        if (notifObj._id) notifObj.id = notifObj._id.toString();
+
+        // Broadcast live SSE event immediately for connected devices
+        if (savedNotification.userId) {
+            broadcastToUser(savedNotification.userId.toString(), 'notification_created', notifObj);
+        } else {
+            broadcast('notification_created', notifObj);
+        }
+
         // Trigger push notification asynchronously (fire-and-forget)
         const { title, message: body, userId, clubId, type, relatedId } = savedNotification;
         const dataPayload = {
+            action: 'new_notification',
             type: type || 'info',
             notificationId: savedNotification._id.toString(),
         };

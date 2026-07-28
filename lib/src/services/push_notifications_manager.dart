@@ -257,11 +257,9 @@ class PushNotificationsManager {
         _appState?.refreshPosts();
         break;
       case 'new_club_message':
-        // Refresh notifications to show the new message badge
-        _appState?.refreshNotifications();
-        break;
+      case 'new_notification':
       case 'certificate_ready':
-        // Refresh notifications to show the certificate notification
+        // Refresh notifications to show the new message badge
         _appState?.refreshNotifications();
         break;
       default:
