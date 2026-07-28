@@ -66,7 +66,7 @@ class AppState extends ChangeNotifier {
   static const _tokenKey = 'club_connect_token';
   static const _googleServerClientId = String.fromEnvironment(
     'GOOGLE_SERVER_CLIENT_ID',
-    defaultValue: '158552043080-f7nf9tej36hgo4oidu1dnn9shkq8tan1.apps.googleusercontent.com',
+    defaultValue: '158552043080-7dc8k37ipftcqi0gqv5v56vtto76b6up.apps.googleusercontent.com',
   );
 
   final ApiClient _apiClient;
