@@ -21,6 +21,7 @@ import { startChangeStreams } from './config/changeStreams.js';
 import { sendHeartbeat } from './services/sseService.js';
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = (process.env.PORT && process.env.PORT != 5000) ? process.env.PORT : 5001;
 
 // Middleware
