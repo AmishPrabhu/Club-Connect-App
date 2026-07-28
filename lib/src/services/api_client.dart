@@ -34,21 +34,17 @@ class ApiClient {
       if (kIsWeb) {
         return 'http://127.0.0.1:5001/api';
       }
-      if (Platform.isAndroid) {
-        // Android Studio Emulator (AVD) standard host loopback alias: 10.0.2.2
-        // Note: For physical Android devices on Wi-Fi, use Mac's Wi-Fi IP (e.g. 10.246.213.128)
-        return 'http://10.0.2.2:5001/api';
-      }
-      if (Platform.isIOS) {
-        // iOS Simulator uses 127.0.0.1 directly
-        return 'http://127.0.0.1:5001/api';
+      if (Platform.isAndroid || Platform.isIOS) {
+        // Physical device on current network: 172.20.10.4
+        // For Android Emulator in Android Studio, 10.0.2.2 or 172.20.10.4 can be used
+        return 'http://172.20.10.4:5001/api';
       }
       // Desktop / simulator fallback
       return 'http://127.0.0.1:5001/api';
     }
 
     // 3. Production (release build only)
-    return 'https://club-connect-7fwy.onrender.com/api';
+    return 'https://club-connect-app.onrender.com/api';
   }
 
   final String baseUrl;
