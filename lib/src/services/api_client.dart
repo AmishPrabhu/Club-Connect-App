@@ -34,9 +34,14 @@ class ApiClient {
       if (kIsWeb) {
         return 'http://127.0.0.1:5001/api';
       }
-      if (Platform.isAndroid || Platform.isIOS) {
-        // Physical device on the same Wi-Fi as this dev machine
-        return 'http://192.168.0.24:5001/api';
+      if (Platform.isAndroid) {
+        // Android Studio Emulator (AVD) standard host loopback alias: 10.0.2.2
+        // Note: For physical Android devices on Wi-Fi, use Mac's Wi-Fi IP (e.g. 10.246.213.128)
+        return 'http://10.0.2.2:5001/api';
+      }
+      if (Platform.isIOS) {
+        // iOS Simulator uses 127.0.0.1 directly
+        return 'http://127.0.0.1:5001/api';
       }
       // Desktop / simulator fallback
       return 'http://127.0.0.1:5001/api';
