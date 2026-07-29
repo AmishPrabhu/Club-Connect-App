@@ -75,13 +75,7 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
   bool _canPerformHandover() {
     final session = widget.appState.session;
     if (session == null) return false;
-    if (session.role == 'admin' || session.role == 'advisor') return true;
-
-    final userEmail = session.email.toLowerCase();
-    final presEmail = widget.club.presidentEmail?.toLowerCase();
-    if (presEmail != null && presEmail == userEmail) return true;
-
-    return false;
+    return session.canManageMembersOf(widget.club.id, club: widget.club);
   }
 
   void _openStartNewYearSheet() {

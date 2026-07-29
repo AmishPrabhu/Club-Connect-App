@@ -43,6 +43,13 @@ class UserMembership {
     return r == 'president' || r == 'secretary';
   }
 
+  /// Whether this membership grants permission to manage members.
+  /// Only President, Vice-President, Secretary, and Advisor can manage members.
+  bool get canManageMembers {
+    final r = role.toLowerCase();
+    return r == 'president' || r == 'vice-president' || r == 'secretary' || r == 'advisor';
+  }
+
   factory UserMembership.fromJson(Map<String, dynamic> json) {
     return UserMembership(
       clubId: json['clubId']?.toString() ?? '',

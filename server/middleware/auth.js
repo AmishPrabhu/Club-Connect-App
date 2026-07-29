@@ -225,3 +225,112 @@ export const verifyClubMember = async (req, res, next) => {
         }
     })
 }
+
+// Check if user is a member management officer (President, Vice-President, Secretary, Advisor)
+export const verifyMemberManagementOfficer = async (req, res, next) => {
+    verifyToken(req, res, async () => {
+        try {
+            if (req.user.role === 'admin') {
+                return next();
+            }
+
+            const clubId = req.params.id || req.params.clubId || req.body.clubId;
+            if (!clubId) {
+                return res.status(400).json({ message: 'Club ID is required for authorization check.' });
+            }
+
+            const club = await Club.findById(clubId);
+            const emailLower = req.user.email?.toLowerCase();
+            let isDirectOfficer = false;
+
+            if (club) {
+                if (club.presidentEmail?.toLowerCase() === emailLower ||
+                    club.secretaryEmail?.toLowerCase() === emailLower ||
+                    club.advisorEmail?.toLowerCase() === emailLower) {
+                    isDirectOfficer = true;
+                }
+            }
+
+            const officerFn = await ClubMember.findOne({
+                clubId: clubId,
+                $and: [
+                    {
+                        $or: [
+                            { userId: req.user.id },
+                            { email: { $regex: new RegExp(`^${req.user.email}$`, 'i') } }
+                        ]
+                    },
+                    {
+                        role: { $in: ['Secretary', 'President', 'Assistant Secretary', 'secretary', 'president', 'assistant secretary'] }
+                    }
+                ]
+            });
+
+            if (isDirectOfficer || officerFn) {
+                return next();
+            } else {
+                res.status(403).json({
+                    message: 'Access denied. Only specific officers can manage members.',
+                    debugInfo: { clubId, userId: req.user.id, email: req.user.email }
+                });
+            }
+        } catch (error) {
+            console.error('Member Management Auth Error:', error);
+            res.status(500).json({ message: 'Server authorization error' });
+        }
+    })
+};
+
+// Check if user is an event officer (President, Secretary, Assistant Secretary)
+export const verifyEventOfficer = async (req, res, next) => {
+    verifyToken(req, res, async () => {
+        try {
+            if (req.user.role === 'admin') {
+                return next();
+            }
+
+            const clubId = req.params.id || req.params.clubId || req.body.clubId;
+            if (!clubId) {
+                return res.status(400).json({ message: 'Club ID is required for authorization check.' });
+            }
+
+            const club = await Club.findById(clubId);
+            const emailLower = req.user.email?.toLowerCase();
+            let isDirectOfficer = false;
+
+            if (club) {
+                if (club.presidentEmail?.toLowerCase() === emailLower ||
+                    club.secretaryEmail?.toLowerCase() === emailLower) {
+                    isDirectOfficer = true;
+                }
+            }
+
+            const officerFn = await ClubMember.findOne({
+                clubId: clubId,
+                $and: [
+                    {
+                        $or: [
+                            { userId: req.user.id },
+                            { email: { $regex: new RegExp(`^${req.user.email}$`, 'i') } }
+                        ]
+                    },
+                    {
+                        role: { $in: ['Secretary', 'President', 'Assistant Secretary', 'secretary', 'president', 'assistant secretary'] }
+                    }
+                ]
+            });
+
+            if (isDirectOfficer || officerFn) {
+                return next();
+            } else {
+                res.status(403).json({
+                    message: 'Access denied. Only the president, secretary, or assistant secretary can manage events.',
+                    debugInfo: { clubId, userId: req.user.id, email: req.user.email }
+                });
+            }
+        } catch (error) {
+            console.error('Event Officer Auth Error:', error);
+            res.status(500).json({ message: 'Server authorization error' });
+        }
+    })
+};

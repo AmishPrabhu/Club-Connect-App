@@ -5,7 +5,7 @@ import User from '../models/User.js';
 import Post from '../models/Post.js';
 import ClubMember from '../models/ClubMember.js';
 import ClubMessage from '../models/ClubMessage.js';
-import { verifyToken, verifySuperAdmin, verifyClubOfficer, verifyClubMember } from '../middleware/auth.js';
+import { verifyToken, verifySuperAdmin, verifyClubOfficer, verifyClubMember, verifyMemberManagementOfficer } from '../middleware/auth.js';
 import { sendClubInvitationEmail } from '../services/emailService.js';
 import { sendPushToClubMembers } from '../services/pushService.js';
 
@@ -461,7 +461,7 @@ router.get('/:id/terms', async (req, res) => {
 });
 
 // POST Annual Board Handover (Start New Academic Year)
-router.post('/:id/handover', verifyClubOfficer, async (req, res) => {
+router.post('/:id/handover', verifyMemberManagementOfficer, async (req, res) => {
     try {
         const { newTermYear, newPresidentEmail, newSecretaryEmail, newTreasurerEmail, newPresidentRoleTitle } = req.body;
         const clubId = req.params.id;
@@ -553,7 +553,7 @@ router.post('/:id/handover', verifyClubOfficer, async (req, res) => {
 });
 
 // POST Bulk Promote / Import Members from Previous Term with Assigned Roles
-router.post('/:id/members/promote', verifyClubOfficer, async (req, res) => {
+router.post('/:id/members/promote', verifyMemberManagementOfficer, async (req, res) => {
     try {
         const { members, targetTermYear } = req.body;
         const clubId = req.params.id;
@@ -615,8 +615,8 @@ router.post('/:id/members/promote', verifyClubOfficer, async (req, res) => {
     }
 });
 
-// Add member to club (Protected - Club Officer)
-router.post('/:id/members', verifyClubOfficer, async (req, res) => {
+// Add member to club (Protected - Member Management Officer)
+router.post('/:id/members', verifyMemberManagementOfficer, async (req, res) => {
     try {
         const { name, email, role, userId, boardType, academicYear, joinedAt } = req.body;
         const clubId = req.params.id;
@@ -709,8 +709,8 @@ router.post('/:id/members', verifyClubOfficer, async (req, res) => {
     }
 });
 
-// Update member (Protected - Club Officer)
-router.put('/:id/members/:memberId', verifyClubOfficer, async (req, res) => {
+// Update member (Protected - Member Management Officer)
+router.put('/:id/members/:memberId', verifyMemberManagementOfficer, async (req, res) => {
     try {
         const { name, email, role, academicYear, joinedAt, boardType } = req.body;
         // Basic validation/permission check could go here
@@ -737,8 +737,8 @@ router.put('/:id/members/:memberId', verifyClubOfficer, async (req, res) => {
 });
 
 // Remove member (Protected - Club Officer)
-// Remove member (Protected - Club Officer)
-router.delete('/:id/members/:memberId', verifyClubOfficer, async (req, res) => {
+// Remove member (Protected - Member Management Officer)
+router.delete('/:id/members/:memberId', verifyMemberManagementOfficer, async (req, res) => {
     try {
         const memberToDelete = await ClubMember.findById(req.params.memberId);
         if (!memberToDelete) {

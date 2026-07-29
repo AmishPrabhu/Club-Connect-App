@@ -67,6 +67,24 @@ class UserSession {
     return false;
   }
 
+  /// Check if the user can manage members (add/edit/remove) for a specific club.
+  bool canManageMembersOf(String clubId, {Club? club}) {
+    if (role == 'admin') return true;
+    final hasMembershipManager = memberships.any((m) => m.clubId == clubId && m.canManageMembers);
+    if (hasMembershipManager) return true;
+
+    // Fallback: check if user's email matches the Club's direct manager email fields
+    if (club != null) {
+      final emailLower = email.toLowerCase();
+      if (club.presidentEmail.toLowerCase() == emailLower ||
+          club.secretaryEmail.toLowerCase() == emailLower ||
+          club.advisorEmail.toLowerCase() == emailLower) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /// Check if the user is an officer of any club (for showing management UI).
   bool get isAnyClubOfficer {
     if (role == 'admin') return true;

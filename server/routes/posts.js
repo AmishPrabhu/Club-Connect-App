@@ -5,7 +5,7 @@ import Task from '../models/Task.js';
 import ClubMember from '../models/ClubMember.js';
 import Club from '../models/Club.js';
 import Notification from '../models/Notification.js';
-import { verifyToken, verifyClubOfficer } from '../middleware/auth.js';
+import { verifyToken, verifyClubOfficer, verifyEventOfficer } from '../middleware/auth.js';
 import { sendEventUpdateEmail } from '../services/emailService.js';
 import { sendPushToClubMembers, sendPushToUsers } from '../services/pushService.js';
 
@@ -349,8 +349,8 @@ router.get('/:id/interest/check', verifyToken, async (req, res) => {
 });
 
 
-// Create post (Protected - Club Officer Only)
-router.post('/', verifyClubOfficer, async (req, res) => {
+// Create post (Protected - Event Officer Only)
+router.post('/', verifyEventOfficer, async (req, res) => {
     try {
         // Whitelist allowed fields to prevent arbitrary data injection
         const allowedFields = [
@@ -491,10 +491,7 @@ router.put('/:id', verifyToken, async (req, res) => {
                         ]
                     },
                     {
-                        $or: [
-                            { role: { $in: ['Secretary', 'President', 'Treasurer', 'Advisor'] } },
-                            { boardType: { $in: ['main', 'executive'] } }
-                        ]
+                        role: { $in: ['Secretary', 'President', 'Assistant Secretary', 'secretary', 'president', 'assistant secretary'] }
                     }
                 ]
             });
@@ -628,10 +625,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
                         ]
                     },
                     {
-                        $or: [
-                            { role: { $in: ['Secretary', 'President', 'Treasurer', 'Advisor'] } },
-                            { boardType: { $in: ['main', 'executive'] } }
-                        ]
+                        role: { $in: ['Secretary', 'President', 'Assistant Secretary', 'secretary', 'president', 'assistant secretary'] }
                     }
                 ]
             });
@@ -705,10 +699,7 @@ router.put('/:id/budget', verifyToken, async (req, res) => {
                         ]
                     },
                     {
-                        $or: [
-                            { role: { $regex: /treasurer/i } },
-                            { boardType: 'main' }  // Main board members can manage budgets
-                        ]
+                        role: { $in: ['Treasurer', 'Assistant Treasurer', 'treasurer', 'assistant treasurer'] }
                     }
                 ]
             });

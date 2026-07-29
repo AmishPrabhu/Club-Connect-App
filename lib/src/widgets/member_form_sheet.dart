@@ -28,6 +28,7 @@ class _MemberFormSheetState extends State<MemberFormSheet> {
   
   late String _boardType;
   late String _academicYear;
+  String _executiveRoleSelection = 'Assistant Secretary';
   
   String? _errorMessage;
   bool _isSubmitting = false;
@@ -46,6 +47,17 @@ class _MemberFormSheetState extends State<MemberFormSheet> {
 
     _boardType = member?['boardType']?.toString() ?? 'member';
     _academicYear = member?['academicYear']?.toString() ?? 'FY';
+
+    final existingRole = member?['role']?.toString() ?? '';
+    if (_boardType == 'executive') {
+      if (existingRole == 'Assistant Secretary' || existingRole == 'Assistant Treasurer') {
+        _executiveRoleSelection = existingRole;
+      } else {
+        _executiveRoleSelection = 'Custom Role';
+      }
+    } else {
+      _executiveRoleSelection = 'Assistant Secretary';
+    }
 
     // Retrieve year from joinedAt, default to current year
     String initialYear = DateTime.now().year.toString();
@@ -94,6 +106,15 @@ class _MemberFormSheetState extends State<MemberFormSheet> {
       return;
     }
 
+    String finalRole = role;
+    if (_boardType == 'member') {
+      finalRole = 'Member';
+    } else if (_boardType == 'executive' && _executiveRoleSelection != 'Custom Role') {
+      finalRole = _executiveRoleSelection;
+    } else {
+      if (finalRole.isEmpty) finalRole = 'Member';
+    }
+
     setState(() {
       _errorMessage = null;
       _isSubmitting = true;
@@ -109,7 +130,7 @@ class _MemberFormSheetState extends State<MemberFormSheet> {
         await widget.appState.updateClubMember(widget.clubId, mId, {
           'name': name,
           'email': email,
-          'role': _boardType == 'member' ? 'Member' : (role.isEmpty ? 'Member' : role),
+          'role': finalRole,
           'boardType': _boardType,
           'academicYear': _academicYear,
           'joinedAt': joinedDate.toIso8601String(),
@@ -120,7 +141,7 @@ class _MemberFormSheetState extends State<MemberFormSheet> {
           widget.clubId,
           name: name,
           email: email,
-          role: _boardType == 'member' ? 'Member' : (role.isEmpty ? 'Member' : role),
+          role: finalRole,
           boardType: _boardType,
           academicYear: _academicYear,
           joinedAt: joinedDate,
@@ -290,7 +311,40 @@ class _MemberFormSheetState extends State<MemberFormSheet> {
                       const SizedBox(height: 16),
 
                       // Custom Role (only if not member)
-                      if (_boardType != 'member') ...[
+                      if (_boardType == 'executive') ...[
+                        DropdownButtonFormField<String>(
+                          value: _executiveRoleSelection,
+                          dropdownColor: cardBg,
+                          style: TextStyle(color: titleColor),
+                          decoration: const InputDecoration(
+                            labelText: 'Executive Role',
+                            prefixIcon: Icon(Icons.star_outline),
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: 'Assistant Secretary', child: Text('Assistant Secretary')),
+                            DropdownMenuItem(value: 'Assistant Treasurer', child: Text('Assistant Treasurer')),
+                            DropdownMenuItem(value: 'Custom Role', child: Text('Custom Role')),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() => _executiveRoleSelection = val);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        if (_executiveRoleSelection == 'Custom Role') ...[
+                          TextFormField(
+                            controller: _roleController,
+                            style: TextStyle(color: titleColor),
+                            decoration: const InputDecoration(
+                              labelText: 'Custom Role',
+                              hintText: 'e.g. Coordinator',
+                              prefixIcon: Icon(Icons.badge_outlined),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ] else if (_boardType != 'member') ...[
                         TextFormField(
                           controller: _roleController,
                           style: TextStyle(color: titleColor),
