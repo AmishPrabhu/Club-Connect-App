@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_utils.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key, required this.appState, this.googleData});
@@ -24,6 +25,8 @@ class _SignupScreenState extends State<SignupScreen> {
   GoogleSignupData? _googleData;
   bool _submitting = false;
   bool _googleSigningIn = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
   String? _error;
 
   @override
@@ -105,6 +108,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 if (_step == 2) ...[
                   TextField(
                     controller: _nameController,
+                    maxLength: 50,
                     decoration: const InputDecoration(
                       labelText: 'Full Name',
                       prefixIcon: Icon(Icons.person_outline_rounded),
@@ -113,21 +117,63 @@ class _SignupScreenState extends State<SignupScreen> {
                   const SizedBox(height: 14),
                   TextField(
                     controller: _passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
+                    obscureText: _obscurePassword,
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
                       labelText: 'Password',
-                      prefixIcon: Icon(Icons.lock_outline_rounded),
+                      prefixIcon: const Icon(Icons.lock_outline_rounded),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                        onPressed: () =>
+                            setState(() => _obscurePassword = !_obscurePassword),
+                      ),
                     ),
+                  ),
+                  PasswordStrengthIndicator(
+                    password: _passwordController.text,
                   ),
                   const SizedBox(height: 14),
                   TextField(
                     controller: _confirmController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
+                    obscureText: _obscureConfirm,
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
                       labelText: 'Confirm Password',
-                      prefixIcon: Icon(Icons.lock_reset_outlined),
+                      prefixIcon: const Icon(Icons.lock_reset_outlined),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureConfirm
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                        onPressed: () =>
+                            setState(() => _obscureConfirm = !_obscureConfirm),
+                      ),
                     ),
                   ),
+                  if (_confirmController.text.isNotEmpty &&
+                      _passwordController.text != _confirmController.text)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6, left: 4),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.error_outline, size: 14, color: Color(0xFFB91C1C)),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Passwords do not match',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFFB91C1C),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
                 if (_error != null) ...[
                   const SizedBox(height: 14),
@@ -252,8 +298,8 @@ class _SignupScreenState extends State<SignupScreen> {
         if (_nameController.text.trim().isEmpty) {
           throw Exception('Please enter your full name.');
         }
-        if (_passwordController.text.length < 6) {
-          throw Exception('Password must be at least 6 characters.');
+        if (_passwordController.text.length < 8) {
+          throw Exception('Password must be at least 8 characters.');
         }
         if (_passwordController.text != _confirmController.text) {
           throw Exception('Passwords do not match.');
@@ -276,7 +322,9 @@ class _SignupScreenState extends State<SignupScreen> {
         Navigator.of(context).pop(true);
       }
     } catch (error) {
-      setState(() => _error = error.toString().replaceFirst('Exception: ', ''));
+      setState(() => _error = error.toString()
+          .replaceFirst('Exception: ', '')
+          .replaceFirst('ApiException: ', ''));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

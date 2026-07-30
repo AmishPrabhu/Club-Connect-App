@@ -851,14 +851,47 @@ router.delete('/delete-account', verifyToken, async (req, res) => {
     }
 });
 
-// Change Password
+// Request OTP for Change Password
+router.post('/request-change-password-otp', verifyToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const otp = generateOTP();
+
+        // Save OTP to DB (keyed by email, same Otp model)
+        await Otp.findOneAndUpdate(
+            { email: user.email },
+            { otp, createdAt: Date.now() },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+
+        // Reuse the generic OTP email
+        await sendOtpEmail(user.email, otp);
+
+        res.json({ message: 'Verification code sent to your email' });
+    } catch (error) {
+        console.error('Request change-password OTP error:', error);
+        res.status(500).json({ message: 'Failed to send verification code' });
+    }
+});
+
+// Change Password (requires current password + OTP)
 router.post('/change-password', verifyToken, async (req, res) => {
     try {
         const userId = req.user.id;
-        const { currentPassword, newPassword } = req.body;
+        const { currentPassword, newPassword, otp } = req.body;
 
         if (!currentPassword || !newPassword) {
             return res.status(400).json({ message: 'Current password and new password are required' });
+        }
+
+        if (!otp) {
+            return res.status(400).json({ message: 'Verification code is required' });
         }
 
         const user = await User.findById(userId);
@@ -872,9 +905,18 @@ router.post('/change-password', verifyToken, async (req, res) => {
             return res.status(400).json({ message: 'Current password is incorrect' });
         }
 
+        // Verify OTP
+        const otpRecord = await Otp.findOne({ email: user.email });
+        if (!otpRecord || otpRecord.otp !== otp) {
+            return res.status(400).json({ message: 'Invalid or expired verification code' });
+        }
+
         // Hash new password and save
         user.password = await bcrypt.hash(newPassword, 10);
         await user.save();
+
+        // Cleanup OTP
+        await Otp.deleteOne({ email: user.email });
 
         // Send confirmation email (fire and forget)
         sendPasswordChangeEmail({ email: user.email, name: user.name }).catch(err => {
@@ -887,6 +929,7 @@ router.post('/change-password', verifyToken, async (req, res) => {
         res.status(500).json({ message: 'Failed to change password' });
     }
 });
+
 
 // Setup Super Admin (Protected Transfer)
 router.post('/setup-admin', authLimiter, async (req, res) => {

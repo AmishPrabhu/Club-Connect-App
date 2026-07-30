@@ -686,7 +686,16 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
         future: _membersFuture,
         builder: (context, snapshot) {
           final members = snapshot.data ?? const <Map<String, dynamic>>[];
-          return CustomScrollView(
+          return RefreshIndicator(
+            onRefresh: () async {
+              await widget.appState.refreshAll();
+              if (mounted) {
+                setState(() {
+                  _refreshMembers();
+                });
+              }
+            },
+            child: CustomScrollView(
             slivers: [
               SliverToBoxAdapter(
                 child: Padding(

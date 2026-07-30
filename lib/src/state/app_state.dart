@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -565,11 +566,24 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> markAllNotificationsAsRead() async {
+    final unread = notifications.where((n) => !n.isRead).toList();
+    for (final item in unread) {
+      await _apiClient.put('/notifications/${item.id}/read', body: {});
+    }
+    notifications = notifications
+        .map((item) => item.copyWith(isRead: true))
+        .toList();
+    notifyListeners();
+  }
+
   Future<void> toggleClubLike(String clubId) async {
     final current = session;
     if (current == null || current.id == null) {
       throw ApiException('Please sign in first.');
     }
+
+    HapticFeedback.lightImpact();
 
     final isLiked = current.likedClubs.contains(clubId);
     if (isLiked) {
@@ -1017,13 +1031,22 @@ class AppState extends ChangeNotifier {
     );
   }
 
+  Future<void> requestChangePasswordOtp() async {
+    await _apiClient.post('/auth/request-change-password-otp');
+  }
+
   Future<void> changePassword({
     required String currentPassword,
     required String newPassword,
+    required String otp,
   }) async {
     await _apiClient.post(
       '/auth/change-password',
-      body: {'currentPassword': currentPassword, 'newPassword': newPassword},
+      body: {
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+        'otp': otp,
+      },
     );
   }
 

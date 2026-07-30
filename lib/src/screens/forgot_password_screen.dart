@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
+import '../utils/app_utils.dart';
 import '../widgets/glass_card.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -52,7 +53,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         if (email.isEmpty) {
           throw Exception('Please enter your email');
         }
-        if (!email.contains('@') || !email.contains('.')) {
+        final emailRegex = RegExp(r'^[\w.+\-]+@[\w\-]+\.[a-zA-Z]{2,}$');
+        if (!emailRegex.hasMatch(email)) {
           throw Exception('Please enter a valid email address');
         }
         await widget.appState.requestPasswordReset(email);
@@ -66,8 +68,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       } else if (_step == 2) {
         final password = _passwordController.text;
         final confirm = _confirmController.text;
-        if (password.length < 6) {
-          throw Exception('Password must be at least 6 characters');
+        if (password.length < 8) {
+          throw Exception('Password must be at least 8 characters');
         }
         if (password != confirm) {
           throw Exception('Passwords do not match');
@@ -239,6 +241,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         TextField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
+                          onChanged: (_) => setState(() {}),
                           decoration: InputDecoration(
                             labelText: 'New Password',
                             prefixIcon: const Icon(Icons.lock_outline),
@@ -251,6 +254,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                   _obscurePassword = !_obscurePassword),
                             ),
                           ),
+                        ),
+                        PasswordStrengthIndicator(
+                          password: _passwordController.text,
                         ),
                         const SizedBox(height: 16),
                         TextField(

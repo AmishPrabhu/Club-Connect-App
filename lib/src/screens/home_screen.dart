@@ -890,17 +890,38 @@ class _HomeTopBar extends StatelessWidget {
                     ),
                     if (appState.notifications.any((n) => !n.isRead))
                       Positioned(
-                        right: 8,
-                        top: 8,
-                        child: Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: Colors.redAccent,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Theme.of(context).cardColor, width: 2),
-                          ),
-                        ),
+                        right: 4,
+                        top: 4,
+                        child: Builder(builder: (context) {
+                          final count = appState.notifications
+                              .where((n) => !n.isRead)
+                              .length;
+                          final label = count > 9 ? '9+' : count.toString();
+                          return Container(
+                            constraints:
+                                const BoxConstraints(minWidth: 16, minHeight: 16),
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Theme.of(context).scaffoldBackgroundColor,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Text(
+                              label,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                height: 1.5,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          );
+                        }),
                       ),
                   ],
                 );

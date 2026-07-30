@@ -1,7 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+
+import '../utils/app_utils.dart';
 
 import '../models/user_session.dart';
 import '../state/app_state.dart';
@@ -307,9 +310,9 @@ class _ProfileBodyState extends State<_ProfileBody> {
     final bioController = TextEditingController(text: currentBio ?? '');
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
-          title: Text('Edit Profile Details', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
+          title: Text('Edit Profile Details', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(dialogContext).colorScheme.onSurface)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -325,40 +328,45 @@ class _ProfileBodyState extends State<_ProfileBody> {
                 controller: bioController,
                 decoration: const InputDecoration(
                   labelText: 'Biography',
-                  hintText: 'Enter a short bio',
+                  hintText: 'Enter a short bio (max 150 chars)',
                 ),
                 maxLines: 3,
+                maxLength: 150,
               ),
             ],
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
             ),
             FilledButton(
               onPressed: () async {
                 final newName = nameController.text.trim();
                 final newBio = bioController.text.trim();
-                if (newName.isNotEmpty) {
-                  try {
-                    await widget.appState.updateProfile(
-                      name: newName,
-                      profileImage: widget.appState.session!.profileImage,
-                      bio: newBio,
+                if (newName.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Name cannot be empty.')),
+                  );
+                  return;
+                }
+                try {
+                  await widget.appState.updateProfile(
+                    name: newName,
+                    profileImage: widget.appState.session!.profileImage,
+                    bio: newBio,
+                  );
+                  if (mounted) {
+                    Navigator.of(dialogContext).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Profile updated successfully!')),
                     );
-                    if (mounted) {
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Profile updated successfully!')),
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Failed to update profile: $e')),
-                      );
-                    }
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to update profile: $e')),
+                    );
                   }
                 }
               },
@@ -423,12 +431,24 @@ class _ProfileBodyState extends State<_ProfileBody> {
             if (session.role.isNotEmpty && session.role.toLowerCase() != 'user')
               _buildCenteredRoleBadge(session.role),
             const SizedBox(height: 8),
-            Text(
-              session.email,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppTheme.mutedColor(context),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  session.email,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppTheme.mutedColor(context),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.verified_rounded,
+                  size: 14,
+                  color: Color(0xFF10B981),
+                ),
+              ],
             ),
             if (session.bio != null && session.bio!.isNotEmpty) ...[
               const SizedBox(height: 12),
@@ -686,12 +706,34 @@ class _ProfileBodyState extends State<_ProfileBody> {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            final appState = widget.appState;
-            final navigator = Navigator.of(context);
-            if (navigator.canPop()) {
-              navigator.pop();
-            }
-            appState.logout();
+            showDialog(
+              context: context,
+              builder: (dialogContext) => AlertDialog(
+                title: const Text(
+                  'Logout',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                content: const Text('Are you sure you want to sign out?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                  ),
+                  FilledButton(
+                    style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                      HapticFeedback.mediumImpact();
+                      final appState = widget.appState;
+                      final navigator = Navigator.of(context);
+                      if (navigator.canPop()) navigator.pop();
+                      appState.logout();
+                    },
+                    child: const Text('Logout'),
+                  ),
+                ],
+              ),
+            );
           },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1042,13 +1084,108 @@ class ChangePasswordScreen extends StatefulWidget {
 class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final _currentPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
-  bool _isLoading = false;
+  final _confirmPasswordController = TextEditingController();
+  final _otpController = TextEditingController();
+
+  bool _isLoadingOtp = false;
+  bool _isChanging = false;
+  bool _otpSent = false;
+  bool _obscureCurrent = true;
+  bool _obscureNew = true;
+  bool _obscureConfirm = true;
 
   @override
   void dispose() {
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    _otpController.dispose();
     super.dispose();
+  }
+
+  bool _validateFields() {
+    final cur = _currentPasswordController.text;
+    final nw = _newPasswordController.text;
+    final conf = _confirmPasswordController.text;
+    if (cur.isEmpty || nw.isEmpty || conf.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all password fields.')),
+      );
+      return false;
+    }
+    if (nw.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('New password must be at least 8 characters.')),
+      );
+      return false;
+    }
+    if (nw != conf) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('New passwords do not match.')),
+      );
+      return false;
+    }
+    if (nw == cur) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('New password must be different from your current password.')),
+      );
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _requestOtp() async {
+    if (!_validateFields()) return;
+    setState(() => _isLoadingOtp = true);
+    try {
+      await widget.appState.requestChangePasswordOtp();
+      if (mounted) {
+        setState(() => _otpSent = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Verification code sent to your email.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingOtp = false);
+    }
+  }
+
+  Future<void> _handleChangePassword() async {
+    final otp = _otpController.text.trim();
+    if (otp.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter the verification code.')),
+      );
+      return;
+    }
+    setState(() => _isChanging = true);
+    try {
+      await widget.appState.changePassword(
+        currentPassword: _currentPasswordController.text,
+        newPassword: _newPasswordController.text,
+        otp: otp,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password changed successfully.')),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isChanging = false);
+    }
   }
 
   @override
@@ -1057,10 +1194,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       appBar: AppBar(
         title: const Text(
           'Change Password',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
         elevation: 0,
         leading: IconButton(
@@ -1084,84 +1218,130 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Please enter your current password to authorize, then choose a secure new password.',
+                'Enter your current and new password, then verify with a code sent to your email.',
                 style: TextStyle(fontSize: 13, color: Colors.grey),
               ),
               const SizedBox(height: 24),
               TextField(
                 controller: _currentPasswordController,
-                obscureText: true,
-                decoration: const InputDecoration(
+                obscureText: _obscureCurrent,
+                decoration: InputDecoration(
                   labelText: 'Current Password',
-                  prefixIcon: Icon(Icons.lock_open_rounded),
+                  prefixIcon: const Icon(Icons.lock_open_rounded),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscureCurrent
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined),
+                    onPressed: () =>
+                        setState(() => _obscureCurrent = !_obscureCurrent),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: _newPasswordController,
-                obscureText: true,
-                decoration: const InputDecoration(
+                obscureText: _obscureNew,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
                   labelText: 'New Password',
-                  prefixIcon: Icon(Icons.lock_rounded),
+                  prefixIcon: const Icon(Icons.lock_rounded),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscureNew
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined),
+                    onPressed: () =>
+                        setState(() => _obscureNew = !_obscureNew),
+                  ),
                 ),
               ),
-              const SizedBox(height: 32),
+              PasswordStrengthIndicator(
+                password: _newPasswordController.text,
+              ),
+              TextField(
+                controller: _confirmPasswordController,
+                obscureText: _obscureConfirm,
+                decoration: InputDecoration(
+                  labelText: 'Confirm New Password',
+                  prefixIcon: const Icon(Icons.lock_rounded),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscureConfirm
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined),
+                    onPressed: () =>
+                        setState(() => _obscureConfirm = !_obscureConfirm),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 height: 52,
-                child: FilledButton(
-                  onPressed: _isLoading ? null : _handleChangePassword,
-                  child: _isLoading
-                      ? SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                child: OutlinedButton.icon(
+                  onPressed: _isLoadingOtp ? null : _requestOtp,
+                  icon: const Icon(Icons.mail_outline_rounded),
+                  label: _isLoadingOtp
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Update Password', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      : Text(_otpSent
+                          ? 'Resend Verification Code'
+                          : 'Send Verification Code'),
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                  ),
                 ),
               ),
+              if (_otpSent) ...[
+                const SizedBox(height: 24),
+                Text(
+                  'Enter Verification Code',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _otpController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Verification Code',
+                    prefixIcon: Icon(Icons.key_rounded),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: FilledButton(
+                    onPressed: _isChanging ? null : _handleChangePassword,
+                    child: _isChanging
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2),
+                          )
+                        : const Text('Update Password',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 15)),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
       ),
     );
   }
-
-  Future<void> _handleChangePassword() async {
-    final currentPassword = _currentPasswordController.text;
-    final newPassword = _newPasswordController.text;
-    if (currentPassword.isEmpty || newPassword.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields.')),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      await widget.appState.changePassword(
-        currentPassword: currentPassword,
-        newPassword: newPassword,
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password changed successfully.')),
-        );
-        Navigator.of(context).pop();
-      }
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
 }
+
+
+
 
 class DeleteAccountScreen extends StatefulWidget {
   const DeleteAccountScreen({super.key, required this.appState});
