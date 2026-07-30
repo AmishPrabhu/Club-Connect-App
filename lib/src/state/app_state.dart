@@ -145,11 +145,18 @@ class AppState extends ChangeNotifier {
       posts = postsResponse
           .map((item) => PostItem.fromJson(item as Map<String, dynamic>))
           .toList();
-      notifications = notificationsResponse
-          .map(
-            (item) => NotificationItem.fromJson(item as Map<String, dynamic>),
-          )
-          .toList();
+      final prefs = await SharedPreferences.getInstance();
+      final localReadIds =
+          (prefs.getStringList('read_notification_ids') ?? <String>[]).toSet();
+
+      notifications = notificationsResponse.map((item) {
+        final notif =
+            NotificationItem.fromJson(item as Map<String, dynamic>);
+        if (localReadIds.contains(notif.id)) {
+          return notif.copyWith(isRead: true);
+        }
+        return notif;
+      }).toList();
 
       if (session != null) {
         try {
@@ -180,14 +187,23 @@ class AppState extends ChangeNotifier {
     } catch (_) {}
   }
 
-  /// Refreshes only the notifications list — used by targeted FCM/SSE dispatch.
+  /// Refreshes only the notifications list — applies local read status from SharedPreferences.
   Future<void> refreshNotifications() async {
     try {
       final notificationsResponse =
           await _apiClient.get('/notifications') as List<dynamic>;
-      notifications = notificationsResponse
-          .map((item) => NotificationItem.fromJson(item as Map<String, dynamic>))
-          .toList();
+      final prefs = await SharedPreferences.getInstance();
+      final localReadIds =
+          (prefs.getStringList('read_notification_ids') ?? <String>[]).toSet();
+
+      notifications = notificationsResponse.map((item) {
+        final notif =
+            NotificationItem.fromJson(item as Map<String, dynamic>);
+        if (localReadIds.contains(notif.id)) {
+          return notif.copyWith(isRead: true);
+        }
+        return notif;
+      }).toList();
       notifyListeners();
     } catch (_) {}
   }
@@ -558,7 +574,12 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> markNotificationAsRead(String notificationId) async {
-    await _apiClient.put('/notifications/$notificationId/read', body: {});
+    final prefs = await SharedPreferences.getInstance();
+    final readIds =
+        (prefs.getStringList('read_notification_ids') ?? <String>[]).toSet();
+    readIds.add(notificationId);
+    await prefs.setStringList('read_notification_ids', readIds.toList());
+
     notifications = notifications.map((item) {
       if (item.id == notificationId) return item.copyWith(isRead: true);
       return item;
@@ -567,10 +588,14 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> markAllNotificationsAsRead() async {
-    final unread = notifications.where((n) => !n.isRead).toList();
-    for (final item in unread) {
-      await _apiClient.put('/notifications/${item.id}/read', body: {});
+    final prefs = await SharedPreferences.getInstance();
+    final readIds =
+        (prefs.getStringList('read_notification_ids') ?? <String>[]).toSet();
+    for (final item in notifications) {
+      readIds.add(item.id);
     }
+    await prefs.setStringList('read_notification_ids', readIds.toList());
+
     notifications = notifications
         .map((item) => item.copyWith(isRead: true))
         .toList();
