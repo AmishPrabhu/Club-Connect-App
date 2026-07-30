@@ -57,9 +57,12 @@ app.use('/api/users', userRoutes);
 app.use('/api/tasks', tasksRoutes);
 app.use('/api/sse', sseRoutes);
 
-// Basic route
+// Basic health routes
 app.get('/', (req, res) => {
     res.send('Club Connect API is running');
+});
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', uptime: process.uptime() });
 });
 
 // Database connection

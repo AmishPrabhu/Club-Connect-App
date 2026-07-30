@@ -1116,7 +1116,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                     ),
                   ),
                 ),
-            ],
+            ),
           );
         },
       ),
