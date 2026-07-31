@@ -61,9 +61,9 @@ app.use('/api/sse', sseRoutes);
 app.get('/', (req, res) => {
     res.send('Club Connect API is running');
 });
-// app.get('/health', (req, res) => {
-//     res.status(200).json({ status: 'ok', uptime: process.uptime() });
-// });
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', uptime: process.uptime() });
+});
 
 // Database connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/club-connect')
