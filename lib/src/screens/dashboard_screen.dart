@@ -33,11 +33,13 @@ class DashboardScreen extends StatefulWidget {
     required this.appState,
     this.initialClub,
     this.initialRole,
+    this.initialSection,
   });
 
   final AppState appState;
   final Club? initialClub;
   final String? initialRole;
+  final String? initialSection;
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -56,6 +58,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _teacherBoardFilter = 'All Boards';
   String _teacherReportYearFilter = 'All Years';
   List<Map<String, dynamic>> _allReports = [];
+  bool _startedWithSpecificSection = false;
 
   // Futures for asynchronous views
   Future<List<Map<String, dynamic>>>? _membersFuture;
@@ -149,16 +152,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (session == null) return;
     final activeRole = widget.initialRole ?? session.role;
     
-    // Resolve managed club for officers
-    if (widget.initialClub != null) {
-      _selectedClub = widget.initialClub;
-    } else if (activeRole != 'admin' && activeRole != 'teacher' && activeRole != 'user' && activeRole != 'club-member') {
-      // Any non-admin, non-teacher role with a club context is an officer
-      _selectedClub = _resolveManagedClub(session);
-    } else if (session.isAnyClubOfficer && activeRole != 'admin' && activeRole != 'teacher') {
-      // Fallback: user has officer memberships but role didn't match above
-      _selectedClub = _resolveManagedClub(session);
-    } else if (activeRole == 'teacher') {
+    // Resolve managed club for officers / initial club selection
+    setState(() {
+      if (widget.initialClub != null) {
+        _selectedClub = widget.initialClub;
+      } else if (activeRole != 'admin' && activeRole != 'teacher' && activeRole != 'user' && activeRole != 'club-member') {
+        _selectedClub = _resolveManagedClub(session);
+      } else if (session.isAnyClubOfficer && activeRole != 'admin' && activeRole != 'teacher') {
+        _selectedClub = _resolveManagedClub(session);
+      } else if (activeRole == 'admin' && widget.appState.clubs.isNotEmpty) {
+        _selectedClub = widget.appState.clubs.first;
+      }
+
+      if (widget.initialSection != null && widget.initialSection!.isNotEmpty) {
+        _selectedSection = widget.initialSection!;
+        if (_selectedSection != 'Overview') {
+          _startedWithSpecificSection = true;
+        }
+      } else if (activeRole == 'advisor' || activeRole == 'treasurer' || activeRole == 'president' || activeRole == 'club-secretary') {
+        _selectedSection = 'Overview';
+      }
+    });
+
+    if (activeRole == 'teacher') {
       setState(() => _isLoadingMonitored = true);
       try {
         final monitored = await widget.appState.fetchTeacherClubs();
@@ -180,18 +196,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         setState(() => _isLoadingMonitored = false);
       }
     } else if (activeRole == 'admin') {
-      if (widget.appState.clubs.isNotEmpty) {
-        _selectedClub = widget.appState.clubs.first;
-      }
       _teachersFuture = widget.appState.fetchTeachers();
-    }
-
-    if (activeRole == 'advisor') {
-      _selectedSection = 'Overview';
-    } else if (activeRole == 'treasurer') {
-      _selectedSection = 'Overview';
-    } else if (activeRole == 'president' || activeRole == 'club-secretary') {
-      _selectedSection = 'Overview';
     }
 
     _reloadSectionData();
@@ -261,7 +266,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   : (_selectedSection != 'Overview'
                       ? IconButton(
                           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-                          onPressed: () => setState(() => _selectedSection = 'Overview'),
+                          onPressed: () {
+                            if (_startedWithSpecificSection && _selectedSection == widget.initialSection) {
+                              Navigator.of(context).pop();
+                            } else {
+                              setState(() => _selectedSection = 'Overview');
+                            }
+                          },
                         )
                       : (Navigator.of(context).canPop()
                           ? IconButton(
@@ -3400,7 +3411,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       _reloadSectionData();
                                     });
                                   },
-                                  child: const Text('View Details', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                                  child: Text(
+                                    'View Details',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.textColor(context),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -5395,7 +5413,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       future: _tasksFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-        final tasks = snapshot.data ?? [];
+        var tasks = snapshot.data ?? [];
+        
+        if (!canEdit) {
+          tasks = tasks.where((t) {
+            final assignedTo = t['assignedTo'];
+            if (assignedTo is List) {
+              return assignedTo.contains(session.name);
+            }
+            return false;
+          }).toList();
+        }
+        
         return Column(
           children: [
             Row(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -34,10 +35,27 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   bool _isLoadingRsvps = false;
   String? _rsvpError;
 
+  final Map<String, int> _clubTaskCounts = {};
+
+  int _getClubMessagesCount(Club club) {
+    return widget.appState.notifications.where((n) {
+      if (n.isRead) return false;
+      if (n.clubId != null && n.clubId!.isNotEmpty) {
+        return n.clubId == club.id;
+      }
+      return n.title.toLowerCase().contains(club.name.toLowerCase());
+    }).length;
+  }
+
+  int _getClubTasksCount(Club club) {
+    return _clubTaskCounts[club.id] ?? 0;
+  }
+
   @override
   void initState() {
     super.initState();
     _loadUserRsvps();
+    _loadTaskCounts();
     widget.appState.addListener(_onAppStateChanged);
   }
 
@@ -45,6 +63,38 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   void dispose() {
     widget.appState.removeListener(_onAppStateChanged);
     super.dispose();
+  }
+
+  Future<void> _loadTaskCounts() async {
+    final session = widget.appState.session;
+    if (session == null) return;
+    final clubIds = <String>{
+      ...session.likedClubs,
+      ...session.memberships.map((m) => m.clubId),
+    };
+    for (final clubId in clubIds) {
+      if (clubId.isEmpty) continue;
+      try {
+        final tasks = await widget.appState.fetchClubTasks(clubId);
+        final club = widget.appState.clubs.where((c) => c.id == clubId).firstOrNull;
+        final isOfficer = session.isClubOfficerOf(clubId, club: club);
+        final pending = tasks.where((t) {
+          final isPending = (t['status']?.toString().toLowerCase() != 'completed' && t['status']?.toString().toLowerCase() != 'done');
+          if (!isPending) return false;
+          if (isOfficer) return true;
+          final assignedTo = t['assignedTo'];
+          if (assignedTo is List) {
+            return assignedTo.contains(session.name);
+          }
+          return false;
+        }).length;
+        if (mounted) {
+          setState(() {
+            _clubTaskCounts[clubId] = pending;
+          });
+        }
+      } catch (_) {}
+    }
   }
 
   void _onAppStateChanged() {
@@ -759,7 +809,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                     )
                   else
                     SizedBox(
-                      height: 95,
+                      height: 120,
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: userClubs.length,
@@ -768,9 +818,12 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                           final club = userClubs[index];
                           final role = _getUserRoleInClub(session, club);
                           final isDark = Theme.of(context).brightness == Brightness.dark;
+                          
+                          final tasksCount = _getClubTasksCount(club);
+                          final messagesCount = _getClubMessagesCount(club);
+                          
                           return Container(
-                            width: 190,
-                            padding: const EdgeInsets.all(12),
+                            width: 220,
                             decoration: BoxDecoration(
                               color: Theme.of(context).cardColor,
                               borderRadius: BorderRadius.circular(16),
@@ -786,93 +839,191 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                 ),
                               ],
                             ),
-                            child: InkWell(
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => ClubDetailScreen(
-                                      appState: widget.appState,
-                                      club: club,
-                                    ),
-                                  ),
-                                );
-                              },
-                              child: Row(
-                                children: [
-                                  // Dark navy container for logo
-                                  Container(
-                                    width: 44,
-                                    height: 44,
-                                    decoration: BoxDecoration(
-                                      color: isDark ? AppTheme.surfaceBg(context) : const Color(0xFF002147),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    padding: const EdgeInsets.all(6),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(6),
-                                      child: club.imageAsset.isNotEmpty
-                                          ? (club.imageAsset.startsWith('http')
-                                              ? Image.network(club.imageAsset, fit: BoxFit.cover)
-                                              : Image.asset(
-                                                  club.imageAsset.startsWith('/')
-                                                      ? 'assets/images${club.imageAsset}'
-                                                      : club.imageAsset,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (_, __, ___) => Center(
+                            child: Column(
+                              children: [
+                                // Top section - Navigates to Club Detail
+                                InkWell(
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => ClubDetailScreen(
+                                          appState: widget.appState,
+                                          club: club,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(left: 12, right: 12, top: 12, bottom: 8),
+                                    child: Row(
+                                      children: [
+                                        // Dark navy container for logo
+                                        Container(
+                                          width: 44,
+                                          height: 44,
+                                          decoration: BoxDecoration(
+                                            color: isDark ? AppTheme.surfaceBg(context) : const Color(0xFF002147),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          padding: const EdgeInsets.all(6),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(6),
+                                            child: club.imageAsset.isNotEmpty
+                                                ? (club.imageAsset.startsWith('http')
+                                                    ? Image.network(club.imageAsset, fit: BoxFit.cover)
+                                                    : Image.asset(
+                                                        club.imageAsset.startsWith('/')
+                                                            ? 'assets/images${club.imageAsset}'
+                                                            : club.imageAsset,
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder: (_, __, ___) => Center(
+                                                          child: Text(
+                                                            club.icon.isNotEmpty ? club.icon : '🏛️',
+                                                            style: const TextStyle(fontSize: 16),
+                                                          ),
+                                                        ),
+                                                      ))
+                                                : Center(
                                                     child: Text(
                                                       club.icon.isNotEmpty ? club.icon : '🏛️',
                                                       style: const TextStyle(fontSize: 16),
                                                     ),
                                                   ),
-                                                ))
-                                          : Center(
-                                              child: Text(
-                                                club.icon.isNotEmpty ? club.icon : '🏛️',
-                                                style: const TextStyle(fontSize: 16),
-                                              ),
-                                            ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                          Text(
-                                            club.name,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.bold,
-                                              color: Theme.of(context).colorScheme.onSurface,
-                                            ),
                                           ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          role,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: role != 'Member'
-                                                ? AppTheme.purple
-                                                : AppTheme.mutedColor(context),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                                Text(
+                                                  club.name,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Theme.of(context).colorScheme.onSurface,
+                                                  ),
+                                                ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                role,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: role != 'Member'
+                                                      ? AppTheme.purple
+                                                      : AppTheme.mutedColor(context),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  if (role == 'Member')
-                                    Icon(
-                                      Icons.chevron_right_rounded,
-                                      color: AppTheme.mutedColor(context),
-                                      size: 16,
-                                    ),
-                                ],
-                              ),
+                                ),
+                                
+                                // Divider
+                                Divider(
+                                  height: 1, 
+                                  thickness: 1, 
+                                  color: isDark ? Colors.white.withValues(alpha: 0.08) : Theme.of(context).dividerColor
+                                ),
+                                
+                                // Bottom section - Interactive redirection
+                                Expanded(
+                                  child: Row(
+                                    children: [
+                                      // Tasks Button -> Redirects to Tasks tab
+                                      Expanded(
+                                        child: InkWell(
+                                          onTap: () {
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                builder: (_) => DashboardScreen(
+                                                  appState: widget.appState,
+                                                  initialClub: club,
+                                                  initialSection: 'Tasks',
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(16)),
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                '$tasksCount',
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Theme.of(context).colorScheme.onSurface,
+                                                ),
+                                              ),
+                                              Text(
+                                                tasksCount == 1 ? 'Task' : 'Tasks',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: AppTheme.mutedColor(context),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      VerticalDivider(
+                                        width: 1,
+                                        thickness: 1,
+                                        indent: 8,
+                                        endIndent: 8,
+                                        color: isDark ? Colors.white.withValues(alpha: 0.08) : Theme.of(context).dividerColor,
+                                      ),
+                                      // Live Chat Button -> Redirects to Live Chat tab
+                                      Expanded(
+                                        child: InkWell(
+                                          onTap: () {
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                builder: (_) => DashboardScreen(
+                                                  appState: widget.appState,
+                                                  initialClub: club,
+                                                  initialSection: 'Live Chat',
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          borderRadius: const BorderRadius.only(bottomRight: Radius.circular(16)),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.chat_bubble_rounded,
+                                                size: 16,
+                                                color: AppTheme.purple,
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                '$messagesCount New',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Theme.of(context).colorScheme.onSurface,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           );
                         },
