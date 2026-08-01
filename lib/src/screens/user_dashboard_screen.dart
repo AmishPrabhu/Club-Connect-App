@@ -147,6 +147,17 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
     return 'Member';
   }
 
+  int _getRolePriority(String role) {
+    final r = role.toLowerCase().trim();
+    if (r.contains('president') && !r.contains('vice')) return 1;
+    if (r.contains('vice') || r.contains('vp')) return 2;
+    if (r.contains('secretary')) return 3;
+    if (r.contains('treasurer')) return 4;
+    if (r.contains('advisor')) return 5;
+    if (r != 'member') return 6; // Other officer/cabinet roles
+    return 7; // Regular members
+  }
+
   List<Map<String, dynamic>> _getAvailableManagementRoles(UserSession session) {
     final list = <Map<String, dynamic>>[];
     final addedClubIds = <String>{};
@@ -355,6 +366,8 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
 
     final isOfficer = _isClubOfficer(session);
     final isTeacher = session.role == 'teacher' || session.roles.contains('teacher');
+    final isAdvisor = session.role == 'advisor' || session.roles.contains('advisor');
+    final isStaff = isTeacher || isAdvisor;
     final hasManagementAccess = isOfficer || isTeacher;
 
     Club? managedClub;
@@ -391,17 +404,33 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       }
     }
 
-    // Filter user's clubs (either liked, member via memberships, or officer via email)
+    // Filter user's clubs into Memberships vs Followed/Liked
     final memberClubIds = session.memberships.map((m) => m.clubId).toSet();
-    final userClubs = widget.appState.clubs.where((club) {
-      final isLiked = session.likedClubs.contains(club.id);
+    final membershipClubs = widget.appState.clubs.where((club) {
       final isMember = memberClubIds.contains(club.id);
       final email = session.email.toLowerCase();
       final isPresident = club.presidentEmail.toLowerCase() == email;
       final isSecretary = club.secretaryEmail.toLowerCase() == email;
       final isTreasurer = club.treasurerEmail.toLowerCase() == email;
       final isAdvisor = club.advisorEmail.toLowerCase() == email;
-      return isLiked || isMember || isPresident || isSecretary || isTreasurer || isAdvisor;
+      return isMember || isPresident || isSecretary || isTreasurer || isAdvisor;
+    }).toList();
+    final membershipClubIds = membershipClubs.map((c) => c.id).toSet();
+
+    // Sort membership clubs by role priority (President > Vice President > Secretary > Treasurer > Advisor > Officer > Member)
+    membershipClubs.sort((a, b) {
+      final roleA = _getUserRoleInClub(session, a);
+      final roleB = _getUserRoleInClub(session, b);
+      final priorityA = _getRolePriority(roleA);
+      final priorityB = _getRolePriority(roleB);
+      if (priorityA != priorityB) {
+        return priorityA.compareTo(priorityB);
+      }
+      return a.name.compareTo(b.name);
+    });
+
+    final likedClubs = widget.appState.clubs.where((club) {
+      return session.likedClubs.contains(club.id) && !membershipClubIds.contains(club.id);
     }).toList();
 
     // Map RSVPs to actual PostItems
@@ -771,13 +800,13 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                     ),
                   ],
 
-                  // 3. My Clubs Heading
+                  // 3. My Clubs & Memberships Heading
                   const SizedBox(height: 28),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'My Clubs',
+                        'My Clubs & Memberships',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -785,7 +814,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                         ),
                       ),
                       Text(
-                        '${userClubs.length} ${userClubs.length == 1 ? 'Club' : 'Clubs'}',
+                        '${membershipClubs.length} ${membershipClubs.length == 1 ? 'Club' : 'Clubs'}',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -796,14 +825,14 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  // My Clubs List (Horizontal scroll)
-                  if (userClubs.isEmpty)
+                  // My Clubs & Memberships List (Horizontal scroll with Tasks & Messages buttons)
+                  if (membershipClubs.isEmpty)
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 24),
                       alignment: Alignment.center,
                       child: const Text(
-                        'You haven\'t liked or joined any clubs yet.',
+                        'You are not an official member of any clubs yet.',
                         style: TextStyle(color: Colors.grey, fontSize: 13),
                       ),
                     )
@@ -812,10 +841,10 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                       height: 120,
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
-                        itemCount: userClubs.length,
+                        itemCount: membershipClubs.length,
                         separatorBuilder: (_, __) => const SizedBox(width: 14),
                         itemBuilder: (context, index) {
-                          final club = userClubs[index];
+                          final club = membershipClubs[index];
                           final role = _getUserRoleInClub(session, club);
                           final isDark = Theme.of(context).brightness == Brightness.dark;
                           
@@ -936,7 +965,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                   color: isDark ? Colors.white.withValues(alpha: 0.08) : Theme.of(context).dividerColor
                                 ),
                                 
-                                // Bottom section - Interactive redirection
+                                // Bottom section - Interactive redirection for tasks and messages
                                 Expanded(
                                   child: Row(
                                     children: [
@@ -1030,6 +1059,47 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                       ),
                     ),
 
+                  // 3b. Followed Clubs Heading
+                  if (likedClubs.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Followed Clubs',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          '${likedClubs.length} ${likedClubs.length == 1 ? 'Club' : 'Clubs'}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white70 : const Color(0xFF4B5563),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Followed Clubs List (Clean cards without Task/Message buttons)
+                    SizedBox(
+                      height: 74,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: likedClubs.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 14),
+                        itemBuilder: (context, index) {
+                          final club = likedClubs[index];
+                          return _buildLikedClubCard(club);
+                        },
+                      ),
+                    ),
+                  ],
+                    if (!isStaff) ...[
                   // 4. My Activity Heading
                   const SizedBox(height: 28),
                   Row(
@@ -1308,11 +1378,116 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                         ),
                       ),
                     ),
+                    ],
                 ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLikedClubCard(Club club) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: 200,
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white.withValues(alpha: 0.08) : Theme.of(context).dividerColor,
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.015),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => ClubDetailScreen(
+                appState: widget.appState,
+                club: club,
+              ),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: isDark ? AppTheme.surfaceBg(context) : const Color(0xFF002147),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.all(6),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: club.imageAsset.isNotEmpty
+                      ? (club.imageAsset.startsWith('http')
+                          ? Image.network(club.imageAsset, fit: BoxFit.cover)
+                          : Image.asset(
+                              club.imageAsset.startsWith('/')
+                                  ? 'assets/images${club.imageAsset}'
+                                  : club.imageAsset,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Center(
+                                child: Text(
+                                  club.icon.isNotEmpty ? club.icon : '🏛️',
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                              ),
+                            ))
+                      : Center(
+                          child: Text(
+                            club.icon.isNotEmpty ? club.icon : '🏛️',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      club.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      club.fullForm.isNotEmpty ? club.fullForm : 'Followed',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppTheme.mutedColor(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

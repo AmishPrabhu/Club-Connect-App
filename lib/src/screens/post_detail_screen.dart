@@ -400,7 +400,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
     final hasReport = post.reportUrl != null && post.reportUrl!.isNotEmpty;
 
-    if (!isClubOfficer && !isSupervisor && !hasReport) {
+    if (!isClubOfficer && !isSupervisor) {
       return const SizedBox.shrink();
     }
 

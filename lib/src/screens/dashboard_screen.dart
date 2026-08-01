@@ -247,58 +247,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
 
     return Scaffold(
-      appBar: isAdmin
+      appBar: (isAdmin || isTeacher)
           ? null
           : AppBar(
-              title: isTeacher
-                  ? Text(
-                      'WCE, Sangli',
-                      style: TextStyle(
-                        fontFamily: 'Outfit',
-                        fontWeight: FontWeight.w900,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    )
-                  : Text(_selectedSection == 'Overview' ? (isOfficer ? 'Club Dashboard' : 'Campus Dashboard') : _selectedSection),
+              title: Text(_selectedSection == 'Overview' ? (isOfficer ? 'Club Dashboard' : 'Campus Dashboard') : _selectedSection),
               elevation: 0,
-              leading: isTeacher
-                  ? null
-                  : (_selectedSection != 'Overview'
+              leading: _selectedSection != 'Overview'
+                  ? IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                      onPressed: () {
+                        if (_startedWithSpecificSection && _selectedSection == widget.initialSection) {
+                          Navigator.of(context).pop();
+                        } else {
+                          setState(() => _selectedSection = 'Overview');
+                        }
+                      },
+                    )
+                  : (Navigator.of(context).canPop()
                       ? IconButton(
                           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-                          onPressed: () {
-                            if (_startedWithSpecificSection && _selectedSection == widget.initialSection) {
-                              Navigator.of(context).pop();
-                            } else {
-                              setState(() => _selectedSection = 'Overview');
-                            }
-                          },
+                          onPressed: () => Navigator.of(context).pop(),
                         )
-                      : (Navigator.of(context).canPop()
-                          ? IconButton(
-                              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-                              onPressed: () => Navigator.of(context).pop(),
-                            )
-                          : null)),
-              actions: isTeacher
-                  ? [
-                      IconButton(
-                        icon: const Icon(Icons.notifications_none_rounded, size: 22),
-                        tooltip: 'Notifications',
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => Scaffold(
-                                appBar: AppBar(title: const Text('Notifications')),
-                                body: NotificationsScreen(appState: widget.appState),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                    ]
-                  : null,
+                      : null),
             ),
       body: _isLoadingMonitored
           ? const Center(child: CircularProgressIndicator())

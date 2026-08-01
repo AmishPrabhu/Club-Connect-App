@@ -33,6 +33,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     final allNotifications = widget.appState.notifications;
+
     final unreadCount = allNotifications.where((n) => !n.isRead).length;
 
     final notifications = allNotifications.where((n) {

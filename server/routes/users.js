@@ -481,4 +481,35 @@ router.get('/teacher/reports', verifyToken, async (req, res) => {
     }
 });
 
+// Delete user / teacher (Admin only)
+router.delete('/:id', verifyToken, async (req, res) => {
+    try {
+        const isAdmin = req.user.role === 'admin' || (Array.isArray(req.user.roles) && req.user.roles.includes('admin'));
+        if (!isAdmin) {
+            return res.status(403).json({ message: 'Only admins can delete users/teachers' });
+        }
+
+        const userToDelete = await User.findById(req.params.id);
+        if (!userToDelete) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Delete user
+        await User.findByIdAndDelete(req.params.id);
+
+        // Clean up any club memberships or assigned club relationships
+        await ClubMember.deleteMany({
+            $or: [
+                { userId: req.params.id },
+                { email: userToDelete.email }
+            ]
+        });
+
+        res.json({ message: 'Teacher/User deleted successfully' });
+    } catch (error) {
+        console.error('[CRITICAL] Error deleting user/teacher:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
 export default router;

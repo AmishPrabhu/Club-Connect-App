@@ -47,6 +47,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return DashboardScreen(appState: widget.appState);
     }
 
+    if (session.role == 'teacher' || session.roles.contains('teacher')) {
+      return DashboardScreen(appState: widget.appState, initialRole: 'teacher');
+    }
+
     return UserDashboardScreen(
       appState: widget.appState,
       onOpenProfileSettings: () {
