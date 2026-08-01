@@ -32,6 +32,7 @@ class _ClubsScreenState extends State<ClubsScreen> {
         final liked = widget.appState.session?.likedClubs ?? const <String>[];
 
         return CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(
               child: Padding(

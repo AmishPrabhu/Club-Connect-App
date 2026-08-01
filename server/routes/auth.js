@@ -741,6 +741,29 @@ router.post('/forgot-password', authLimiter, async (req, res) => {
     }
 });
 
+// Verify Reset Token — validates OTP without changing password
+router.post('/verify-reset-token', async (req, res) => {
+    try {
+        const { token, email } = req.body;
+        if (!token || !email) {
+            return res.status(400).json({ message: 'Token and email are required' });
+        }
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+        const user = await User.findOne({
+            email: email.toLowerCase(),
+            resetPasswordToken: tokenHash,
+            resetPasswordExpires: { $gt: new Date() },
+        });
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid or expired OTP. Please try again.' });
+        }
+        res.json({ message: 'OTP verified successfully' });
+    } catch (error) {
+        console.error('Verify reset token error:', error);
+        res.status(500).json({ message: 'Verification failed. Please try again.' });
+    }
+});
+
 // Reset Password - Verify token and update password
 router.post('/reset-password', async (req, res) => {
     try {

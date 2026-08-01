@@ -102,41 +102,43 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
           ),
           if (notifications.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
+            SliverToBoxAdapter(
               child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.notifications_none_rounded,
-                      size: 64,
-                      color: AppTheme.mutedColor(context),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      _filter == 'unread'
-                          ? 'No unread notifications!'
-                          : _filter == 'read'
-                              ? 'No read notifications yet.'
-                              : "You're all caught up!",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _filter == 'all'
-                          ? 'No notifications yet. Check back later.'
-                          : 'Switch filters to see other notifications.',
-                      style: TextStyle(
-                        fontSize: 13,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.notifications_none_rounded,
+                        size: 64,
                         color: AppTheme.mutedColor(context),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+                      Text(
+                        _filter == 'unread'
+                            ? 'No unread notifications!'
+                            : _filter == 'read'
+                                ? 'No read notifications yet.'
+                                : "You're all caught up!",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _filter == 'all'
+                            ? 'When clubs post announcements or updates, they will appear here.'
+                            : 'Try switching the filter to see all notifications.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppTheme.mutedColor(context),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             )

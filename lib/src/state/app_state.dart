@@ -1011,6 +1011,16 @@ class AppState extends ChangeNotifier {
     await _apiClient.post('/auth/forgot-password', body: {'email': email});
   }
 
+  Future<void> verifyResetToken({
+    required String token,
+    required String email,
+  }) async {
+    await _apiClient.post('/auth/verify-reset-token', body: {
+      'token': token,
+      'email': email,
+    });
+  }
+
   Future<void> resetPassword({
     required String token,
     required String email,

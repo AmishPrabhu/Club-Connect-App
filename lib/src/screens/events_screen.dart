@@ -39,17 +39,19 @@ class _EventsScreenState extends State<EventsScreen> {
             widget.appState.clubs.map((club) => club.name).toSet().toList()
               ..sort();
 
-        // Apply filters
+        // Apply filters safely
+        final queryLower = _query.toLowerCase();
         var filtered = allEvents.where((event) {
           final statusMatch =
               _status == 'all' ||
               (_status == 'upcoming' && event.isUpcoming) ||
               (_status == 'completed' && !event.isUpcoming);
-          final clubMatch = _club == 'all' || event.clubName == _club;
-          final queryMatch = _query.isEmpty ||
-              event.title.toLowerCase().contains(_query.toLowerCase()) ||
-              (event.clubName?.toLowerCase().contains(_query.toLowerCase()) ??
-                  false);
+          final clubMatch = _club == 'all' || event.clubName == _club || event.clubId == _club;
+          final titleLower = (event.title ?? '').toLowerCase();
+          final clubLower = (event.clubName ?? '').toLowerCase();
+          final queryMatch = queryLower.isEmpty ||
+              titleLower.contains(queryLower) ||
+              clubLower.contains(queryLower);
           return statusMatch && clubMatch && queryMatch;
         }).toList();
 
@@ -62,9 +64,12 @@ class _EventsScreenState extends State<EventsScreen> {
               : dateB.compareTo(dateA);
         });
 
+        final selectedClub = allClubs.contains(_club) ? _club : 'all';
+
         return RefreshIndicator(
           onRefresh: widget.appState.refreshAll,
           child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               SliverToBoxAdapter(
                 child: Padding(
@@ -122,7 +127,8 @@ class _EventsScreenState extends State<EventsScreen> {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: _club,
+                              value: selectedClub,
+                              isExpanded: true,
                               decoration: const InputDecoration(
                                 prefixIcon: Icon(Icons.filter_alt_outlined),
                                 isDense: true,
@@ -134,7 +140,11 @@ class _EventsScreenState extends State<EventsScreen> {
                                 ),
                                 ...allClubs.map(
                                   (club) => DropdownMenuItem(
-                                      value: club, child: Text(club)),
+                                      value: club,
+                                      child: Text(
+                                        club,
+                                        overflow: TextOverflow.ellipsis,
+                                      )),
                                 ),
                               ],
                               onChanged: (value) =>
@@ -142,25 +152,27 @@ class _EventsScreenState extends State<EventsScreen> {
                             ),
                           ),
                           const SizedBox(width: 10),
-                          DropdownButtonFormField<String>(
-                            value: _sort,
-                            isDense: true,
-                            decoration: const InputDecoration(
-                              prefixIcon: Icon(Icons.sort_rounded),
-                              isDense: true,
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: _sort,
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                prefixIcon: Icon(Icons.sort_rounded),
+                                isDense: true,
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'date_desc',
+                                  child: Text('Newest first'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'date_asc',
+                                  child: Text('Oldest first'),
+                                ),
+                              ],
+                              onChanged: (value) =>
+                                  setState(() => _sort = value ?? 'date_desc'),
                             ),
-                            items: const [
-                              DropdownMenuItem(
-                                value: 'date_desc',
-                                child: Text('Newest first'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'date_asc',
-                                child: Text('Oldest first'),
-                              ),
-                            ],
-                            onChanged: (value) =>
-                                setState(() => _sort = value ?? 'date_desc'),
                           ),
                         ],
                       ),
@@ -169,11 +181,10 @@ class _EventsScreenState extends State<EventsScreen> {
                 ),
               ),
               if (filtered.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
+                SliverToBoxAdapter(
                   child: Center(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -181,30 +192,36 @@ class _EventsScreenState extends State<EventsScreen> {
                               size: 64,
                               color: Theme.of(context).dividerColor),
                           const SizedBox(height: 16),
-                          const Text(
-                            'No events match your filters.',
-                            style: TextStyle(
+                          Text(
+                            allEvents.isEmpty
+                                ? 'No campus events posted yet.'
+                                : 'No events match your filters.',
+                            style: const TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Try changing the status filter or clearing all selections.',
-                            style:
-                                TextStyle(fontSize: 13, color: Colors.grey),
+                          Text(
+                            allEvents.isEmpty
+                                ? 'Pull down to refresh or check back when clubs publish new events.'
+                                : 'Try changing the status filter or clearing all selections.',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 13, color: Colors.grey),
                           ),
-                          const SizedBox(height: 16),
-                          OutlinedButton(
-                            onPressed: () {
-                              setState(() {
-                                _status = 'all';
-                                _club = 'all';
-                                _sort = 'date_desc';
-                                _query = '';
-                                _searchController.clear();
-                              });
-                            },
-                            child: const Text('Clear Filters'),
-                          ),
+                          if (allEvents.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            OutlinedButton(
+                              onPressed: () {
+                                setState(() {
+                                  _status = 'all';
+                                  _club = 'all';
+                                  _sort = 'date_desc';
+                                  _query = '';
+                                  _searchController.clear();
+                                });
+                              },
+                              child: const Text('Clear Filters'),
+                            ),
+                          ],
                         ],
                       ),
                     ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_utils.dart';
+import '../widgets/animated_otp_input.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key, required this.appState, this.googleData});
@@ -27,6 +28,9 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _googleSigningIn = false;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
+  bool _otpSuccess = false;
+  int _otpAttempts = 0;
+  static const int _maxOtpAttempts = 3;
   String? _error;
 
   @override
@@ -61,11 +65,17 @@ class _SignupScreenState extends State<SignupScreen> {
         : ['Verify Email', 'Confirm OTP', 'Create Account'][_step];
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(title: const Text('Create Account')),
       body: Center(
         child: SingleChildScrollView(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.fromLTRB(
+            24,
+            24,
+            24,
+            36 + MediaQuery.of(context).viewInsets.bottom,
+          ),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 460),
             child: Column(
@@ -96,13 +106,45 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
                 if (_step == 1 && !isGoogleSignup)
-                  TextField(
-                    controller: _otpController,
-                    keyboardType: TextInputType.number,
-                    maxLength: 6,
-                    decoration: const InputDecoration(
-                      labelText: '6-digit OTP',
-                      prefixIcon: Icon(Icons.verified_outlined),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Column(
+                      children: [
+                        AnimatedOtpInput(
+                          controller: _otpController,
+                          length: 6,
+                          isVerifying: _submitting,
+                          isError: _error != null,
+                          isSuccess: _otpSuccess,
+                          onChanged: (_) {
+                            if (_error != null) setState(() => _error = null);
+                          },
+                          onCompleted: (_) {
+                            if (!_submitting) _handleStep();
+                          },
+                        ),
+                        if (_error != null && _otpAttempts > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 10),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.warning_amber_rounded, size: 14, color: Color(0xFFB91C1C)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _maxOtpAttempts - _otpAttempts == 1
+                                      ? '1 more try remaining'
+                                      : '${_maxOtpAttempts - _otpAttempts} more tries remaining',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFFB91C1C),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 if (_step == 2) ...[
@@ -293,6 +335,11 @@ class _SignupScreenState extends State<SignupScreen> {
           _emailController.text.trim(),
           _otpController.text.trim(),
         );
+        setState(() {
+          _otpAttempts = 0;
+          _otpSuccess = true;
+        });
+        await Future.delayed(const Duration(milliseconds: 1800));
         setState(() => _step = 2);
       } else {
         if (_nameController.text.trim().isEmpty) {
@@ -322,9 +369,27 @@ class _SignupScreenState extends State<SignupScreen> {
         Navigator.of(context).pop(true);
       }
     } catch (error) {
-      setState(() => _error = error.toString()
+      final msg = error.toString()
           .replaceFirst('Exception: ', '')
-          .replaceFirst('ApiException: ', ''));
+          .replaceFirst('ApiException: ', '');
+      if (_step == 1) {
+        final newAttempts = _otpAttempts + 1;
+        if (newAttempts >= _maxOtpAttempts) {
+          setState(() {
+            _otpAttempts = 0;
+            _step = 0;
+            _otpController.clear();
+            _error = 'Too many incorrect attempts. Please request a new OTP.';
+          });
+        } else {
+          setState(() {
+            _otpAttempts = newAttempts;
+            _error = msg;
+          });
+        }
+      } else {
+        setState(() => _error = msg);
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

@@ -33,13 +33,8 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime? _selectedDate;
   final ScrollController _calendarScrollController = ScrollController();
 
-  // VL-01: GlobalKey to measure the actual hero column height at runtime
-  final GlobalKey _heroKey = GlobalKey();
-  double _heroHeight = 415.0;    // fallback until first frame
-  double _textHeight = 208.0;    // fallback until first frame
-
-  // Persistent map of date keys to global keys for scrolling
-  final Map<String, GlobalKey> _dateKeys = {};
+  final double _heroHeight = 415.0;
+  final double _textHeight = 208.0;
 
   String _formatDateKey(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
@@ -64,31 +59,42 @@ class _HomeScreenState extends State<HomeScreen> {
     return _formatFullDate(date);
   }
 
-  void _scrollToDate(DateTime date, ScrollController controller, List<String> sortedKeys) {
+  void _scrollToDate(DateTime date, ScrollController controller, List<_FeedItem> feedItems) {
     final dateKey = _formatDateKey(date);
-    
-    // Find the first date key that is >= target date key
-    String? targetKey;
-    for (final key in sortedKeys) {
-      if (key.compareTo(dateKey) >= 0) {
-        targetKey = key;
+
+    int targetIndex = -1;
+    for (int i = 0; i < feedItems.length; i++) {
+      final itemKey = feedItems[i].dateKey;
+      if (itemKey != null && itemKey.compareTo(dateKey) >= 0) {
+        targetIndex = i;
         break;
       }
     }
-    
-    targetKey ??= sortedKeys.isNotEmpty ? sortedKeys.last : null;
-    
-    if (targetKey != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final key = _dateKeys[targetKey];
-        if (key != null && key.currentContext != null) {
-          Scrollable.ensureVisible(
-            key.currentContext!,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-          );
+
+    if (targetIndex == -1) {
+      for (int i = feedItems.length - 1; i >= 0; i--) {
+        if (feedItems[i].dateKey != null) {
+          targetIndex = i;
+          break;
         }
-      });
+      }
+    }
+
+    if (targetIndex != -1 && controller.hasClients) {
+      double targetOffset = 0.0;
+      for (int i = 0; i < targetIndex; i++) {
+        if (feedItems[i].dateKey != null) {
+          targetOffset += 46.0;
+        } else {
+          targetOffset += 156.0;
+        }
+      }
+
+      controller.animateTo(
+        targetOffset.clamp(0.0, controller.position.maxScrollExtent),
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+      );
     }
   }
 
@@ -99,24 +105,11 @@ class _HomeScreenState extends State<HomeScreen> {
     _selectedDate = DateTime(now.year, now.month, now.day);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Measure hero height from its render box so snap sizes are device-accurate
-      final heroBox = _heroKey.currentContext?.findRenderObject() as RenderBox?;
-      if (heroBox != null && mounted) {
-        setState(() {
-          _heroHeight = heroBox.size.height;
-          // textHeight = topBar (66) + heading (~80) + subtext (~36) + gaps (~26)
-          _textHeight = 208.0; // kept as a proportional constant; hero drives the critical min size
-        });
-      }
-
-      // Calendar scroll offset
       if (_calendarScrollController.hasClients) {
-        const todayIndex = 15; // middle of 31 days
+        const todayIndex = 15;
         const itemWidth = 44.0;
         const separatorWidth = 8.0;
         const itemSpace = itemWidth + separatorWidth;
-
-        // Offset so today's item aligns with the left side of the screen
         final targetOffset = todayIndex * itemSpace;
         _calendarScrollController.jumpTo(targetOffset.clamp(0.0, double.infinity));
       }
@@ -265,7 +258,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       alignment: const Alignment(0.35, -0.5),
                     ),
                     Column(
-                      key: _heroKey,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -614,10 +606,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                         setState(() {
                                           if (isSelected) {
                                             _selectedDate = null;
-                                            _scrollToDate(todayMidnight, scrollController, sortedDateKeys);
+                                            _scrollToDate(todayMidnight, scrollController, feedItems);
                                           } else {
                                             _selectedDate = cellDate;
-                                            _scrollToDate(cellDate, scrollController, sortedDateKeys);
+                                            _scrollToDate(cellDate, scrollController, feedItems);
                                           }
                                         });
                                       },
@@ -706,7 +698,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     onPressed: () {
                                       setState(() {
                                         _selectedDate = null;
-                                        _scrollToDate(todayMidnight, scrollController, sortedDateKeys);
+                                        _scrollToDate(todayMidnight, scrollController, feedItems);
                                       });
                                     },
                                     style: TextButton.styleFrom(
@@ -755,10 +747,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               for (int index = 0; index < feedItems.length; index++) ...[
                                 if (feedItems[index].dateKey != null) ...[
                                   Container(
-                                    key: _dateKeys.putIfAbsent(
-                                      feedItems[index].dateKey!,
-                                      () => GlobalKey(),
-                                    ),
+                                    key: ValueKey('header_${feedItems[index].dateKey}'),
                                     padding: const EdgeInsets.only(top: 16, bottom: 8),
                                     child: Row(
                                       children: [

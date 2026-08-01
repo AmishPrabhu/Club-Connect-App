@@ -92,7 +92,7 @@ class PostItem {
   final String? relatedEventId;
   final String? relatedEventTitle;
 
-  bool get isEvent => type == 'event';
+  bool get isEvent => type.toLowerCase() == 'event';
   bool get isUpcoming =>
       isEvent && date != null && date!.isAfter(DateTime.now());
 

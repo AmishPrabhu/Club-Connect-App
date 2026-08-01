@@ -14,6 +14,7 @@ import 'dashboard_screen.dart';
 import 'login_screen.dart';
 import 'signup_screen.dart';
 import '../services/cloudinary_service.dart';
+import '../widgets/animated_otp_input.dart';
 import 'user_dashboard_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -1090,6 +1091,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _otpController = TextEditingController();
+  final _scrollController = ScrollController();
 
   bool _isLoadingOtp = false;
   bool _isChanging = false;
@@ -1097,6 +1099,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   bool _obscureCurrent = true;
   bool _obscureNew = true;
   bool _obscureConfirm = true;
+  bool _changeSuccess = false;
+  int _otpAttempts = 0;
+  static const int _maxOtpAttempts = 3;
+  String? _changeError;
 
   @override
   void dispose() {
@@ -1104,6 +1110,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     _otpController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -1138,13 +1145,36 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     return true;
   }
 
+  void _scrollToBottom() {
+    FocusScope.of(context).unfocus();
+    void doScroll() {
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => doScroll());
+    Future.delayed(const Duration(milliseconds: 180), doScroll);
+    Future.delayed(const Duration(milliseconds: 400), doScroll);
+  }
+
   Future<void> _requestOtp() async {
+    FocusScope.of(context).unfocus();
     if (!_validateFields()) return;
     setState(() => _isLoadingOtp = true);
     try {
       await widget.appState.requestChangePasswordOtp();
       if (mounted) {
-        setState(() => _otpSent = true);
+        _otpController.clear();
+        setState(() {
+          _otpSent = true;
+          _otpAttempts = 0;
+        });
+        _scrollToBottom();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Verification code sent to your email.')),
         );
@@ -1168,7 +1198,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       );
       return;
     }
-    setState(() => _isChanging = true);
+    setState(() {
+      _isChanging = true;
+      _changeError = null;
+      _changeSuccess = false;
+    });
     try {
       await widget.appState.changePassword(
         currentPassword: _currentPasswordController.text,
@@ -1176,6 +1210,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         otp: otp,
       );
       if (mounted) {
+        setState(() => _changeSuccess = true);
+        await Future.delayed(const Duration(milliseconds: 1800));
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Password changed successfully.')),
         );
@@ -1183,9 +1220,26 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
-        );
+        final newAttempts = _otpAttempts + 1;
+        if (newAttempts >= _maxOtpAttempts) {
+          setState(() {
+            _otpAttempts = 0;
+            _otpSent = false;
+            _changeError = null;
+            _otpController.clear();
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Too many incorrect OTP attempts. Please request a new code.')),
+          );
+        } else {
+          setState(() {
+            _otpAttempts = newAttempts;
+            _changeError = error.toString();
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _isChanging = false);
@@ -1195,6 +1249,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text(
           'Change Password',
@@ -1208,7 +1263,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          controller: _scrollController,
+          padding: EdgeInsets.fromLTRB(
+            24,
+            24,
+            24,
+            36 + MediaQuery.of(context).viewInsets.bottom,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1261,6 +1322,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               PasswordStrengthIndicator(
                 password: _newPasswordController.text,
               ),
+              const SizedBox(height: 16),
               TextField(
                 controller: _confirmPasswordController,
                 obscureText: _obscureConfirm,
@@ -1308,15 +1370,43 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
-                const SizedBox(height: 8),
-                TextField(
+                const SizedBox(height: 12),
+                AnimatedOtpInput(
                   controller: _otpController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Verification Code',
-                    prefixIcon: Icon(Icons.key_rounded),
-                  ),
+                  length: 6,
+                  isVerifying: _isChanging,
+                  isError: _changeError != null,
+                  isSuccess: _changeSuccess,
+                  onChanged: (code) {
+                    if (_changeError != null) setState(() => _changeError = null);
+                  },
+                  onCompleted: (code) {
+                    if (!_isChanging) {
+                      _handleChangePassword();
+                    }
+                  },
                 ),
+                if (_changeError != null && _otpAttempts > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, size: 14, color: Color(0xFFB91C1C)),
+                        const SizedBox(width: 4),
+                        Text(
+                          _maxOtpAttempts - _otpAttempts == 1
+                              ? '1 more try remaining'
+                              : '${_maxOtpAttempts - _otpAttempts} more tries remaining',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFFB91C1C),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
@@ -1358,19 +1448,25 @@ class DeleteAccountScreen extends StatefulWidget {
 
 class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
   final _deleteOtpController = TextEditingController();
+  final _scrollController = ScrollController();
   bool _isLoadingOtp = false;
   bool _isDeleting = false;
   bool _otpSent = false;
+  bool _otpError = false;
+  int _otpAttempts = 0;
+  static const int _maxOtpAttempts = 3;
 
   @override
   void dispose() {
     _deleteOtpController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text(
           'Delete Account',
@@ -1387,7 +1483,13 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          controller: _scrollController,
+          padding: EdgeInsets.fromLTRB(
+            24,
+            24,
+            24,
+            36 + MediaQuery.of(context).viewInsets.bottom,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1431,15 +1533,42 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                   'Enter Verification Code',
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
                 ),
-                const SizedBox(height: 8),
-                TextField(
+                const SizedBox(height: 12),
+                AnimatedOtpInput(
                   controller: _deleteOtpController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Verification Code',
-                    prefixIcon: Icon(Icons.key_rounded),
-                  ),
+                  length: 6,
+                  isVerifying: _isDeleting,
+                  isError: _otpError,
+                  onChanged: (_) {
+                    if (_otpError) setState(() => _otpError = false);
+                  },
+                  onCompleted: (code) {
+                    if (!_isDeleting) {
+                      _deleteAccount();
+                    }
+                  },
                 ),
+                if (_otpError && _otpAttempts > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, size: 14, color: Color(0xFFB91C1C)),
+                        const SizedBox(width: 4),
+                        Text(
+                          _maxOtpAttempts - _otpAttempts == 1
+                              ? '1 more try remaining'
+                              : '${_maxOtpAttempts - _otpAttempts} more tries remaining',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFFB91C1C),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
@@ -1467,7 +1596,25 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
     );
   }
 
+  void _scrollToBottom() {
+    FocusScope.of(context).unfocus();
+    void doScroll() {
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => doScroll());
+    Future.delayed(const Duration(milliseconds: 180), doScroll);
+    Future.delayed(const Duration(milliseconds: 400), doScroll);
+  }
+
   Future<void> _requestOtp() async {
+    FocusScope.of(context).unfocus();
     setState(() {
       _isLoadingOtp = true;
     });
@@ -1475,9 +1622,13 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
     try {
       await widget.appState.requestDeleteOtp();
       if (mounted) {
+        _deleteOtpController.clear();
         setState(() {
           _otpSent = true;
+          _otpAttempts = 0;
+          _otpError = false;
         });
+        _scrollToBottom();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Verification code sent to your email.')),
         );
@@ -1520,9 +1671,26 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
-        );
+        final newAttempts = _otpAttempts + 1;
+        if (newAttempts >= _maxOtpAttempts) {
+          setState(() {
+            _otpAttempts = 0;
+            _otpSent = false;
+            _otpError = false;
+            _deleteOtpController.clear();
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Too many incorrect attempts. Please request a new verification code.')),
+          );
+        } else {
+          setState(() {
+            _otpAttempts = newAttempts;
+            _otpError = true;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
+          );
+        }
       }
     } finally {
       if (mounted) {

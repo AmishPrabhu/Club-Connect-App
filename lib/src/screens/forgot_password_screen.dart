@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
 import '../utils/app_utils.dart';
+import '../widgets/animated_otp_input.dart';
 import '../widgets/glass_card.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -19,11 +20,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _tokenController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
+  final _scrollController = ScrollController();
 
+  // 0 = enter email, 1 = enter OTP, 2 = enter new password, 3 = success
   int _step = 0;
   bool _isLoading = false;
+  bool _otpSuccess = false;
+  bool _otpError = false;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
+  int _otpAttempts = 0;
+  static const int _maxOtpAttempts = 3;
   String? _error;
 
   @override
@@ -38,7 +45,23 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     _tokenController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToBottom() {
+    void doScroll() {
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) => doScroll());
+    Future.delayed(const Duration(milliseconds: 180), doScroll);
+    Future.delayed(const Duration(milliseconds: 400), doScroll);
   }
 
   Future<void> _handleStep() async {
@@ -49,31 +72,57 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     try {
       if (_step == 0) {
+        // ── Step 0: send OTP to email ──────────────────────────────
         final email = _emailController.text.trim();
-        if (email.isEmpty) {
-          throw Exception('Please enter your email');
-        }
-        final emailRegex = RegExp(r'^[\w.+\-]+@[\w\-]+\.[a-zA-Z]{2,}$');
+        if (email.isEmpty) throw Exception('Please enter your email');
+        final emailRegex = RegExp(r'^[\w.+\-]+@[\w\-]+(\.[\w\-]+)+$');
         if (!emailRegex.hasMatch(email)) {
           throw Exception('Please enter a valid email address');
         }
         await widget.appState.requestPasswordReset(email);
-        setState(() => _step = 1);
+        setState(() {
+          _step = 1;
+          _tokenController.clear();
+          _otpError = false;
+          _otpSuccess = false;
+        });
+        _scrollToBottom();
+
       } else if (_step == 1) {
+        // ── Step 1: verify OTP on server ──────────────────────────
         final token = _tokenController.text.trim();
-        if (token.isEmpty) {
-          throw Exception('Please enter the reset token');
+        if (token.length < 6) {
+          setState(() => _otpError = true);
+          throw Exception('Please enter the complete 6-digit OTP code');
         }
-        setState(() => _step = 2);
+        // Real server validation — throws ApiException on wrong/expired OTP
+        await widget.appState.verifyResetToken(
+          token: token,
+          email: _emailController.text.trim(),
+        );
+        // OTP correct — reset attempts, show green success animation, then reveal password step
+        setState(() {
+          _otpAttempts = 0;
+          _otpSuccess = true;
+        });
+        await Future.delayed(const Duration(milliseconds: 1600));
+        if (mounted) {
+          setState(() {
+            _step = 2;
+            _otpSuccess = false;
+            _passwordController.clear();
+            _confirmController.clear();
+          });
+        }
+
       } else if (_step == 2) {
+        // ── Step 2: set new password ──────────────────────────────
         final password = _passwordController.text;
         final confirm = _confirmController.text;
         if (password.length < 8) {
-          throw Exception('Password must be at least 8 characters');
+          throw Exception('New password must be at least 8 characters');
         }
-        if (password != confirm) {
-          throw Exception('Passwords do not match');
-        }
+        if (password != confirm) throw Exception('Passwords do not match');
         await widget.appState.resetPassword(
           token: _tokenController.text.trim(),
           email: _emailController.text.trim(),
@@ -82,36 +131,50 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         setState(() => _step = 3);
       }
     } catch (e) {
-      setState(() {
-        _error = e.toString().replaceFirst('Exception: ', '').replaceFirst('ApiException: ', '');
-      });
+      final msg = e
+          .toString()
+          .replaceFirst('Exception: ', '')
+          .replaceFirst('ApiException: ', '');
+      if (_step == 1) {
+        final newAttempts = _otpAttempts + 1;
+        if (newAttempts >= _maxOtpAttempts) {
+          // Locked — go back to email step for a fresh OTP
+          setState(() {
+            _otpAttempts = 0;
+            _otpError = false;
+            _step = 0;
+            _tokenController.clear();
+            _error = 'Too many incorrect attempts. Please request a new code.';
+          });
+        } else {
+          setState(() {
+            _otpAttempts = newAttempts;
+            _otpError = true;
+            _error = msg;
+          });
+        }
+      } else {
+        setState(() => _error = msg);
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    final titles = [
-      'Verify Email',
-      'Confirm Reset Code',
-      'New Password',
-      'Success!'
-    ];
-    
-    final descriptions = [
-      'Enter your email address to receive a password reset OTP.',
-      'Enter the 6-digit OTP code sent to your email.',
-      'Set your secure new password.',
-      'Your password has been reset successfully.'
-    ];
 
-    final title = titles[_step];
-    final description = descriptions[_step];
+    final titles = ['Verify Email', 'Confirm OTP', 'New Password', 'Password Reset!'];
+    final descriptions = [
+      'Enter your email to receive a 6-digit reset code.',
+      'Enter the code sent to your email.',
+      'Set your new secure password.',
+      'Your password has been updated successfully.',
+    ];
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text('Reset Password'),
         backgroundColor: Colors.transparent,
@@ -119,10 +182,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () {
-            if (_step > 0 && _step < 3) {
+            if (_step == 1 || _step == 2) {
               setState(() {
                 _step--;
                 _error = null;
+                _otpError = false;
+                _otpSuccess = false;
               });
             } else {
               Navigator.of(context).pop();
@@ -132,24 +197,28 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       ),
       body: Center(
         child: SingleChildScrollView(
+          controller: _scrollController,
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: const EdgeInsets.all(24.0),
+          padding: EdgeInsets.fromLTRB(
+            24.0,
+            24.0,
+            24.0,
+            36 + MediaQuery.of(context).viewInsets.bottom,
+          ),
           child: GlassCard(
             child: _step == 3
                 ? Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.check_circle,
-                          color: Colors.green, size: 64),
+                      const Icon(Icons.check_circle, color: Colors.green, size: 64),
                       const SizedBox(height: 16),
                       Text(
-                        title,
-                        style: const TextStyle(
-                            fontSize: 24, fontWeight: FontWeight.bold),
+                        titles[3],
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        description,
+                        descriptions[3],
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: Colors.grey),
                       ),
@@ -157,7 +226,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton(
-                          onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
+                          onPressed: () =>
+                              Navigator.of(context).popUntil((route) => route.isFirst),
                           child: const Text('Back to Login'),
                         ),
                       ),
@@ -167,6 +237,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Header
                       Row(
                         children: [
                           Icon(
@@ -174,28 +245,26 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                 ? Icons.mail_outline_rounded
                                 : _step == 1
                                     ? Icons.vpn_key_outlined
-                                    : Icons.lock_outline_rounded,
+                                    : Icons.lock_reset_rounded,
                             size: 32,
                             color: Theme.of(context).colorScheme.primary,
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              title,
+                              titles[_step],
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  fontSize: 24, fontWeight: FontWeight.bold),
+                              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        description,
-                        style: const TextStyle(color: Colors.grey),
-                      ),
+                      Text(descriptions[_step], style: const TextStyle(color: Colors.grey)),
                       const SizedBox(height: 24),
+
+                      // ── Step 0: Email input ──────────────────────────
                       if (_step == 0)
                         TextField(
                           controller: _emailController,
@@ -206,37 +275,75 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             border: OutlineInputBorder(),
                           ),
                         ),
+
+                      // ── Step 1: Animated OTP ─────────────────────────
                       if (_step == 1) ...[
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withValues(alpha: 0.05) : Theme.of(context).dividerColor,
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.05)
+                                : Theme.of(context).dividerColor,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Sending reset code to:',
-                                  style: TextStyle(
-                                      fontSize: 12, color: isDark ? Colors.grey : Theme.of(context).dividerColor)),
-                              Text(_emailController.text,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold)),
+                              Text(
+                                'Reset code sent to:',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark
+                                      ? Colors.grey
+                                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              Text(
+                                _emailController.text,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        TextField(
+                        const SizedBox(height: 20),
+                        AnimatedOtpInput(
                           controller: _tokenController,
-                          keyboardType: TextInputType.number,
-                          maxLength: 6,
-                          decoration: const InputDecoration(
-                            labelText: '6-digit OTP Code',
-                            prefixIcon: Icon(Icons.verified_outlined),
-                            border: OutlineInputBorder(),
-                          ),
+                          length: 6,
+                          isVerifying: _isLoading,
+                          isError: _otpError,
+                          isSuccess: _otpSuccess,
+                          onChanged: (_) {
+                            if (_otpError) setState(() => _otpError = false);
+                            if (_error != null) setState(() => _error = null);
+                          },
+                          onCompleted: (_) {
+                            if (!_isLoading) _handleStep();
+                          },
                         ),
+                        if (_otpError && _otpAttempts > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 10),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.warning_amber_rounded, size: 14, color: Color(0xFFB91C1C)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _maxOtpAttempts - _otpAttempts == 1
+                                      ? '1 more try remaining'
+                                      : '${_maxOtpAttempts - _otpAttempts} more tries remaining',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFFB91C1C),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
+
+                      // ── Step 2: New password ─────────────────────────
                       if (_step == 2) ...[
                         TextField(
                           controller: _passwordController,
@@ -250,32 +357,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               icon: Icon(_obscurePassword
                                   ? Icons.visibility_off
                                   : Icons.visibility),
-                              onPressed: () => setState(() =>
-                                  _obscurePassword = !_obscurePassword),
+                              onPressed: () =>
+                                  setState(() => _obscurePassword = !_obscurePassword),
                             ),
                           ),
                         ),
-                        PasswordStrengthIndicator(
-                          password: _passwordController.text,
-                        ),
+                        PasswordStrengthIndicator(password: _passwordController.text),
                         const SizedBox(height: 16),
                         TextField(
                           controller: _confirmController,
                           obscureText: _obscureConfirm,
                           decoration: InputDecoration(
-                            labelText: 'Confirm Password',
+                            labelText: 'Confirm New Password',
                             prefixIcon: const Icon(Icons.lock_outline),
                             border: const OutlineInputBorder(),
                             suffixIcon: IconButton(
                               icon: Icon(_obscureConfirm
                                   ? Icons.visibility_off
                                   : Icons.visibility),
-                              onPressed: () => setState(() =>
-                                  _obscureConfirm = !_obscureConfirm),
+                              onPressed: () =>
+                                  setState(() => _obscureConfirm = !_obscureConfirm),
                             ),
                           ),
                         ),
                       ],
+
+                      // ── Error ────────────────────────────────────────
                       if (_error != null) ...[
                         const SizedBox(height: 16),
                         Text(
@@ -286,31 +393,33 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ),
                         ),
                       ],
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: FilledButton(
-                          onPressed: _isLoading ? null : _handleStep,
-                          child: _isLoading
-                              ? SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
+
+                      // ── Primary action button (hidden during OTP success animation) ──
+                      if (!_otpSuccess) ...[
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: FilledButton(
+                            onPressed: _isLoading ? null : _handleStep,
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2, color: Colors.white),
+                                  )
+                                : Text(
+                                    _step == 0
+                                        ? 'Send OTP'
+                                        : _step == 1
+                                            ? 'Verify OTP'
+                                            : 'Reset Password',
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
                                   ),
-                                )
-                              : Text(
-                                  _step == 0
-                                      ? 'Send OTP'
-                                      : _step == 1
-                                          ? 'Verify OTP'
-                                          : 'Update Password',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
           ),
