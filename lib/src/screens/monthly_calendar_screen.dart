@@ -42,6 +42,122 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
     });
   }
 
+  void _showMonthYearPicker(BuildContext context) {
+    int tempYear = _focusedMonth.year;
+    int tempMonth = _focusedMonth.month;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final months = [
+              'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+            ];
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Year Selection Header Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left_rounded, size: 28),
+                        onPressed: () {
+                          setModalState(() => tempYear--);
+                        },
+                      ),
+                      Row(
+                        children: [
+                          Text(
+                            '$tempYear',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Year',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppTheme.mutedColor(context),
+                            ),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right_rounded, size: 28),
+                        onPressed: () {
+                          setModalState(() => tempYear++);
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Month Grid Selection
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 4,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 2.0,
+                    ),
+                    itemCount: 12,
+                    itemBuilder: (context, index) {
+                      final monthNum = index + 1;
+                      final isSelected = (monthNum == _focusedMonth.month && tempYear == _focusedMonth.year);
+                      return InkWell(
+                        onTap: () {
+                          setState(() {
+                            _focusedMonth = DateTime(tempYear, monthNum, 1);
+                            _selectedDate = null;
+                          });
+                          Navigator.of(context).pop();
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppTheme.purple
+                                : (Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white.withValues(alpha: 0.08)
+                                    : Colors.black.withValues(alpha: 0.05)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            months[index],
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   // Get total days in the focused month
   int _getDaysInMonth(int year, int month) {
     if (month == 12) {
@@ -207,15 +323,33 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              _formatMonthYear(_focusedMonth),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 22,
-                                  ),
+                            InkWell(
+                              onTap: () => _showMonthYearPicker(context),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      _formatMonthYear(_focusedMonth),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 22,
+                                          ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      Icons.arrow_drop_down_rounded,
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                      size: 28,
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                             Row(
                               children: [
