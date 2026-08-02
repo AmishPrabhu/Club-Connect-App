@@ -21,6 +21,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
   final _otpController = TextEditingController();
+  final _scrollController = ScrollController();
 
   late int _step;
   GoogleSignupData? _googleData;
@@ -40,7 +41,24 @@ class _SignupScreenState extends State<SignupScreen> {
     _passwordController.dispose();
     _confirmController.dispose();
     _otpController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToBottom() {
+    void doScroll() {
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => doScroll());
+    Future.delayed(const Duration(milliseconds: 180), doScroll);
+    Future.delayed(const Duration(milliseconds: 400), doScroll);
   }
 
   @override
@@ -72,7 +90,8 @@ class _SignupScreenState extends State<SignupScreen> {
         behavior: HitTestBehavior.opaque,
         child: Center(
           child: SingleChildScrollView(
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            controller: _scrollController,
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: EdgeInsets.fromLTRB(
             24,
             24,
@@ -119,6 +138,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           isVerifying: _submitting,
                           isError: _error != null,
                           isSuccess: _otpSuccess,
+                          onFocus: _scrollToBottom,
                           onChanged: (_) {
                             if (_error != null) setState(() => _error = null);
                           },

@@ -1146,7 +1146,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   }
 
   void _scrollToBottom() {
-    FocusScope.of(context).unfocus();
     void doScroll() {
       if (mounted && _scrollController.hasClients) {
         _scrollController.animateTo(
@@ -1381,6 +1380,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   isVerifying: _isChanging,
                   isError: _changeError != null,
                   isSuccess: _changeSuccess,
+                  onFocus: _scrollToBottom,
                   onChanged: (code) {
                     if (_changeError != null) setState(() => _changeError = null);
                   },
@@ -1548,6 +1548,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                   length: 6,
                   isVerifying: _isDeleting,
                   isError: _otpError,
+                  onFocus: _scrollToBottom,
                   onChanged: (_) {
                     if (_otpError) setState(() => _otpError = false);
                   },
@@ -1607,7 +1608,6 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
 }
 
   void _scrollToBottom() {
-    FocusScope.of(context).unfocus();
     void doScroll() {
       if (mounted && _scrollController.hasClients) {
         _scrollController.animateTo(

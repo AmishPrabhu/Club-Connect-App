@@ -7,6 +7,7 @@ class AnimatedOtpInput extends StatefulWidget {
   final int length;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onCompleted;
+  final VoidCallback? onFocus;
   final bool isError;
   final bool isSuccess;
   final bool isVerifying;
@@ -17,6 +18,7 @@ class AnimatedOtpInput extends StatefulWidget {
     this.length = 6,
     this.onChanged,
     this.onCompleted,
+    this.onFocus,
     this.isError = false,
     this.isSuccess = false,
     this.isVerifying = false,
@@ -47,6 +49,9 @@ class _AnimatedOtpInputState extends State<AnimatedOtpInput>
 
     _focusNode.addListener(() {
       if (mounted) setState(() {});
+      if (_focusNode.hasFocus) {
+        widget.onFocus?.call();
+      }
     });
 
     // 1. Continuous 360 Border Beam Rotation
@@ -124,14 +129,19 @@ class _AnimatedOtpInputState extends State<AnimatedOtpInput>
     if (mounted) setState(() {});
   }
 
+  bool _hasResetFromError = false;
+
   @override
   void didUpdateWidget(covariant AnimatedOtpInput oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.isError && !widget.isError) {
+      _hasResetFromError = false;
+    }
     _syncAnimationStates(oldWidget: oldWidget);
   }
 
   void _syncAnimationStates({AnimatedOtpInput? oldWidget}) {
-    final isMerged = widget.isVerifying || widget.isSuccess || widget.isError;
+    final isMerged = widget.isVerifying || widget.isSuccess || (widget.isError && !_hasResetFromError);
 
     if (isMerged) {
       if (_focusNode.hasFocus) {
@@ -152,18 +162,21 @@ class _AnimatedOtpInputState extends State<AnimatedOtpInput>
       }
 
       // Trigger 3D flip when success or error occurs!
-      if (widget.isSuccess || widget.isError) {
+      if (widget.isSuccess || (widget.isError && !_hasResetFromError)) {
         if (_flipController.status != AnimationStatus.forward && _flipController.value < 1.0) {
           _flipController.forward(from: 0.0);
         }
       }
 
-      if (widget.isError && oldWidget?.isError != true) {
+      if (widget.isError && oldWidget?.isError != true && !_hasResetFromError) {
         _shakeController.forward(from: 0.0);
 
         // Auto-reset to 6 empty boxes after 1.6s relaxed error display
         Future.delayed(const Duration(milliseconds: 1600), () {
           if (mounted) {
+            setState(() {
+              _hasResetFromError = true;
+            });
             widget.controller.clear();
             widget.onChanged?.call('');
             _flipController.reverse();

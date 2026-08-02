@@ -315,6 +315,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           isVerifying: _isLoading,
                           isError: _otpError,
                           isSuccess: _otpSuccess,
+                          onFocus: _scrollToBottom,
                           onChanged: (_) {
                             if (_otpError) setState(() => _otpError = false);
                             if (_error != null) setState(() => _error = null);
