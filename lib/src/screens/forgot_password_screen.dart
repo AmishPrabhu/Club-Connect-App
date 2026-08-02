@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../state/app_state.dart';
+import '../theme/app_theme.dart';
 import '../utils/app_utils.dart';
 import '../widgets/animated_otp_input.dart';
 import '../widgets/glass_card.dart';
@@ -71,7 +72,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   void _startResendTimer() {
-    setState(() => _resendSeconds = 15);
+    setState(() => _resendSeconds = 30);
     _resendTimer?.cancel();
     _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {

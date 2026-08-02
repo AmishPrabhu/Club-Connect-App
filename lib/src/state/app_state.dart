@@ -1066,8 +1066,11 @@ class AppState extends ChangeNotifier {
     );
   }
 
-  Future<void> requestChangePasswordOtp() async {
-    await _apiClient.post('/auth/request-change-password-otp');
+  Future<void> requestChangePasswordOtp({required String currentPassword}) async {
+    await _apiClient.post(
+      '/auth/request-change-password-otp',
+      body: {'currentPassword': currentPassword},
+    );
   }
 
   Future<void> changePassword({

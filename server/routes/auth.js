@@ -31,6 +31,7 @@ const signupLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 10,
     message: { message: 'Too many accounts created from this IP, please try again later' },
+    keyGenerator: (req) => req.ip,
 });
 
 // Limiter for profile-related OTPs (Delete Account, Change Password) - 5 per hour
@@ -38,6 +39,7 @@ const profileOtpLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 5,
     message: { message: 'Too many requests from this IP, please try again later' },
+    keyGenerator: (req) => req.ip,
 });
 
 const router = express.Router();
@@ -883,10 +885,22 @@ router.delete('/delete-account', verifyToken, async (req, res) => {
 router.post('/request-change-password-otp', verifyToken, profileOtpLimiter, async (req, res) => {
     try {
         const userId = req.user.id;
+        const { currentPassword } = req.body;
+
+        if (!currentPassword) {
+            return res.status(400).json({ message: 'Current password is required to request an OTP' });
+        }
+
         const user = await User.findById(userId);
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Verify current password before sending OTP
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Current password is incorrect' });
         }
 
         const otp = generateOTP();

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -1167,7 +1168,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   }
 
   void _startResendTimer() {
-    setState(() => _resendSeconds = 15);
+    setState(() => _resendSeconds = 30);
     _resendTimer?.cancel();
     _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
@@ -1187,7 +1188,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     if (!_validateFields()) return;
     setState(() => _isLoadingOtp = true);
     try {
-      await widget.appState.requestChangePasswordOtp();
+      await widget.appState.requestChangePasswordOtp(
+        currentPassword: _currentPasswordController.text,
+      );
       if (mounted) {
         _otpController.clear();
         setState(() {
@@ -1657,7 +1660,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
   }
 
   void _startResendTimer() {
-    setState(() => _resendSeconds = 15);
+    setState(() => _resendSeconds = 30);
     _resendTimer?.cancel();
     _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
