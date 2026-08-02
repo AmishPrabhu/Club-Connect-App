@@ -54,14 +54,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (mounted && _scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 400),
+          duration: const Duration(milliseconds: 350),
           curve: Curves.easeOutCubic,
         );
       }
     }
     WidgetsBinding.instance.addPostFrameCallback((_) => doScroll());
-    Future.delayed(const Duration(milliseconds: 180), doScroll);
-    Future.delayed(const Duration(milliseconds: 400), doScroll);
+    Future.delayed(const Duration(milliseconds: 150), doScroll);
+    Future.delayed(const Duration(milliseconds: 350), doScroll);
+    Future.delayed(const Duration(milliseconds: 600), doScroll);
   }
 
   Future<void> _handleStep() async {
@@ -174,7 +175,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     ];
 
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: const Text('Reset Password'),
         backgroundColor: Colors.transparent,
@@ -200,8 +201,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         behavior: HitTestBehavior.opaque,
         child: Center(
           child: SingleChildScrollView(
-          controller: _scrollController,
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            controller: _scrollController,
           padding: EdgeInsets.fromLTRB(
             24.0,
             24.0,

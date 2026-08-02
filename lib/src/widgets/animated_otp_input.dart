@@ -240,6 +240,7 @@ class _AnimatedOtpInputState extends State<AnimatedOtpInput>
             onTap: () {
               if (!widget.isVerifying && !widget.isSuccess) {
                 _focusNode.requestFocus();
+                SystemChannels.textInput.invokeMethod('TextInput.show');
               }
             },
             behavior: HitTestBehavior.opaque,
@@ -259,104 +260,132 @@ class _AnimatedOtpInputState extends State<AnimatedOtpInput>
                   return SizedBox(
                     height: itemHeight,
                     width: (widget.length * itemWidth) + ((widget.length - 1) * gap),
-                    child: Stack(
-                      alignment: Alignment.centerLeft,
-                      clipBehavior: Clip.none,
-                      children: [
-                        // Visual 3D OTP Cards Deck (IgnorePointer lets taps pass straight to master TextField)
-                        ...List.generate(widget.length, (index) {
-                          final char = index < text.length ? text[index] : '';
-                          final isActiveBox = isFocused && (index == activeIndex || (text.length == widget.length && index == widget.length - 1));
-                          final isFilled = char.isNotEmpty;
-                          final activeBorder = (isActiveBox || isFilled) && mergeProgress < 0.3;
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        if (!widget.isVerifying && !widget.isSuccess) {
+                          _focusNode.requestFocus();
+                          SystemChannels.textInput.invokeMethod('TextInput.show');
+                        }
+                      },
+                      child: Stack(
+                        alignment: Alignment.centerLeft,
+                        clipBehavior: Clip.none,
+                        children: [
+                          // Visual 3D OTP Cards Deck (IgnorePointer lets taps pass straight to master TextField)
+                          ...List.generate(widget.length, (index) {
+                            final char = index < text.length ? text[index] : '';
+                            final isActiveBox = isFocused && (index == activeIndex || (text.length == widget.length && index == widget.length - 1));
+                            final isFilled = char.isNotEmpty;
+                            final activeBorder = (isActiveBox || isFilled) && mergeProgress < 0.3;
 
-                          final isMiddleBox = index == middleIndex;
+                            final isMiddleBox = index == middleIndex;
 
-                          // Unmerged position = index * stepOffset
-                          final double unmergedLeft = index * stepOffset;
-                          // Merged position = ALL cards slide smoothly into dead center left!
-                          final double currentLeft = unmergedLeft + (containerCenterLeft - unmergedLeft) * mergeProgress;
+                            // Unmerged position = index * stepOffset
+                            final double unmergedLeft = index * stepOffset;
+                            // Merged position = ALL cards slide smoothly into dead center left!
+                            final double currentLeft = unmergedLeft + (containerCenterLeft - unmergedLeft) * mergeProgress;
 
-                          // 3D Card Fold Y-Rotation angle
-                          final double foldYAngle = (index - middleIndex) * 0.4 * mergeProgress;
+                            // 3D Card Fold Y-Rotation angle
+                            final double foldYAngle = (index - middleIndex) * 0.4 * mergeProgress;
 
-                          // Smooth quad opacity decay so side cards dissolve right as they touch center!
-                          final double cardOpacity = isMiddleBox
-                              ? 1.0
-                              : (1.0 - math.pow(mergeProgress, 2.0)).clamp(0.0, 1.0);
+                            // Smooth quad opacity decay so side cards dissolve right as they touch center!
+                            final double cardOpacity = isMiddleBox
+                                ? 1.0
+                                : (1.0 - math.pow(mergeProgress, 2.0)).clamp(0.0, 1.0);
 
-                          final double cardScale = isMiddleBox
-                              ? 1.0
-                              : (1.0 - mergeProgress * 0.4).clamp(0.1, 1.0);
+                            final double cardScale = isMiddleBox
+                                ? 1.0
+                                : (1.0 - mergeProgress * 0.4).clamp(0.1, 1.0);
 
-                          // 3D Flip angle & analyzing tilt wave for center box
-                          final double flipAngle = isMiddleBox ? flipProgress * math.pi : 0.0;
-                          final double analyzingWave = (isMiddleBox && widget.isVerifying && flipProgress == 0.0)
-                              ? math.sin(_analyzingController.value * math.pi * 2) * 0.12
-                              : 0.0;
+                            // 3D Flip angle & analyzing tilt wave for center box
+                            final double flipAngle = isMiddleBox ? flipProgress * math.pi : 0.0;
+                            final double analyzingWave = (isMiddleBox && widget.isVerifying && flipProgress == 0.0)
+                                ? math.sin(_analyzingController.value * math.pi * 2) * 0.12
+                                : 0.0;
 
-                          if (cardOpacity <= 0.001) {
-                            return const SizedBox.shrink();
-                          }
+                            if (cardOpacity <= 0.001) {
+                              return const SizedBox.shrink();
+                            }
 
-                          return Positioned(
-                            left: currentLeft,
-                            top: 0,
-                            child: IgnorePointer(
-                              child: Transform(
-                                alignment: Alignment.center,
-                                transform: Matrix4.identity()
-                                  ..setEntry(3, 2, 0.0015) // Perspective 3D depth
-                                  ..rotateY(foldYAngle + flipAngle + analyzingWave)
-                                  ..scale(cardScale),
-                                child: Opacity(
-                                  opacity: cardOpacity,
-                                  child: _OtpCardItem(
-                                    char: char,
-                                    width: itemWidth,
-                                    height: itemHeight,
-                                    isDark: isDark,
-                                    activeBorder: activeBorder,
-                                    isMerged: mergeProgress > 0.5,
-                                    isMiddleBox: isMiddleBox,
-                                    isVerifying: widget.isVerifying,
-                                    isSuccess: widget.isSuccess,
-                                    isError: widget.isError,
-                                    flipProgress: flipProgress,
-                                    borderRotateController: _borderRotateController,
-                                    activeColor: activeColor,
-                                    successColor: successColor,
-                                    errorColor: errorColor,
+                            return Positioned(
+                              left: currentLeft,
+                              top: 0,
+                              child: IgnorePointer(
+                                child: Transform(
+                                  alignment: Alignment.center,
+                                  transform: Matrix4.identity()
+                                    ..setEntry(3, 2, 0.0015) // Perspective 3D depth
+                                    ..rotateY(foldYAngle + flipAngle + analyzingWave)
+                                    ..scale(cardScale),
+                                  child: Opacity(
+                                    opacity: cardOpacity,
+                                    child: _OtpCardItem(
+                                      char: char,
+                                      width: itemWidth,
+                                      height: itemHeight,
+                                      isDark: isDark,
+                                      activeBorder: activeBorder,
+                                      isMerged: mergeProgress > 0.5,
+                                      isMiddleBox: isMiddleBox,
+                                      isVerifying: widget.isVerifying,
+                                      isSuccess: widget.isSuccess,
+                                      isError: widget.isError,
+                                      flipProgress: flipProgress,
+                                      borderRotateController: _borderRotateController,
+                                      activeColor: activeColor,
+                                      successColor: successColor,
+                                      errorColor: errorColor,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          );
-                        }),
+                            );
+                          }),
 
-                        // Master Native TextField on top so taps reliably focus native keyboard
-                        Positioned.fill(
-                          child: Opacity(
-                            opacity: 0.0,
-                            child: TextField(
-                              controller: widget.controller,
-                              focusNode: _focusNode,
-                              keyboardType: TextInputType.number,
-                              maxLength: widget.length,
-                              autofillHints: const [AutofillHints.oneTimeCode],
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                                LengthLimitingTextInputFormatter(widget.length),
-                              ],
-                              decoration: const InputDecoration(
-                                counterText: '',
-                                border: InputBorder.none,
+                          // Master Native TextField on top so taps reliably focus native keyboard
+                          Positioned.fill(
+                            child: Theme(
+                              data: Theme.of(context).copyWith(
+                                focusColor: Colors.transparent,
+                                highlightColor: Colors.transparent,
+                                hoverColor: Colors.transparent,
+                                splashColor: Colors.transparent,
                               ),
-                              enabled: !widget.isVerifying && !widget.isSuccess,
+                              child: TextField(
+                                controller: widget.controller,
+                                focusNode: _focusNode,
+                                keyboardType: TextInputType.number,
+                                maxLength: widget.length,
+                                showCursor: false,
+                                style: const TextStyle(
+                                  color: Colors.transparent,
+                                  fontSize: 24,
+                                  height: 1.0,
+                                ),
+                                autofillHints: const [AutofillHints.oneTimeCode],
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                  LengthLimitingTextInputFormatter(widget.length),
+                                ],
+                                decoration: const InputDecoration(
+                                  counterText: '',
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  disabledBorder: InputBorder.none,
+                                  focusedErrorBorder: InputBorder.none,
+                                  errorBorder: InputBorder.none,
+                                  fillColor: Colors.transparent,
+                                  filled: true,
+                                  contentPadding: EdgeInsets.symmetric(vertical: 16),
+                                ),
+                                enabled: !widget.isVerifying && !widget.isSuccess,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   );
                 },

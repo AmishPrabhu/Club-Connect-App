@@ -50,15 +50,16 @@ class _SignupScreenState extends State<SignupScreen> {
       if (mounted && _scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 400),
+          duration: const Duration(milliseconds: 350),
           curve: Curves.easeOutCubic,
         );
       }
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) => doScroll());
-    Future.delayed(const Duration(milliseconds: 180), doScroll);
-    Future.delayed(const Duration(milliseconds: 400), doScroll);
+    Future.delayed(const Duration(milliseconds: 150), doScroll);
+    Future.delayed(const Duration(milliseconds: 350), doScroll);
+    Future.delayed(const Duration(milliseconds: 600), doScroll);
   }
 
   @override
@@ -83,15 +84,15 @@ class _SignupScreenState extends State<SignupScreen> {
         : ['Verify Email', 'Confirm OTP', 'Create Account'][_step];
 
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(title: const Text('Create Account')),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         behavior: HitTestBehavior.opaque,
         child: Center(
           child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
             controller: _scrollController,
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: EdgeInsets.fromLTRB(
             24,
             24,

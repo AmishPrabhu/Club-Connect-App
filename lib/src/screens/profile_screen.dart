@@ -1150,15 +1150,16 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       if (mounted && _scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 400),
+          duration: const Duration(milliseconds: 350),
           curve: Curves.easeOutCubic,
         );
       }
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) => doScroll());
-    Future.delayed(const Duration(milliseconds: 180), doScroll);
-    Future.delayed(const Duration(milliseconds: 400), doScroll);
+    Future.delayed(const Duration(milliseconds: 150), doScroll);
+    Future.delayed(const Duration(milliseconds: 350), doScroll);
+    Future.delayed(const Duration(milliseconds: 600), doScroll);
   }
 
   Future<void> _requestOtp() async {
@@ -1248,7 +1249,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: const Text(
           'Change Password',
@@ -1265,7 +1266,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           onTap: () => FocusScope.of(context).unfocus(),
           behavior: HitTestBehavior.opaque,
           child: SingleChildScrollView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
             controller: _scrollController,
             padding: EdgeInsets.fromLTRB(
               24,
@@ -1471,7 +1472,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: const Text(
           'Delete Account',
@@ -1491,7 +1492,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
           onTap: () => FocusScope.of(context).unfocus(),
           behavior: HitTestBehavior.opaque,
           child: SingleChildScrollView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
             controller: _scrollController,
             padding: EdgeInsets.fromLTRB(
               24,
@@ -1612,15 +1613,16 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
       if (mounted && _scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 400),
+          duration: const Duration(milliseconds: 350),
           curve: Curves.easeOutCubic,
         );
       }
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) => doScroll());
-    Future.delayed(const Duration(milliseconds: 180), doScroll);
-    Future.delayed(const Duration(milliseconds: 400), doScroll);
+    Future.delayed(const Duration(milliseconds: 150), doScroll);
+    Future.delayed(const Duration(milliseconds: 350), doScroll);
+    Future.delayed(const Duration(milliseconds: 600), doScroll);
   }
 
   Future<void> _requestOtp() async {
