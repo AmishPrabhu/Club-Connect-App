@@ -19,11 +19,6 @@ const authLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     skipSuccessfulRequests: true,
-    keyGenerator: (req) => req.ip,
-    validate: {
-        xForwardedForHeader: false,
-        keyGeneratorIpFallback: false,
-    },
 });
 
 // Slightly more lenient for signup (10 per hour to prevent spam accounts)
@@ -31,7 +26,6 @@ const signupLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 10,
     message: { message: 'Too many accounts created from this IP, please try again later' },
-    keyGenerator: (req) => req.ip,
 });
 
 // Limiter for profile-related OTPs (Delete Account, Change Password) - 5 per hour
@@ -39,7 +33,6 @@ const profileOtpLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 5,
     message: { message: 'Too many requests from this IP, please try again later' },
-    keyGenerator: (req) => req.ip,
 });
 
 const router = express.Router();
