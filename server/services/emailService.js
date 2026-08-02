@@ -163,7 +163,7 @@ export async function sendOtpEmail(email, otp) {
         to: email,
         subject: 'Verify Your Email - Club Connect',
         html: `
-        < div style = "font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;" >
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="background: #002147; padding: 20px; text-align: center;">
                     <h1 style="color: #DAA520; margin: 0;">Club Connect</h1>
                 </div>
@@ -182,7 +182,7 @@ export async function sendOtpEmail(email, otp) {
                 <div style="background: #002147; padding: 15px; text-align: center;">
                     <p style="color: #888; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} Club Connect - Walchand College of Engineering</p>
                 </div>
-            </div >
+            </div>
         `,
     });
 }
@@ -200,27 +200,27 @@ export async function sendDeleteAccountOtpEmail(email, otp) {
         to: email,
         subject: 'Confirm Account Deletion - Club Connect',
         html: `
-        < div style = "font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;" >
-                 <div style="background: #002147; padding: 20px; text-align: center;">
-                     <h1 style="color: #DAA520; margin: 0;">Club Connect</h1>
-                 </div>
-                 <div style="padding: 30px; background: #fff1f2; border: 1px solid #fecdd3;">
-                     <h2 style="color: #991b1b;">Account Deletion Request</h2>
-                     <p>Hello,</p>
-                     <p>We received a request to permanently delete your Club Connect account. This action <strong>cannot be undone</strong> and all your data will be removed.</p>
-                     <p>To confirm this action, please use the following One-Time Password (OTP):</p>
-                     <div style="text-align: center; margin: 30px 0;">
-                         <span style="font-size: 32px; letter-spacing: 5px; font-weight: bold; color: #991b1b; background: #fff; padding: 10px 20px; border-radius: 8px; border: 2px dashed #991b1b;">
-                             ${otp}
-                         </span>
-                     </div>
-                     <p style="color: #666; font-size: 14px;">This OTP is valid for 10 minutes.</p>
-                     <p style="color: #666; font-size: 14px;">If you did not request this, please <strong>change your password immediately</strong>.</p>
-                 </div>
-                 <div style="background: #002147; padding: 15px; text-align: center;">
-                     <p style="color: #888; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} Club Connect - Walchand College of Engineering</p>
-                 </div>
-             </div >
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: #002147; padding: 20px; text-align: center;">
+                    <h1 style="color: #DAA520; margin: 0;">Club Connect</h1>
+                </div>
+                <div style="padding: 30px; background: #fff1f2; border: 1px solid #fecdd3;">
+                    <h2 style="color: #991b1b;">Account Deletion Request</h2>
+                    <p>Hello,</p>
+                    <p>We received a request to permanently delete your Club Connect account. This action <strong>cannot be undone</strong> and all your data will be removed.</p>
+                    <p>To confirm this action, please use the following One-Time Password (OTP):</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <span style="font-size: 32px; letter-spacing: 5px; font-weight: bold; color: #991b1b; background: #fff; padding: 10px 20px; border-radius: 8px; border: 2px dashed #991b1b;">
+                            ${otp}
+                        </span>
+                    </div>
+                    <p style="color: #666; font-size: 14px;">This OTP is valid for 10 minutes.</p>
+                    <p style="color: #666; font-size: 14px;">If you did not request this, please <strong>change your password immediately</strong>.</p>
+                </div>
+                <div style="background: #002147; padding: 15px; text-align: center;">
+                    <p style="color: #888; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} Club Connect - Walchand College of Engineering</p>
+                </div>
+            </div>
         `,
     });
 }
@@ -240,7 +240,7 @@ export async function sendTaskAssignmentEmail({ recipientEmail, recipientName, t
         to: recipientEmail,
         subject: `New Task Assigned: ${taskTitle} - ${clubName}`,
         html: `
-    < div style = "font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;" >
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="background: #002147; padding: 20px; text-align: center;">
                     <h1 style="color: #DAA520; margin: 0;">Club Connect</h1>
                 </div>
@@ -259,7 +259,7 @@ export async function sendTaskAssignmentEmail({ recipientEmail, recipientName, t
                     <p>Please log in to the portal to manage your tasks and update their status.</p>
                     
                     <div style="text-align: center; margin: 30px 0;">
-                        <a href="${process.env.FRONTEND_URL}?page=userProfile&tab=tasks" style="background: #002147; color: #DAA520; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                        <a href="${process.env.FRONTEND_URL || '#'}?page=userProfile&tab=tasks" style="background: #002147; color: #DAA520; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
                             View My Tasks
                         </a>
                     </div>
@@ -267,7 +267,7 @@ export async function sendTaskAssignmentEmail({ recipientEmail, recipientName, t
                 <div style="background: #002147; padding: 15px; text-align: center;">
                     <p style="color: #888; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} Club Connect - Walchand College of Engineering</p>
                 </div>
-            </div >
+            </div>
         `,
     });
 }
@@ -280,7 +280,7 @@ export async function sendEventUpdateEmail({ recipientEmail, recipientName, even
         to: recipientEmail,
         subject: `Update for ${eventTitle} - ${clubName}`,
         html: `
-        < div style = "font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;" >
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="background: #002147; padding: 20px; text-align: center;">
                     <h1 style="color: #DAA520; margin: 0;">Club Connect</h1>
                 </div>
@@ -298,7 +298,7 @@ export async function sendEventUpdateEmail({ recipientEmail, recipientName, even
                 <div style="background: #002147; padding: 15px; text-align: center;">
                     <p style="color: #888; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} Club Connect - Walchand College of Engineering</p>
                 </div>
-            </div >
+            </div>
         `,
     });
 }
@@ -320,13 +320,13 @@ export async function sendPasswordChangeEmail({ email, name }) {
         timeZoneName: 'short'
     });
 
-    const resetUrl = `${process.env.FRONTEND_URL}?page = forgot - password`;
+    const resetUrl = `${process.env.FRONTEND_URL || '#'}/forgot-password`;
 
     return sendEmail({
         to: email,
         subject: 'Password Changed - Club Connect',
         html: `
-        < div style = "font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;" >
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="background: #002147; padding: 20px; text-align: center;">
                     <h1 style="color: #DAA520; margin: 0;">Club Connect</h1>
                 </div>
@@ -348,7 +348,7 @@ export async function sendPasswordChangeEmail({ email, name }) {
                 <div style="background: #002147; padding: 15px; text-align: center;">
                     <p style="color: #888; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} Club Connect - Walchand College of Engineering</p>
                 </div>
-            </div >
+            </div>
         `,
     });
 }
@@ -388,4 +388,3 @@ export async function sendCertificateEmail({ recipientEmail, recipientName, even
 }
 
 export default { sendEmail, sendPasswordResetEmail, sendClubInvitationEmail, sendTeacherInvitationEmail, sendOtpEmail, sendDeleteAccountOtpEmail, sendTaskAssignmentEmail, sendEventUpdateEmail, sendPasswordChangeEmail, sendCertificateEmail };
-

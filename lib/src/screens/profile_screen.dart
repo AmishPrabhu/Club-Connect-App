@@ -1262,14 +1262,18 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          padding: EdgeInsets.fromLTRB(
-            24,
-            24,
-            24,
-            36 + MediaQuery.of(context).viewInsets.bottom,
-          ),
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          behavior: HitTestBehavior.opaque,
+          child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            controller: _scrollController,
+            padding: EdgeInsets.fromLTRB(
+              24,
+              24,
+              24,
+              36 + MediaQuery.of(context).viewInsets.bottom,
+            ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1430,8 +1434,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 
@@ -1482,14 +1487,18 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          padding: EdgeInsets.fromLTRB(
-            24,
-            24,
-            24,
-            36 + MediaQuery.of(context).viewInsets.bottom,
-          ),
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          behavior: HitTestBehavior.opaque,
+          child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            controller: _scrollController,
+            padding: EdgeInsets.fromLTRB(
+              24,
+              24,
+              24,
+              36 + MediaQuery.of(context).viewInsets.bottom,
+            ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1593,8 +1602,9 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   void _scrollToBottom() {
     FocusScope.of(context).unfocus();

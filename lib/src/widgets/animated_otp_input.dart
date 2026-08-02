@@ -201,7 +201,6 @@ class _AnimatedOtpInputState extends State<AnimatedOtpInput>
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final text = widget.controller.text;
-    final isMerged = widget.isVerifying || widget.isSuccess || widget.isError;
     final isFocused = _focusNode.hasFocus;
     final activeIndex = text.length.clamp(0, widget.length - 1);
     final middleIndex = widget.length ~/ 2;
@@ -251,30 +250,7 @@ class _AnimatedOtpInputState extends State<AnimatedOtpInput>
                       alignment: Alignment.centerLeft,
                       clipBehavior: Clip.none,
                       children: [
-                        // Invisible Native Master TextField
-                        Positioned.fill(
-                          child: Opacity(
-                            opacity: 0.0,
-                            child: TextField(
-                              controller: widget.controller,
-                              focusNode: _focusNode,
-                              keyboardType: TextInputType.number,
-                              maxLength: widget.length,
-                              autofillHints: const [AutofillHints.oneTimeCode],
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                                LengthLimitingTextInputFormatter(widget.length),
-                              ],
-                              decoration: const InputDecoration(
-                                counterText: '',
-                                border: InputBorder.none,
-                              ),
-                              enabled: !widget.isVerifying && !widget.isSuccess,
-                            ),
-                          ),
-                        ),
-
-                        // Visual 3D OTP Cards Deck
+                        // Visual 3D OTP Cards Deck (IgnorePointer lets taps pass straight to master TextField)
                         ...List.generate(widget.length, (index) {
                           final char = index < text.length ? text[index] : '';
                           final isActiveBox = isFocused && (index == activeIndex || (text.length == widget.length && index == widget.length - 1));
@@ -313,35 +289,60 @@ class _AnimatedOtpInputState extends State<AnimatedOtpInput>
                           return Positioned(
                             left: currentLeft,
                             top: 0,
-                            child: Transform(
-                              alignment: Alignment.center,
-                              transform: Matrix4.identity()
-                                ..setEntry(3, 2, 0.0015) // Perspective 3D depth
-                                ..rotateY(foldYAngle + flipAngle + analyzingWave)
-                                ..scale(cardScale),
-                              child: Opacity(
-                                opacity: cardOpacity,
-                                child: _OtpCardItem(
-                                  char: char,
-                                  width: itemWidth,
-                                  height: itemHeight,
-                                  isDark: isDark,
-                                  activeBorder: activeBorder,
-                                  isMerged: mergeProgress > 0.5,
-                                  isMiddleBox: isMiddleBox,
-                                  isVerifying: widget.isVerifying,
-                                  isSuccess: widget.isSuccess,
-                                  isError: widget.isError,
-                                  flipProgress: flipProgress,
-                                  borderRotateController: _borderRotateController,
-                                  activeColor: activeColor,
-                                  successColor: successColor,
-                                  errorColor: errorColor,
+                            child: IgnorePointer(
+                              child: Transform(
+                                alignment: Alignment.center,
+                                transform: Matrix4.identity()
+                                  ..setEntry(3, 2, 0.0015) // Perspective 3D depth
+                                  ..rotateY(foldYAngle + flipAngle + analyzingWave)
+                                  ..scale(cardScale),
+                                child: Opacity(
+                                  opacity: cardOpacity,
+                                  child: _OtpCardItem(
+                                    char: char,
+                                    width: itemWidth,
+                                    height: itemHeight,
+                                    isDark: isDark,
+                                    activeBorder: activeBorder,
+                                    isMerged: mergeProgress > 0.5,
+                                    isMiddleBox: isMiddleBox,
+                                    isVerifying: widget.isVerifying,
+                                    isSuccess: widget.isSuccess,
+                                    isError: widget.isError,
+                                    flipProgress: flipProgress,
+                                    borderRotateController: _borderRotateController,
+                                    activeColor: activeColor,
+                                    successColor: successColor,
+                                    errorColor: errorColor,
+                                  ),
                                 ),
                               ),
                             ),
                           );
                         }),
+
+                        // Master Native TextField on top so taps reliably focus native keyboard
+                        Positioned.fill(
+                          child: Opacity(
+                            opacity: 0.0,
+                            child: TextField(
+                              controller: widget.controller,
+                              focusNode: _focusNode,
+                              keyboardType: TextInputType.number,
+                              maxLength: widget.length,
+                              autofillHints: const [AutofillHints.oneTimeCode],
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(widget.length),
+                              ],
+                              decoration: const InputDecoration(
+                                counterText: '',
+                                border: InputBorder.none,
+                              ),
+                              enabled: !widget.isVerifying && !widget.isSuccess,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   );

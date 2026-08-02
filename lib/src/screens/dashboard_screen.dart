@@ -88,20 +88,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _onAppStateChanged() {
     if (!mounted) return;
+    final session = widget.appState.session;
+    final activeRole = widget.initialRole ?? session?.role;
+
     setState(() {
       if (_selectedClub != null) {
         final matches = widget.appState.clubs.where((c) => c.id == _selectedClub!.id).toList();
         if (matches.isNotEmpty) {
           _selectedClub = matches.first;
-        } else {
-          _selectedClub = widget.appState.clubs.isNotEmpty ? widget.appState.clubs.first : null;
         }
-      } else if (widget.appState.clubs.isNotEmpty) {
+      } else if (activeRole != 'teacher' && widget.appState.clubs.isNotEmpty) {
         _selectedClub = widget.appState.clubs.first;
       }
 
-      final session = widget.appState.session;
-      final activeRole = widget.initialRole ?? session?.role;
       if (session != null && activeRole != null) {
         if (activeRole == 'president' ||
             activeRole == 'club-secretary' ||

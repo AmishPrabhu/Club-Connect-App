@@ -44,7 +44,6 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
 
   void _showMonthYearPicker(BuildContext context) {
     int tempYear = _focusedMonth.year;
-    int tempMonth = _focusedMonth.month;
 
     showModalBottomSheet(
       context: context,
