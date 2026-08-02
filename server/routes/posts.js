@@ -5,7 +5,7 @@ import Task from '../models/Task.js';
 import ClubMember from '../models/ClubMember.js';
 import Club from '../models/Club.js';
 import Notification from '../models/Notification.js';
-import { verifyToken, verifyClubOfficer, verifyEventOfficer } from '../middleware/auth.js';
+import { verifyToken, verifyTokenOptional, verifyClubOfficer, verifyEventOfficer } from '../middleware/auth.js';
 import { sendEventUpdateEmail } from '../services/emailService.js';
 import { sendPushToClubMembers, sendPushToUsers } from '../services/pushService.js';
 
@@ -34,17 +34,59 @@ router.get('/user/rsvps', verifyToken, async (req, res) => {
 });
 
 // GET all posts
-router.get('/', async (req, res) => {
+router.get('/', verifyTokenOptional, async (req, res) => {
     try {
         const posts = await Post.find().sort({ date: 1 }); // Sort by date ascending
-        res.json(posts);
+        
+        let userMemberships = [];
+        if (req.user) {
+            userMemberships = await ClubMember.find({ userId: req.user.id });
+        }
+
+        const filteredPosts = posts.map(post => {
+            const postObj = post.toObject();
+            let canViewSensitive = false;
+            
+            if (req.user) {
+                if (req.user.role === 'admin' || req.user.role === 'teacher') {
+                    canViewSensitive = true;
+                } else {
+                    const membership = userMemberships.find(m => m.clubId.toString() === postObj.clubId.toString());
+                    if (membership) {
+                        const roleLower = (membership.role || '').toLowerCase();
+                        if (
+                           ['president', 'secretary', 'treasurer', 'assistant secretary', 'assistant treasurer'].includes(roleLower) ||
+                           roleLower.includes('advisor') || 
+                           membership.boardType === 'main'
+                        ) {
+                            canViewSensitive = true;
+                        }
+                    }
+                }
+            }
+            
+            if (!canViewSensitive) {
+                delete postObj.budgetImage;
+                delete postObj.budgetVerified;
+                delete postObj.budgetVerifiedBy;
+                delete postObj.budgetVerifiedAt;
+                delete postObj.reportUrl;
+                delete postObj.reportSubmittedByName;
+                delete postObj.reportSubmittedAt;
+                delete postObj.reportFilename;
+            }
+            
+            return postObj;
+        });
+
+        res.json(filteredPosts);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 });
 
 // GET specific post
-router.get('/:id', async (req, res) => {
+router.get('/:id', verifyTokenOptional, async (req, res) => {
     try {
         const post = await Post.findById(req.params.id);
         if (!post) return res.status(404).json({ message: 'Post not found' });
@@ -53,6 +95,36 @@ router.get('/:id', async (req, res) => {
         const rsvpCount = await EventRSVP.countDocuments({ eventId: req.params.id });
         const postObj = post.toObject();
         postObj.rsvps = rsvpCount;
+
+        let canViewSensitive = false;
+        if (req.user) {
+            if (req.user.role === 'admin' || req.user.role === 'teacher') {
+                canViewSensitive = true;
+            } else {
+                const membership = await ClubMember.findOne({ userId: req.user.id, clubId: postObj.clubId });
+                if (membership) {
+                    const roleLower = (membership.role || '').toLowerCase();
+                    if (
+                       ['president', 'secretary', 'treasurer', 'assistant secretary', 'assistant treasurer'].includes(roleLower) ||
+                       roleLower.includes('advisor') || 
+                       membership.boardType === 'main'
+                    ) {
+                        canViewSensitive = true;
+                    }
+                }
+            }
+        }
+        
+        if (!canViewSensitive) {
+            delete postObj.budgetImage;
+            delete postObj.budgetVerified;
+            delete postObj.budgetVerifiedBy;
+            delete postObj.budgetVerifiedAt;
+            delete postObj.reportUrl;
+            delete postObj.reportSubmittedByName;
+            delete postObj.reportSubmittedAt;
+            delete postObj.reportFilename;
+        }
 
         res.json(postObj);
     } catch (error) {

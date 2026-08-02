@@ -272,7 +272,7 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  color: Colors.amber.shade900.withOpacity(0.15),
+                  color: Colors.amber.shade900.withValues(alpha: 0.15),
                   child: Row(
                     children: [
                       Icon(Icons.history, color: Colors.amber.shade700, size: 20),
@@ -347,7 +347,7 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                             decoration: BoxDecoration(
-                                              color: AppTheme.accent(context).withOpacity(0.12),
+                                              color: AppTheme.accent(context).withValues(alpha: 0.12),
                                               borderRadius: BorderRadius.circular(20),
                                             ),
                                             child: Text(
@@ -420,14 +420,14 @@ class _MemberCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.5)),
+          border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
         ),
         child: ListTile(
           leading: CircleAvatar(
             backgroundImage: (profileImage != null && profileImage.isNotEmpty)
                 ? NetworkImage(profileImage)
                 : null,
-            backgroundColor: AppTheme.accent(context).withOpacity(0.15),
+            backgroundColor: AppTheme.accent(context).withValues(alpha: 0.15),
             child: (profileImage == null || profileImage.isEmpty)
                 ? Text(initial, style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.accent(context)))
                 : null,
@@ -441,7 +441,7 @@ class _MemberCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.15),
+                    color: Colors.grey.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(

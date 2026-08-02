@@ -274,7 +274,7 @@ class _CreateNotificationSheetState extends State<CreateNotificationSheet> {
 
                       // Type Dropdown
                       DropdownButtonFormField<String>(
-                        value: _type,
+                        initialValue: _type,
                         dropdownColor: cardBg,
                         style: TextStyle(color: titleColor),
                         decoration: const InputDecoration(

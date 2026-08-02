@@ -29,6 +29,7 @@ class _MemberFormSheetState extends State<MemberFormSheet> {
   late String _boardType;
   late String _academicYear;
   String _executiveRoleSelection = 'Assistant Secretary';
+  String _mainRoleSelection = 'Secretary';
   
   String? _errorMessage;
   bool _isSubmitting = false;
@@ -57,6 +58,18 @@ class _MemberFormSheetState extends State<MemberFormSheet> {
       }
     } else {
       _executiveRoleSelection = 'Assistant Secretary';
+    }
+
+    if (_boardType == 'main') {
+      if (existingRole == 'Secretary' || existingRole == 'Treasurer') {
+        _mainRoleSelection = existingRole;
+      } else if (existingRole.isNotEmpty && existingRole != 'Member') {
+        _mainRoleSelection = 'Custom Role';
+      } else {
+        _mainRoleSelection = 'Secretary';
+      }
+    } else {
+      _mainRoleSelection = 'Secretary';
     }
 
     // Retrieve year from joinedAt, default to current year
@@ -109,6 +122,13 @@ class _MemberFormSheetState extends State<MemberFormSheet> {
     String finalRole = role;
     if (_boardType == 'member') {
       finalRole = 'Member';
+    } else if (_boardType == 'main') {
+      final isPresident = widget.appState.session?.role == 'president' || widget.appState.session?.role == 'admin';
+      if (isPresident && _mainRoleSelection != 'Custom Role') {
+        finalRole = _mainRoleSelection;
+      } else {
+        if (finalRole.isEmpty) finalRole = 'Member';
+      }
     } else if (_boardType == 'executive' && _executiveRoleSelection != 'Custom Role') {
       finalRole = _executiveRoleSelection;
     } else {
@@ -165,6 +185,8 @@ class _MemberFormSheetState extends State<MemberFormSheet> {
     final isDark = AppTheme.isDark(context);
     final mq = MediaQuery.of(context);
     final isEditing = widget.member != null;
+    final userRole = widget.appState.session?.role;
+    final isPresident = userRole == 'president' || userRole == 'admin';
 
     final titleColor = AppTheme.textColor(context);
     final subtitleColor = isDark ? AppTheme.darkMuted : AppTheme.mutedColor(context);
@@ -285,7 +307,7 @@ class _MemberFormSheetState extends State<MemberFormSheet> {
 
                       // Board Type
                       DropdownButtonFormField<String>(
-                        value: _boardType,
+                        initialValue: _boardType,
                         dropdownColor: cardBg,
                         style: TextStyle(color: titleColor),
                         decoration: const InputDecoration(
@@ -311,9 +333,55 @@ class _MemberFormSheetState extends State<MemberFormSheet> {
                       const SizedBox(height: 16),
 
                       // Custom Role (only if not member)
-                      if (_boardType == 'executive') ...[
+                      if (_boardType == 'main') ...[
+                        if (isPresident) ...[
+                          DropdownButtonFormField<String>(
+                            initialValue: _mainRoleSelection,
+                            dropdownColor: cardBg,
+                            style: TextStyle(color: titleColor),
+                            decoration: const InputDecoration(
+                              labelText: 'Main Board Role',
+                              prefixIcon: Icon(Icons.star_outline),
+                            ),
+                            items: const [
+                              DropdownMenuItem(value: 'Secretary', child: Text('Secretary')),
+                              DropdownMenuItem(value: 'Treasurer', child: Text('Treasurer')),
+                              DropdownMenuItem(value: 'Custom Role', child: Text('Custom Role')),
+                            ],
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() => _mainRoleSelection = val);
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          if (_mainRoleSelection == 'Custom Role') ...[
+                            TextFormField(
+                              controller: _roleController,
+                              style: TextStyle(color: titleColor),
+                              decoration: const InputDecoration(
+                                labelText: 'Custom Role',
+                                hintText: 'e.g. Coordinator',
+                                prefixIcon: Icon(Icons.badge_outlined),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        ] else ...[
+                          TextFormField(
+                            controller: _roleController,
+                            style: TextStyle(color: titleColor),
+                            decoration: const InputDecoration(
+                              labelText: 'Custom Role',
+                              hintText: 'e.g. Coordinator',
+                              prefixIcon: Icon(Icons.badge_outlined),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ] else if (_boardType == 'executive') ...[
                         DropdownButtonFormField<String>(
-                          value: _executiveRoleSelection,
+                          initialValue: _executiveRoleSelection,
                           dropdownColor: cardBg,
                           style: TextStyle(color: titleColor),
                           decoration: const InputDecoration(
@@ -359,7 +427,7 @@ class _MemberFormSheetState extends State<MemberFormSheet> {
 
                       // Academic Year
                       DropdownButtonFormField<String>(
-                        value: _academicYear,
+                        initialValue: _academicYear,
                         dropdownColor: cardBg,
                         style: TextStyle(color: titleColor),
                         decoration: const InputDecoration(

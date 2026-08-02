@@ -152,7 +152,7 @@ class _StartNewYearSheetState extends State<StartNewYearSheet> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: primaryColor.withOpacity(0.12),
+                    color: primaryColor.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(Icons.autorenew_rounded, color: primaryColor, size: 24),
@@ -208,9 +208,9 @@ class _StartNewYearSheetState extends State<StartNewYearSheet> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade900.withOpacity(0.2),
+                  color: Colors.red.shade900.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.red.shade400.withOpacity(0.5)),
+                  border: Border.all(color: Colors.red.shade400.withValues(alpha: 0.5)),
                 ),
                 child: Row(
                   children: [
@@ -365,9 +365,9 @@ class _StartNewYearSheetState extends State<StartNewYearSheet> {
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: Colors.amber.shade900.withOpacity(0.15),
+                  color: Colors.amber.shade900.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.amber.shade600.withOpacity(0.4)),
+                  border: Border.all(color: Colors.amber.shade600.withValues(alpha: 0.4)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

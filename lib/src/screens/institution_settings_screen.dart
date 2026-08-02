@@ -3,7 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
 
 class InstitutionSettingsScreen extends StatefulWidget {
-  const InstitutionSettingsScreen({super.key});
+  const InstitutionSettingsScreen({super.key, required this.isAdmin});
+  final bool isAdmin;
 
   @override
   State<InstitutionSettingsScreen> createState() => _InstitutionSettingsScreenState();
@@ -68,6 +69,22 @@ class _InstitutionSettingsScreenState extends State<InstitutionSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.isAdmin) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Access Denied')),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Text(
+              'You do not have rights to see this page.',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
     if (_isLoading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -198,7 +215,7 @@ class _InstitutionSettingsScreenState extends State<InstitutionSettingsScreen> {
                     title: const Text('Enable Automated Event Updates'),
                     subtitle: const Text('Send emails to present attendees on event reports or schedule changes.'),
                     value: _enableEmailRouting,
-                    activeColor: AppTheme.accent(context),
+                    activeThumbColor: AppTheme.accent(context),
                     onChanged: (val) => setState(() => _enableEmailRouting = val),
                     contentPadding: EdgeInsets.zero,
                   ),

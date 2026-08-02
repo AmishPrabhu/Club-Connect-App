@@ -36,6 +36,7 @@ router.get('/teachers', verifyToken, async (req, res) => {
 router.get('/memberships', verifyToken, async (req, res) => {
     try {
         const memberships = await ClubMember.find({
+            isCurrent: true,
             $or: [
                 { userId: req.user.id },
                 { email: req.user.email }

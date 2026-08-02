@@ -130,7 +130,7 @@ class _PromoteMembersSheetState extends State<PromoteMembersSheet> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: primaryColor.withOpacity(0.12),
+                  color: primaryColor.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(Icons.group_add_outlined, color: primaryColor, size: 24),
@@ -167,9 +167,9 @@ class _PromoteMembersSheetState extends State<PromoteMembersSheet> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.red.shade900.withOpacity(0.2),
+                color: Colors.red.shade900.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.red.shade400.withOpacity(0.5)),
+                border: Border.all(color: Colors.red.shade400.withValues(alpha: 0.5)),
               ),
               child: Row(
                 children: [
@@ -211,7 +211,7 @@ class _PromoteMembersSheetState extends State<PromoteMembersSheet> {
                           borderRadius: BorderRadius.circular(16),
                           side: BorderSide(
                             color: isSelected
-                                ? primaryColor.withOpacity(0.5)
+                                ? primaryColor.withValues(alpha: 0.5)
                                 : (isDark ? Colors.grey.shade800 : Colors.grey.shade200),
                           ),
                         ),

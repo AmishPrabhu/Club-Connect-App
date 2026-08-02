@@ -147,7 +147,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
               sliver: SliverList.separated(
                 itemCount: notifications.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 14),
+                separatorBuilder: (_, _) => const SizedBox(height: 14),
                 itemBuilder: (context, index) {
                   final item = notifications[index];
                   return GestureDetector(

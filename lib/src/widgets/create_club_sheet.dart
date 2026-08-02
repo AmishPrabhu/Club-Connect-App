@@ -207,7 +207,7 @@ class _CreateClubSheetState extends State<CreateClubSheet> {
 
               // Category
               DropdownButtonFormField<String>(
-                value: _category,
+                initialValue: _category,
                 dropdownColor: cardBg,
                 style: TextStyle(color: titleColor),
                 decoration: const InputDecoration(
@@ -412,7 +412,7 @@ class _CreateClubSheetState extends State<CreateClubSheet> {
             child: TweenAnimationBuilder<double>(
               tween: Tween<double>(begin: 0, end: (_step + 1) / 2),
               duration: const Duration(milliseconds: 300),
-              builder: (_, v, __) => ClipRRect(
+              builder: (_, v, _) => ClipRRect(
                 borderRadius: BorderRadius.circular(2),
                 child: LinearProgressIndicator(
                   value: v,

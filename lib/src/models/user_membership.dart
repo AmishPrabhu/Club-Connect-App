@@ -10,6 +10,7 @@ class UserMembership {
     this.clubSlug,
     this.email,
     this.officerRole,
+    this.isCurrent = true,
   });
 
   final String clubId;
@@ -20,6 +21,7 @@ class UserMembership {
   final String? clubSlug;
   final String? email;
   final String? officerRole; // Officer role derived from Club email fields (e.g. "president", "secretary")
+  final bool isCurrent;
 
   /// Standard officer role names that the backend recognizes.
   static const _officerRoles = [
@@ -30,6 +32,7 @@ class UserMembership {
   /// Matches the backend middleware logic: boardType in [main, executive]
   /// OR role is a standard officer role.
   bool get isOfficer {
+    if (!isCurrent) return false;
     if (boardType == 'main' || boardType == 'executive') return true;
     if (_officerRoles.contains(role.toLowerCase())) return true;
     return false;
@@ -38,6 +41,7 @@ class UserMembership {
   /// Whether this membership grants report submission access.
   /// President, Secretary, or any main/executive board member can submit reports.
   bool get canSubmitReport {
+    if (!isCurrent) return false;
     if (boardType == 'main' || boardType == 'executive') return true;
     final r = role.toLowerCase();
     return r == 'president' || r == 'secretary';
@@ -46,6 +50,7 @@ class UserMembership {
   /// Whether this membership grants permission to manage members.
   /// Only President, Vice-President, Secretary, and Advisor can manage members.
   bool get canManageMembers {
+    if (!isCurrent) return false;
     final r = role.toLowerCase();
     return r == 'president' || r == 'vice-president' || r == 'secretary' || r == 'advisor';
   }
@@ -60,6 +65,7 @@ class UserMembership {
       clubSlug: json['clubSlug']?.toString(),
       email: json['email']?.toString(),
       officerRole: json['officerRole']?.toString(),
+      isCurrent: json['isCurrent'] as bool? ?? true,
     );
   }
 }

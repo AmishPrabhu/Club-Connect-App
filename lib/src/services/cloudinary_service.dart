@@ -28,12 +28,12 @@ class CloudinaryService {
         final Map<String, dynamic> responseData = json.decode(response.body);
         return responseData['secure_url'] as String?;
       } else {
-        print('Failed to upload image: ${response.statusCode}');
-        print('Response body: ${response.body}');
+//         print('Failed to upload image: ${response.statusCode}');
+//         print('Response body: ${response.body}');
         return null;
       }
     } catch (e) {
-      print('Exception during image upload: $e');
+//       print('Exception during image upload: $e');
       return null;
     }
   }

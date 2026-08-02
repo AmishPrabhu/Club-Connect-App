@@ -469,7 +469,7 @@ class _OtpCardItem extends StatelessWidget {
         boxShadow: activeBorder
             ? [
                 BoxShadow(
-                  color: activeColor.withOpacity(0.25),
+                  color: activeColor.withValues(alpha: 0.25),
                   blurRadius: 10,
                   spreadRadius: 0,
                 )
@@ -482,7 +482,7 @@ class _OtpCardItem extends StatelessWidget {
                               : isError
                                   ? errorColor
                                   : activeColor)
-                          .withOpacity(0.4),
+                          .withValues(alpha: 0.4),
                       blurRadius: 16,
                       spreadRadius: 2,
                     )
@@ -602,7 +602,7 @@ class _RotatingBorderBeamPainter extends CustomPainter {
         colors: [
           Colors.transparent,
           Colors.transparent,
-          color.withOpacity(0.3),
+          color.withValues(alpha: 0.3),
           color,
         ],
         stops: const [0.0, 0.55, 0.85, 1.0],

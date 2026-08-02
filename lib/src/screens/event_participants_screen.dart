@@ -583,6 +583,36 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
 
   @override
   Widget build(BuildContext context) {
+    final session = widget.appState.session;
+    if (session == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    
+    final activeRole = session.role;
+    final isAdmin = activeRole == 'admin';
+    final isTeacher = activeRole == 'teacher';
+    final isOfficer = !isAdmin && !isTeacher && session.isClubOfficerOf(widget.event.clubId);
+
+    if (!isAdmin && !isTeacher && !isOfficer) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Access Denied')),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Text(
+              'You do not have rights to see this page.',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Event Participants'),
@@ -931,7 +961,7 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> with 
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: _rsvps.length,
-                  separatorBuilder: (_, __) => const Divider(),
+                  separatorBuilder: (_, _) => const Divider(),
                   itemBuilder: (context, index) {
                     final rsvp = _rsvps[index];
                     final sessionKey = _selectedSession.toString();

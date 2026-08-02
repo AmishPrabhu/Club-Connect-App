@@ -738,7 +738,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                                     ? 'assets/images${managedClub.imageAsset}'
                                                     : managedClub.imageAsset,
                                                 fit: BoxFit.contain,
-                                                errorBuilder: (_, __, ___) => Icon(Icons.groups_rounded, color: AppTheme.accent(context)),
+                                                errorBuilder: (_, _, _) => Icon(Icons.groups_rounded, color: AppTheme.accent(context)),
                                               ))
                                         : Icon(Icons.groups_rounded, color: AppTheme.accent(context), size: 28),
                                   ),
@@ -842,7 +842,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: membershipClubs.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 14),
+                        separatorBuilder: (_, _) => const SizedBox(width: 14),
                         itemBuilder: (context, index) {
                           final club = membershipClubs[index];
                           final role = _getUserRoleInClub(session, club);
@@ -906,7 +906,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                                             ? 'assets/images${club.imageAsset}'
                                                             : club.imageAsset,
                                                         fit: BoxFit.cover,
-                                                        errorBuilder: (_, __, ___) => Center(
+                                                        errorBuilder: (_, _, _) => Center(
                                                           child: Text(
                                                             club.icon.isNotEmpty ? club.icon : '🏛️',
                                                             style: const TextStyle(fontSize: 16),
@@ -1091,7 +1091,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: likedClubs.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 14),
+                        separatorBuilder: (_, _) => const SizedBox(width: 14),
                         itemBuilder: (context, index) {
                           final club = likedClubs[index];
                           return _buildLikedClubCard(club);
@@ -1441,7 +1441,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                   ? 'assets/images${club.imageAsset}'
                                   : club.imageAsset,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Center(
+                              errorBuilder: (_, _, _) => Center(
                                 child: Text(
                                   club.icon.isNotEmpty ? club.icon : '🏛️',
                                   style: const TextStyle(fontSize: 16),
@@ -1553,7 +1553,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: items.length,
-                    separatorBuilder: (_, __) => const Divider(),
+                    separatorBuilder: (_, _) => const Divider(),
                     itemBuilder: (context, index) {
                       final ev = items[index]['event'] as PostItem;
                       final rsvp = items[index]['rsvp'] as Map<String, dynamic>;
@@ -1681,7 +1681,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: items.length,
-                    separatorBuilder: (_, __) => const Divider(),
+                    separatorBuilder: (_, _) => const Divider(),
                     itemBuilder: (context, index) {
                       final ev = items[index]['event'] as PostItem;
                       final rsvp = items[index]['rsvp'] as Map<String, dynamic>;
@@ -1696,7 +1696,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                                   width: 48,
                                   height: 48,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Container(
+                                  errorBuilder: (_, _, _) => Container(
                                     width: 48,
                                     height: 48,
                                     decoration: BoxDecoration(
@@ -1846,7 +1846,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                         : ListView.separated(
                             controller: scrollController,
                             itemCount: all.length,
-                            separatorBuilder: (_, __) => const Divider(),
+                            separatorBuilder: (_, _) => const Divider(),
                             itemBuilder: (context, index) {
                               final ev = all[index]['event'] as PostItem;
                               final rsvp = all[index]['rsvp'] as Map<String, dynamic>;

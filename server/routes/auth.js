@@ -408,8 +408,9 @@ router.get('/me', verifyToken, async (req, res) => {
         let effectiveClubId = user.clubId;
         let effectiveClubName = user.clubName;
 
-        // Fetch ALL club memberships for this user (for validation)
+        // Fetch ALL active club memberships for this user
         const memberships = await ClubMember.find({
+            isCurrent: true,
             $or: [{ userId: user._id }, { email: user.email }]
         }).lean();
 
@@ -432,7 +433,8 @@ router.get('/me', verifyToken, async (req, res) => {
                 role: membership.role,
                 boardType: membership.boardType,
                 email: membership.email,
-                officerRole // Added: officer status based on Club's email fields
+                isCurrent: membership.isCurrent !== false, // Include isCurrent flag
+                officerRole // officer status based on Club's email fields
             };
         }));
 
@@ -440,6 +442,7 @@ router.get('/me', verifyToken, async (req, res) => {
         if (['user', 'club-member', 'club-secretary', 'president', 'treasurer', 'advisor'].includes(effectiveRole)) {
             const officerMembership = await ClubMember.findOne({
                 $or: [{ userId: user._id }, { email: user.email }],
+                isCurrent: true,
                 role: { $in: ['Secretary', 'President', 'Treasurer', 'Advisor'] }
             });
 

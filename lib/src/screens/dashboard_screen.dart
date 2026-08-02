@@ -196,7 +196,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _selectedClub = null;
         });
       } catch (e) {
-        print('Error loading teacher clubs: $e');
+//         print('Error loading teacher clubs: $e');
       } finally {
         setState(() => _isLoadingMonitored = false);
       }
@@ -250,6 +250,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
         (widget.initialClub != null && session.isClubOfficerOf(widget.initialClub!.id, club: widget.initialClub)) ||
         session.isAnyClubOfficer
     );
+
+    if (!isAdmin && !isTeacher && !isOfficer) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Access Denied')),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Text(
+              'You do not have rights to see this page.',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: (isAdmin || isTeacher)
@@ -865,7 +881,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onTap: () {
             if (section == 'Institution Settings') {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const InstitutionSettingsScreen()),
+                MaterialPageRoute(builder: (_) => const InstitutionSettingsScreen(isAdmin: true)),
               );
             } else {
               setState(() => _selectedSection = section);
@@ -1381,14 +1397,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ? Image.network(
                             club.imageAsset,
                             fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => const Icon(Icons.groups_rounded, size: 36, color: Colors.grey),
+                            errorBuilder: (_, _, _) => const Icon(Icons.groups_rounded, size: 36, color: Colors.grey),
                           )
                         : Image.asset(
                             club.imageAsset.startsWith('/')
                                 ? 'assets/images${club.imageAsset}'
                                 : club.imageAsset,
                             fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => const Icon(Icons.groups_rounded, size: 36, color: Colors.grey),
+                            errorBuilder: (_, _, _) => const Icon(Icons.groups_rounded, size: 36, color: Colors.grey),
                           ))
                     : const Icon(Icons.groups_rounded, size: 36, color: Colors.grey),
               ),
@@ -1781,7 +1797,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 TextField(controller: descriptionController, maxLines: 3, decoration: const InputDecoration(labelText: 'Description')),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: category,
+                  initialValue: category,
                   items: const [
                     DropdownMenuItem(value: 'technical', child: Text('Technical')),
                     DropdownMenuItem(value: 'academic', child: Text('Academic')),
@@ -2487,14 +2503,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ? Image.network(
                                     _selectedClub!.imageAsset,
                                     fit: BoxFit.contain,
-                                    errorBuilder: (_, __, ___) => Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.accent(context)),
+                                    errorBuilder: (_, _, _) => Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.accent(context)),
                                   )
                                 : Image.asset(
                                     _selectedClub!.imageAsset.startsWith('/')
                                         ? 'assets/images${_selectedClub!.imageAsset}'
                                         : _selectedClub!.imageAsset,
                                     fit: BoxFit.contain,
-                                    errorBuilder: (_, __, ___) => Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.accent(context)),
+                                    errorBuilder: (_, _, _) => Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.accent(context)),
                                   ),
                           )
                         : Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.accent(context), size: 28),
@@ -3022,14 +3038,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ? Image.network(
                                 _selectedClub!.imageAsset,
                                 fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.blue),
+                                errorBuilder: (_, _, _) => Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.blue),
                               )
                             : Image.asset(
                                 _selectedClub!.imageAsset.startsWith('/')
                                     ? 'assets/images${_selectedClub!.imageAsset}'
                                     : _selectedClub!.imageAsset,
                                 fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.blue),
+                                errorBuilder: (_, _, _) => Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.blue),
                               ),
                       )
                     : Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.blue, size: 28),
@@ -3323,14 +3339,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         ? Image.network(
                                             club.imageAsset,
                                             fit: BoxFit.contain,
-                                            errorBuilder: (_, __, ___) => Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.blue, size: 16),
+                                            errorBuilder: (_, _, _) => Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.blue, size: 16),
                                           )
                                         : Image.asset(
                                             club.imageAsset.startsWith('/')
                                                 ? 'assets/images${club.imageAsset}'
                                                 : club.imageAsset,
                                             fit: BoxFit.contain,
-                                            errorBuilder: (_, __, ___) => Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.blue, size: 16),
+                                            errorBuilder: (_, _, _) => Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.blue, size: 16),
                                           ))
                                     : Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.blue, size: 16),
                               ),
@@ -3509,14 +3525,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ? Image.network(
                                 _selectedClub!.imageAsset,
                                 fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.blue),
+                                errorBuilder: (_, _, _) => Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.blue),
                               )
                             : Image.asset(
                                 _selectedClub!.imageAsset.startsWith('/')
                                     ? 'assets/images${_selectedClub!.imageAsset}'
                                     : _selectedClub!.imageAsset,
                                 fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.blue),
+                                errorBuilder: (_, _, _) => Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.blue),
                               ),
                       )
                     : Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.blue, size: 28),
@@ -3708,7 +3724,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: filteredReports.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final report = filteredReports[index];
                   final eventDate = report['eventDate'] != null ? DateTime.tryParse(report['eventDate'].toString()) : null;
@@ -3945,7 +3961,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: filteredMembers.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final member = filteredMembers[index];
                   final name = member['name']?.toString() ?? 'Member';
@@ -4124,7 +4140,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: clubEvents.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final event = clubEvents[index];
               return Container(
@@ -4232,7 +4248,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: reports.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          separatorBuilder: (_, _) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
             final report = reports[index];
             final submittedAt = report['reportSubmittedAt'] != null
@@ -4348,7 +4364,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: budgetedEvents.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final event = budgetedEvents[index];
         final isVerified = event.budgetVerified ?? false;
@@ -4703,14 +4719,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   ? Image.network(
                                       _selectedClub!.imageAsset,
                                       fit: BoxFit.contain,
-                                      errorBuilder: (_, __, ___) => Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.accent(context), size: 36),
+                                      errorBuilder: (_, _, _) => Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.accent(context), size: 36),
                                     )
                                   : Image.asset(
                                       _selectedClub!.imageAsset.startsWith('/')
                                           ? 'assets/images${_selectedClub!.imageAsset}'
                                           : _selectedClub!.imageAsset,
                                       fit: BoxFit.contain,
-                                      errorBuilder: (_, __, ___) => Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.accent(context), size: 36),
+                                      errorBuilder: (_, _, _) => Icon(Icons.groups_rounded, color: isDark ? Colors.white : AppTheme.accent(context), size: 36),
                                     ),
                             )
                           : Icon(Icons.groups_rounded, size: 48, color: isDark ? Colors.white : Colors.grey),
@@ -5027,7 +5043,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: members.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
                   final m = members[index];
                   final mId = m['_id']?.toString() ?? m['id']?.toString() ?? '';
@@ -5226,7 +5242,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: clubPosts.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final post = clubPosts[index];
               return Container(
@@ -5432,7 +5448,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: tasks.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
                   final t = tasks[index];
                   final taskId = t['_id']?.toString() ?? t['id']?.toString() ?? '';
@@ -5668,7 +5684,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: notifications.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final n = notifications[index];
               return Container(
@@ -5834,7 +5850,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     DropdownButtonFormField<String>(
-                      value: selectedEventId,
+                      initialValue: selectedEventId,
                       hint: const Text('Select Event'),
                       isExpanded: true,
                       items: events.map((ev) {
@@ -6005,7 +6021,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: '',
+                      initialValue: '',
                       isExpanded: true,
                       items: [
                         const DropdownMenuItem(value: '', child: Text('No Related Event')),
@@ -6495,7 +6511,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
             child: TweenAnimationBuilder<double>(
               tween: Tween<double>(begin: 0, end: (_step + 1) / _totalSteps),
               duration: const Duration(milliseconds: 300),
-              builder: (_, v, __) => ClipRRect(
+              builder: (_, v, _) => ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                   value: v, minHeight: 4,

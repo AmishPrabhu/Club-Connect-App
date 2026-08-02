@@ -473,6 +473,9 @@ router.post('/:id/handover', verifyMemberManagementOfficer, async (req, res) => 
         const club = await Club.findById(clubId);
         if (!club) return res.status(404).json({ message: 'Club not found' });
 
+        // 0. Fetch old active members BEFORE archiving
+        const oldActiveMembers = await ClubMember.find({ clubId, isCurrent: true });
+
         // 1. Archive current active members for this club
         await ClubMember.updateMany(
             { clubId, isCurrent: true },
@@ -538,6 +541,74 @@ router.post('/:id/handover', verifyMemberManagementOfficer, async (req, res) => 
         // Update member count for active board
         const count = await ClubMember.countDocuments({ clubId, isCurrent: true });
         await Club.findByIdAndUpdate(clubId, { members: count });
+
+        // 4. Clean up global roles of ALL old members (demote officers or revert to default user)
+        for (const oldMember of oldActiveMembers) {
+            if (!oldMember.email) continue;
+
+            const existingUser = await User.findOne({
+                email: { $regex: new RegExp(`^${escapeRegExp(oldMember.email)}$`, 'i') }
+            });
+
+            if (existingUser) {
+                // Find all active memberships this user still holds in ANY club
+                const activeMemberships = await ClubMember.find({
+                    $or: [{ userId: existingUser._id }, { email: { $regex: new RegExp(`^${escapeRegExp(oldMember.email)}$`, 'i') } }],
+                    isCurrent: true
+                });
+
+                if (activeMemberships.length === 0) {
+                    // They hold NO active memberships anywhere. Revert to default 'user'.
+                    const rolesToRemove = ['president', 'treasurer', 'club-secretary', 'advisor', 'club-member'];
+                    if (existingUser.roles) {
+                        existingUser.roles = existingUser.roles.filter(r => !rolesToRemove.includes(r));
+                    }
+                    
+                    const privilegedRoles = ['admin', 'teacher'];
+                    if (!privilegedRoles.includes(existingUser.role)) {
+                        existingUser.role = 'user'; // Fully reset to standard user
+                    }
+                    
+                    existingUser.clubId = null;
+                    existingUser.clubName = null;
+
+                    await existingUser.save();
+                } else {
+                    // They DO have active memberships in other clubs.
+                    // Check if they are still an officer anywhere.
+                    const isStillOfficer = activeMemberships.some(m => {
+                        const r = (m.role || '').toLowerCase();
+                        return ['president', 'secretary', 'treasurer', 'advisor', 'vice-president', 'assistant secretary', 'assistant treasurer'].includes(r)
+                            || m.boardType === 'main'
+                            || m.boardType === 'executive';
+                    });
+
+                    if (!isStillOfficer) {
+                        // Strip officer privileges, keep as 'club-member'
+                        const officerRolesToRemove = ['president', 'treasurer', 'club-secretary', 'advisor'];
+                        if (existingUser.roles) {
+                            existingUser.roles = existingUser.roles.filter(r => !officerRolesToRemove.includes(r));
+                        }
+                        
+                        const privilegedRoles = ['admin', 'teacher'];
+                        if (!privilegedRoles.includes(existingUser.role)) {
+                            existingUser.role = 'club-member';
+                        }
+                    }
+
+                    // Update clubId/clubName to point to an active club if it was pointing to the one they just left
+                    if (existingUser.clubId === clubId) {
+                        const nextClub = await Club.findById(activeMemberships[0].clubId);
+                        if (nextClub) {
+                            existingUser.clubId = nextClub._id.toString();
+                            existingUser.clubName = nextClub.name;
+                        }
+                    }
+                    
+                    await existingUser.save();
+                }
+            }
+        }
 
         // Broadcast SSE event for real-time app update
         try {
@@ -621,6 +692,13 @@ router.post('/:id/members', verifyMemberManagementOfficer, async (req, res) => {
         const { name, email, role, userId, boardType, academicYear, joinedAt } = req.body;
         const clubId = req.params.id;
 
+        // Role Verification: Only President/Admin can add Secretary or Treasurer to Main Board
+        if (boardType === 'main' && ['secretary', 'treasurer'].includes((role || '').toLowerCase())) {
+            if (req.user.role !== 'president' && req.user.role !== 'admin') {
+                return res.status(403).json({ message: 'Only Presidents and Admins can assign Secretary or Treasurer roles.' });
+            }
+        }
+
         const existing = await ClubMember.findOne({ clubId, email });
         if (existing) {
             return res.status(400).json({ message: 'Member already exists in this club' });
@@ -651,16 +729,38 @@ router.post('/:id/members', verifyMemberManagementOfficer, async (req, res) => {
             // Initialize roles array if missing
             if (!existingUser.roles) existingUser.roles = [];
 
+            const roleMap = {
+                'Secretary': 'club-secretary',
+                'President': 'president',
+                'Treasurer': 'treasurer',
+                'Advisor': 'advisor',
+                'Assistant Secretary': 'club-secretary',
+                'Assistant Treasurer': 'treasurer',
+            };
+            
+            const memberRoleStr = role || 'Member';
+            const mappedRole = roleMap[memberRoleStr];
+
             // Add 'club-member' to roles if not present
             if (!existingUser.roles.includes('club-member')) {
                 existingUser.roles.push('club-member');
             }
 
-            // Only update primary role to 'club-member' if their current role is 'user'
+            if (mappedRole && !existingUser.roles.includes(mappedRole)) {
+                existingUser.roles.push(mappedRole);
+            }
+
+            // Only update primary role to 'club-member' or mappedRole if their current role is 'user'
             // Do NOT overwrite if they are teacher, admin, advisor, etc.
             const privilegedRoles = ['admin', 'teacher', 'advisor', 'president', 'treasurer', 'club-secretary'];
-            if (existingUser.role === 'user' && !privilegedRoles.includes(existingUser.role)) {
-                existingUser.role = 'club-member';
+            if (!privilegedRoles.includes(existingUser.role)) {
+                existingUser.role = mappedRole || 'club-member';
+            } else if (existingUser.role === 'club-member' && mappedRole) {
+                existingUser.role = mappedRole;
+            }
+
+            if (mappedRole) {
+                existingUser.clubId = clubId;
             }
 
             await existingUser.save();
@@ -713,7 +813,13 @@ router.post('/:id/members', verifyMemberManagementOfficer, async (req, res) => {
 router.put('/:id/members/:memberId', verifyMemberManagementOfficer, async (req, res) => {
     try {
         const { name, email, role, academicYear, joinedAt, boardType } = req.body;
-        // Basic validation/permission check could go here
+        
+        // Role Verification: Only President/Admin can assign Secretary or Treasurer to Main Board
+        if (boardType === 'main' && ['secretary', 'treasurer'].includes((role || '').toLowerCase())) {
+            if (req.user.role !== 'president' && req.user.role !== 'admin') {
+                return res.status(403).json({ message: 'Only Presidents and Admins can assign Secretary or Treasurer roles.' });
+            }
+        }
 
         const updateData = { name, email, role };
         if (academicYear !== undefined) updateData.academicYear = academicYear;
@@ -729,6 +835,48 @@ router.put('/:id/members/:memberId', verifyMemberManagementOfficer, async (req, 
         // Update member count in Club
         const count = await ClubMember.countDocuments({ clubId: req.params.id });
         await Club.findByIdAndUpdate(req.params.id, { members: count });
+
+        // --- GLOBAL ROLE SYNC ---
+        const existingUser = updatedMember.userId 
+            ? await User.findById(updatedMember.userId) 
+            : await User.findOne({ email: { $regex: new RegExp(`^${escapeRegExp(updatedMember.email)}$`, 'i') } });
+
+        if (existingUser) {
+            if (!existingUser.roles) existingUser.roles = [];
+            
+            const roleMap = {
+                'Secretary': 'club-secretary',
+                'President': 'president',
+                'Treasurer': 'treasurer',
+                'Advisor': 'advisor',
+                'Assistant Secretary': 'club-secretary',
+                'Assistant Treasurer': 'treasurer',
+            };
+            
+            const mappedRole = roleMap[updatedMember.role];
+            
+            if (!existingUser.roles.includes('club-member')) {
+                existingUser.roles.push('club-member');
+            }
+            
+            if (mappedRole && !existingUser.roles.includes(mappedRole)) {
+                existingUser.roles.push(mappedRole);
+            }
+            
+            const privilegedRoles = ['admin', 'teacher', 'advisor', 'president', 'treasurer', 'club-secretary'];
+            if (!privilegedRoles.includes(existingUser.role)) {
+                existingUser.role = mappedRole || 'club-member';
+            } else if (existingUser.role === 'club-member' && mappedRole) {
+                existingUser.role = mappedRole;
+            }
+
+            if (mappedRole) {
+                existingUser.clubId = req.params.id;
+            }
+
+            await existingUser.save();
+        }
+        // -----------------------
 
         res.json(updatedMember);
     } catch (error) {

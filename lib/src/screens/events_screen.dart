@@ -127,7 +127,7 @@ class _EventsScreenState extends State<EventsScreen> {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: selectedClub,
+                              initialValue: selectedClub,
                               isExpanded: true,
                               decoration: const InputDecoration(
                                 prefixIcon: Icon(Icons.filter_alt_outlined),
@@ -154,7 +154,7 @@ class _EventsScreenState extends State<EventsScreen> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: _sort,
+                              initialValue: _sort,
                               isExpanded: true,
                               decoration: const InputDecoration(
                                 prefixIcon: Icon(Icons.sort_rounded),
