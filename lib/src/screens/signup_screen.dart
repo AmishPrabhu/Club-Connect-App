@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
@@ -34,8 +35,12 @@ class _SignupScreenState extends State<SignupScreen> {
   static const int _maxOtpAttempts = 3;
   String? _error;
 
+  Timer? _resendTimer;
+  int _resendSeconds = 15;
+
   @override
   void dispose() {
+    _resendTimer?.cancel();
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -60,6 +65,45 @@ class _SignupScreenState extends State<SignupScreen> {
     Future.delayed(const Duration(milliseconds: 150), doScroll);
     Future.delayed(const Duration(milliseconds: 350), doScroll);
     Future.delayed(const Duration(milliseconds: 600), doScroll);
+  }
+
+  void _startResendTimer() {
+    setState(() => _resendSeconds = 15);
+    _resendTimer?.cancel();
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_resendSeconds > 0) {
+        setState(() => _resendSeconds--);
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  Future<void> _resendOtp() async {
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    try {
+      await widget.appState.sendOtp(_emailController.text.trim());
+      _otpController.clear();
+      _startResendTimer();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('OTP sent successfully!')),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _error = e.toString().replaceFirst('Exception: ', '').replaceFirst('ApiException: ', '');
+      });
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -168,6 +212,25 @@ class _SignupScreenState extends State<SignupScreen> {
                               ],
                             ),
                           ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: TextButton(
+                            onPressed: _resendSeconds == 0 && !_submitting && !_otpSuccess
+                                ? _resendOtp
+                                : null,
+                            child: Text(
+                              _resendSeconds > 0
+                                  ? 'Resend OTP in ${_resendSeconds}s'
+                                  : 'Resend OTP',
+                              style: TextStyle(
+                                color: _resendSeconds > 0 || _submitting || _otpSuccess
+                                    ? AppTheme.mutedColor(context)
+                                    : Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -355,6 +418,7 @@ class _SignupScreenState extends State<SignupScreen> {
         }
         await widget.appState.sendOtp(email);
         setState(() => _step = 1);
+        _startResendTimer();
       } else if (_step == 1) {
         await widget.appState.verifyOtp(
           _emailController.text.trim(),

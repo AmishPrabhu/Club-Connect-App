@@ -40,10 +40,10 @@ class UserSession {
     // Fallback: check if user's email matches the Club's direct officer email fields
     if (club != null) {
       final emailLower = email.toLowerCase();
-      if (club.presidentEmail.toLowerCase() == emailLower ||
-          club.secretaryEmail.toLowerCase() == emailLower ||
-          club.treasurerEmail.toLowerCase() == emailLower ||
-          club.advisorEmail.toLowerCase() == emailLower) {
+      if ((club.presidentEmail ?? '').toLowerCase() == emailLower ||
+          (club.secretaryEmail ?? '').toLowerCase() == emailLower ||
+          (club.treasurerEmail ?? '').toLowerCase() == emailLower ||
+          (club.advisorEmail ?? '').toLowerCase() == emailLower) {
         return true;
       }
     }
@@ -59,8 +59,8 @@ class UserSession {
     // Fallback: President/Secretary can always submit reports
     if (club != null) {
       final emailLower = email.toLowerCase();
-      if (club.presidentEmail.toLowerCase() == emailLower ||
-          club.secretaryEmail.toLowerCase() == emailLower) {
+      if ((club.presidentEmail ?? '').toLowerCase() == emailLower ||
+          (club.secretaryEmail ?? '').toLowerCase() == emailLower) {
         return true;
       }
     }
@@ -76,9 +76,9 @@ class UserSession {
     // Fallback: check if user's email matches the Club's direct manager email fields
     if (club != null) {
       final emailLower = email.toLowerCase();
-      if (club.presidentEmail.toLowerCase() == emailLower ||
-          club.secretaryEmail.toLowerCase() == emailLower ||
-          club.advisorEmail.toLowerCase() == emailLower) {
+      if ((club.presidentEmail ?? '').toLowerCase() == emailLower ||
+          (club.secretaryEmail ?? '').toLowerCase() == emailLower ||
+          (club.advisorEmail ?? '').toLowerCase() == emailLower) {
         return true;
       }
     }
@@ -113,9 +113,9 @@ class UserSession {
 
       if (club != null && club.id == notificationClubId) {
         final emailLower = email.toLowerCase();
-        if (club.presidentEmail.toLowerCase() == emailLower ||
-            club.secretaryEmail.toLowerCase() == emailLower ||
-            club.treasurerEmail.toLowerCase() == emailLower) {
+        if ((club.presidentEmail ?? '').toLowerCase() == emailLower ||
+            (club.secretaryEmail ?? '').toLowerCase() == emailLower ||
+            (club.treasurerEmail ?? '').toLowerCase() == emailLower) {
           return true;
         }
       }

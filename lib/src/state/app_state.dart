@@ -1117,7 +1117,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> deleteTeacher(String teacherId) async {
-    await _apiClient.delete('/users/$teacherId');
+    await _apiClient.post('/users/remove-teacher', body: {'userId': teacherId});
     await refreshAll();
   }
 

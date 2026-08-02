@@ -19,9 +19,7 @@ const authLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     skipSuccessfulRequests: true,
-    keyGenerator: (req) => {
-        return req.body.email ? req.body.email.toLowerCase() : req.ip;
-    },
+    keyGenerator: (req) => req.ip,
     validate: {
         xForwardedForHeader: false,
         keyGeneratorIpFallback: false,
@@ -33,6 +31,13 @@ const signupLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 10,
     message: { message: 'Too many accounts created from this IP, please try again later' },
+});
+
+// Limiter for profile-related OTPs (Delete Account, Change Password) - 5 per hour
+const profileOtpLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 5,
+    message: { message: 'Too many requests from this IP, please try again later' },
 });
 
 const router = express.Router();
@@ -805,7 +810,7 @@ router.post('/reset-password', async (req, res) => {
 });
 
 // Request Delete Account OTP
-router.post('/request-delete-otp', verifyToken, async (req, res) => {
+router.post('/request-delete-otp', verifyToken, profileOtpLimiter, async (req, res) => {
     try {
         const userId = req.user.id;
         const user = await User.findById(userId);
@@ -875,7 +880,7 @@ router.delete('/delete-account', verifyToken, async (req, res) => {
 });
 
 // Request OTP for Change Password
-router.post('/request-change-password-otp', verifyToken, async (req, res) => {
+router.post('/request-change-password-otp', verifyToken, profileOtpLimiter, async (req, res) => {
     try {
         const userId = req.user.id;
         const user = await User.findById(userId);

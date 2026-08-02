@@ -94,6 +94,7 @@ class _RootScreenState extends State<RootScreen> {
         children: [
           const _BackgroundDecor(),
           SafeArea(
+            bottom: false,
             child: Column(
               children: [
                 if (_index != 0)
