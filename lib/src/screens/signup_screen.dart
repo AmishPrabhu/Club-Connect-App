@@ -107,8 +107,13 @@ class _SignupScreenState extends State<SignupScreen> {
         );
       }
     } catch (e) {
+      final msg = e.toString().replaceFirst('Exception: ', '').replaceFirst('ApiException: ', '');
+      final isRateLimited = msg.toLowerCase().contains('too many') || msg.toLowerCase().contains('limit');
       setState(() {
-        _error = e.toString().replaceFirst('Exception: ', '').replaceFirst('ApiException: ', '');
+        _error = msg;
+        if (isRateLimited) {
+          _resendCount = _maxResends;
+        }
       });
     } finally {
       if (mounted) setState(() => _submitting = false);

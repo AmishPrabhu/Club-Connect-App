@@ -1213,9 +1213,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         );
       }
     } catch (error) {
+      final msg = error.toString().replaceFirst('Exception: ', '').replaceFirst('ApiException: ', '');
+      final isRateLimited = msg.toLowerCase().contains('too many') || msg.toLowerCase().contains('limit');
       if (mounted) {
+        if (isRateLimited) {
+          setState(() => _resendCount = _maxResends);
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
+          SnackBar(content: Text(msg)),
         );
       }
     } finally {
@@ -1719,9 +1724,14 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
         );
       }
     } catch (error) {
+      final msg = error.toString().replaceFirst('Exception: ', '').replaceFirst('ApiException: ', '');
+      final isRateLimited = msg.toLowerCase().contains('too many') || msg.toLowerCase().contains('limit');
       if (mounted) {
+        if (isRateLimited) {
+          setState(() => _resendCount = _maxResends);
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
+          SnackBar(content: Text(msg)),
         );
       }
     } finally {
