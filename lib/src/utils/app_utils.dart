@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ─── Error message helper ─────────────────────────────────────────────────────
 
@@ -81,5 +82,73 @@ class PasswordStrengthIndicator extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+// ─── Persistent OTP Lock Manager ─────────────────────────────────────────────
+
+class OtpLockManager {
+  static const int maxResends = 5;
+  static const int cooldownMinutes = 15;
+
+  /// Gets the remaining lock duration in seconds (0 if not locked/expired).
+  static Future<int> getRemainingLockSeconds(String flowKey) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final expiryMs = prefs.getInt('otp_lock_expiry_$flowKey') ?? 0;
+      if (expiryMs == 0) return 0;
+
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final remainingMs = expiryMs - nowMs;
+      if (remainingMs <= 0) {
+        await prefs.remove('otp_lock_expiry_$flowKey');
+        await prefs.remove('otp_resend_count_$flowKey');
+        return 0;
+      }
+      return (remainingMs / 1000).ceil();
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  /// Gets the saved resend count for a flow (resets to 0 if lock expired).
+  static Future<int> getResendCount(String flowKey) async {
+    try {
+      final remainingSecs = await getRemainingLockSeconds(flowKey);
+      if (remainingSecs == 0) {
+        return 0;
+      }
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getInt('otp_resend_count_$flowKey') ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  /// Increments the resend count for a flow and saves it to SharedPreferences.
+  /// If count reaches max (5), automatically triggers a 15-minute lock.
+  static Future<int> incrementResendCount(String flowKey) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      int current = prefs.getInt('otp_resend_count_$flowKey') ?? 0;
+      current++;
+      await prefs.setInt('otp_resend_count_$flowKey', current);
+      if (current >= maxResends) {
+        await lockFlow(flowKey, minutes: cooldownMinutes);
+      }
+      return current;
+    } catch (_) {
+      return 1;
+    }
+  }
+
+  /// Locks a flow for [minutes] in SharedPreferences.
+  static Future<void> lockFlow(String flowKey, {int minutes = cooldownMinutes}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final expiryMs = DateTime.now().add(Duration(minutes: minutes)).millisecondsSinceEpoch;
+      await prefs.setInt('otp_lock_expiry_$flowKey', expiryMs);
+      await prefs.setInt('otp_resend_count_$flowKey', maxResends);
+    } catch (_) {}
   }
 }

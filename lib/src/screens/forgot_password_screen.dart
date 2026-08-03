@@ -44,6 +44,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   void initState() {
     super.initState();
     _emailController = TextEditingController(text: widget.initialEmail ?? '');
+    _checkPersistentOtpLock();
+  }
+
+  void _checkPersistentOtpLock() async {
+    final remaining = await OtpLockManager.getRemainingLockSeconds('forgot_pass');
+    final count = await OtpLockManager.getResendCount('forgot_pass');
+    if (mounted) {
+      setState(() {
+        _resendCount = count;
+        if (remaining > 0) {
+          _resendSeconds = remaining;
+          _startResendTimer();
+        }
+      });
+    }
   }
 
   @override
@@ -103,7 +118,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     try {
       await widget.appState.requestPasswordReset(_emailController.text.trim());
       _tokenController.clear();
-      setState(() => _resendCount++);
+      final newCount = await OtpLockManager.incrementResendCount('forgot_pass');
+      setState(() => _resendCount = newCount);
       _startResendTimer();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -113,10 +129,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     } catch (e) {
       final msg = e.toString().replaceFirst('Exception: ', '').replaceFirst('ApiException: ', '');
       final isRateLimited = msg.toLowerCase().contains('too many') || msg.toLowerCase().contains('limit');
+      if (isRateLimited) {
+        await OtpLockManager.lockFlow('forgot_pass');
+      }
       setState(() {
         _error = msg;
         if (isRateLimited) {
           _resendCount = _maxResends;
+          _resendSeconds = 15 * 60;
+          _startResendTimer();
         }
       });
     } finally {

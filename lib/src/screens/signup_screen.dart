@@ -85,6 +85,20 @@ class _SignupScreenState extends State<SignupScreen> {
     });
   }
 
+  void _checkPersistentOtpLock() async {
+    final remaining = await OtpLockManager.getRemainingLockSeconds('signup');
+    final count = await OtpLockManager.getResendCount('signup');
+    if (mounted) {
+      setState(() {
+        _resendCount = count;
+        if (remaining > 0) {
+          _resendSeconds = remaining;
+          _startResendTimer();
+        }
+      });
+    }
+  }
+
   Future<void> _resendOtp() async {
     if (_resendCount >= _maxResends) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -99,7 +113,8 @@ class _SignupScreenState extends State<SignupScreen> {
     try {
       await widget.appState.sendOtp(_emailController.text.trim());
       _otpController.clear();
-      setState(() => _resendCount++);
+      final newCount = await OtpLockManager.incrementResendCount('signup');
+      setState(() => _resendCount = newCount);
       _startResendTimer();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -109,10 +124,15 @@ class _SignupScreenState extends State<SignupScreen> {
     } catch (e) {
       final msg = e.toString().replaceFirst('Exception: ', '').replaceFirst('ApiException: ', '');
       final isRateLimited = msg.toLowerCase().contains('too many') || msg.toLowerCase().contains('limit');
+      if (isRateLimited) {
+        await OtpLockManager.lockFlow('signup');
+      }
       setState(() {
         _error = msg;
         if (isRateLimited) {
           _resendCount = _maxResends;
+          _resendSeconds = 15 * 60;
+          _startResendTimer();
         }
       });
     } finally {
@@ -123,6 +143,7 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   void initState() {
     super.initState();
+    _checkPersistentOtpLock();
     _googleData = widget.googleData;
     final googleData = _googleData;
     if (googleData != null) {

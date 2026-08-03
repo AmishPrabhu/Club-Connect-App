@@ -1111,6 +1111,26 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   static const int _maxResends = 5;
 
   @override
+  void initState() {
+    super.initState();
+    _checkPersistentOtpLock();
+  }
+
+  void _checkPersistentOtpLock() async {
+    final remaining = await OtpLockManager.getRemainingLockSeconds('change_pass');
+    final count = await OtpLockManager.getResendCount('change_pass');
+    if (mounted) {
+      setState(() {
+        _resendCount = count;
+        if (remaining > 0) {
+          _resendSeconds = remaining;
+          _startResendTimer();
+        }
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _resendTimer?.cancel();
     _currentPasswordController.dispose();
@@ -1170,7 +1190,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   }
 
   void _startResendTimer() {
-    setState(() => _resendSeconds = 30);
+    setState(() => _resendSeconds = 5); // Testing mode: 5 seconds cooldown
     _resendTimer?.cancel();
     _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
@@ -1201,10 +1221,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       );
       if (mounted) {
         _otpController.clear();
+        final newCount = await OtpLockManager.incrementResendCount('change_pass');
         setState(() {
           _otpSent = true;
           _otpAttempts = 0;
-          _resendCount++;
+          _resendCount = newCount;
         });
         _startResendTimer();
         _scrollToBottom();
@@ -1215,9 +1236,16 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     } catch (error) {
       final msg = error.toString().replaceFirst('Exception: ', '').replaceFirst('ApiException: ', '');
       final isRateLimited = msg.toLowerCase().contains('too many') || msg.toLowerCase().contains('limit');
+      if (isRateLimited) {
+        await OtpLockManager.lockFlow('change_pass');
+      }
       if (mounted) {
         if (isRateLimited) {
-          setState(() => _resendCount = _maxResends);
+          setState(() {
+            _resendCount = _maxResends;
+            _resendSeconds = 15 * 60;
+            _startResendTimer();
+          });
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(msg)),
@@ -1510,6 +1538,26 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
   static const int _maxResends = 5;
 
   @override
+  void initState() {
+    super.initState();
+    _checkPersistentOtpLock();
+  }
+
+  void _checkPersistentOtpLock() async {
+    final remaining = await OtpLockManager.getRemainingLockSeconds('delete_account');
+    final count = await OtpLockManager.getResendCount('delete_account');
+    if (mounted) {
+      setState(() {
+        _resendCount = count;
+        if (remaining > 0) {
+          _resendSeconds = remaining;
+          _startResendTimer();
+        }
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _resendTimer?.cancel();
     _deleteOtpController.dispose();
@@ -1711,11 +1759,12 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
       await widget.appState.requestDeleteOtp();
       if (mounted) {
         _deleteOtpController.clear();
+        final newCount = await OtpLockManager.incrementResendCount('delete_account');
         setState(() {
           _otpSent = true;
           _otpAttempts = 0;
           _otpError = false;
-          _resendCount++;
+          _resendCount = newCount;
         });
         _startResendTimer();
         _scrollToBottom();
@@ -1726,9 +1775,16 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
     } catch (error) {
       final msg = error.toString().replaceFirst('Exception: ', '').replaceFirst('ApiException: ', '');
       final isRateLimited = msg.toLowerCase().contains('too many') || msg.toLowerCase().contains('limit');
+      if (isRateLimited) {
+        await OtpLockManager.lockFlow('delete_account');
+      }
       if (mounted) {
         if (isRateLimited) {
-          setState(() => _resendCount = _maxResends);
+          setState(() {
+            _resendCount = _maxResends;
+            _resendSeconds = 15 * 60;
+            _startResendTimer();
+          });
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(msg)),
