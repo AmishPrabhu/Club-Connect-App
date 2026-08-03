@@ -1107,6 +1107,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   Timer? _resendTimer;
   int _resendSeconds = 0;
+  int _resendCount = 0;
+  static const int _maxResends = 5;
 
   @override
   void dispose() {
@@ -1186,6 +1188,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   Future<void> _requestOtp() async {
     FocusScope.of(context).unfocus();
     if (!_validateFields()) return;
+    if (_resendCount >= _maxResends) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Maximum resend limit reached (5/5). Please try again in 15 minutes.')),
+      );
+      return;
+    }
     setState(() => _isLoadingOtp = true);
     try {
       await widget.appState.requestChangePasswordOtp(
@@ -1196,11 +1204,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         setState(() {
           _otpSent = true;
           _otpAttempts = 0;
+          _resendCount++;
         });
         _startResendTimer();
         _scrollToBottom();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Verification code sent to your email.')),
+          SnackBar(content: Text('Verification code sent to your email. (${_resendCount}/$_maxResends)')),
         );
       }
     } catch (error) {
@@ -1371,7 +1380,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 width: double.infinity,
                 height: 52,
                 child: OutlinedButton.icon(
-                  onPressed: (_isLoadingOtp || _resendSeconds > 0) ? null : _requestOtp,
+                  onPressed: (_isLoadingOtp || _resendSeconds > 0 || _resendCount >= _maxResends) ? null : _requestOtp,
                   icon: const Icon(Icons.mail_outline_rounded),
                   label: _isLoadingOtp
                       ? const SizedBox(
@@ -1379,11 +1388,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(_resendSeconds > 0 
-                          ? 'Resend Code in ${_resendSeconds}s'
-                          : _otpSent
-                              ? 'Resend Verification Code'
-                              : 'Send Verification Code'),
+                      : Text(_resendCount >= _maxResends
+                          ? 'Resend limit reached (5/5)'
+                          : _resendSeconds > 0 
+                              ? 'Resend Code in ${_resendSeconds}s'
+                              : _otpSent
+                                  ? 'Resend Verification Code'
+                                  : 'Send Verification Code'),
                   style: OutlinedButton.styleFrom(
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16)),
@@ -1490,6 +1501,8 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
 
   Timer? _resendTimer;
   int _resendSeconds = 0;
+  int _resendCount = 0;
+  static const int _maxResends = 5;
 
   @override
   void dispose() {
@@ -1551,7 +1564,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                 width: double.infinity,
                 height: 52,
                 child: OutlinedButton.icon(
-                  onPressed: (_isLoadingOtp || _resendSeconds > 0) ? null : _requestOtp,
+                  onPressed: (_isLoadingOtp || _resendSeconds > 0 || _resendCount >= _maxResends) ? null : _requestOtp,
                   icon: const Icon(Icons.mail_outline_rounded),
                   label: _isLoadingOtp
                       ? const SizedBox(
@@ -1559,11 +1572,13 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                           height: 20,
                           child: CircularProgressIndicator(color: Colors.red, strokeWidth: 2),
                         )
-                      : Text(_resendSeconds > 0 
-                          ? 'Resend Code in ${_resendSeconds}s'
-                          : _otpSent
-                              ? 'Resend Verification Code'
-                              : 'Request Verification Code'),
+                      : Text(_resendCount >= _maxResends
+                          ? 'Resend limit reached (5/5)'
+                          : _resendSeconds > 0 
+                              ? 'Resend Code in ${_resendSeconds}s'
+                              : _otpSent
+                                  ? 'Resend Verification Code'
+                                  : 'Request Verification Code'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFFEF4444),
                     side: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
@@ -1677,6 +1692,12 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
 
   Future<void> _requestOtp() async {
     FocusScope.of(context).unfocus();
+    if (_resendCount >= _maxResends) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Maximum resend limit reached (5/5). Please try again in 15 minutes.')),
+      );
+      return;
+    }
     setState(() {
       _isLoadingOtp = true;
     });
@@ -1689,11 +1710,12 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
           _otpSent = true;
           _otpAttempts = 0;
           _otpError = false;
+          _resendCount++;
         });
         _startResendTimer();
         _scrollToBottom();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Verification code sent to your email.')),
+          SnackBar(content: Text('Verification code sent to your email. (${_resendCount}/$_maxResends)')),
         );
       }
     } catch (error) {

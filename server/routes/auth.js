@@ -11,28 +11,33 @@ import rateLimit from 'express-rate-limit';
 import Otp from '../models/Otp.js';
 import Club from '../models/Club.js';
 
+// Rate limit key generator (combines IP + Email to prevent locking out friends' emails from other devices)
+function getClientKey(req) {
+    const email = (req.body?.email || req.user?.email || '').toLowerCase().trim();
+    const ip = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+    const cleanIp = (ip === '::1' || ip === '::ffff:127.0.0.1') ? '127.0.0.1' : ip;
+    return email ? `${cleanIp}_${email}` : `ip_${cleanIp}`;
+}
+
 // Stricter rate limit for auth routes (5 attempts per 15 mins)
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 5,
+    limit: 5,
+    keyGenerator: (req) => getClientKey(req),
     message: { message: 'Too many login attempts, please try again after 15 minutes' },
-    standardHeaders: true,
+    standardHeaders: 'draft-7',
     legacyHeaders: false,
     skipSuccessfulRequests: true,
 });
 
-// Slightly more lenient for signup (10 per hour to prevent spam accounts)
-const signupLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000,
-    max: 10,
-    message: { message: 'Too many accounts created from this IP, please try again later' },
-});
-
-// Limiter for profile-related OTPs (Delete Account, Change Password) - 5 per hour
-const profileOtpLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000,
-    max: 5,
-    message: { message: 'Too many requests from this IP, please try again later' },
+// Strict OTP Rate Limiter (5 requests per 15 mins per Email/IP)
+const otpLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5,
+    keyGenerator: (req) => getClientKey(req),
+    message: { message: 'Too many OTP requests. Please try again after 15 minutes.' },
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
 });
 
 const router = express.Router();
@@ -49,7 +54,7 @@ function generateOTP() {
 }
 
 // Send OTP
-router.post('/send-otp-signup', signupLimiter, async (req, res) => {
+router.post('/send-otp-signup', otpLimiter, async (req, res) => {
     try {
         const { email } = req.body;
 
@@ -103,6 +108,13 @@ router.post('/verify-otp', async (req, res) => {
             return res.status(400).json({ message: 'OTP expired or not found. Please request a new one.' });
         }
 
+        // Strict 10-minute validity check
+        const TEN_MINUTES_MS = 10 * 60 * 1000;
+        if (Date.now() - new Date(otpRecord.createdAt).getTime() > TEN_MINUTES_MS) {
+            await Otp.deleteOne({ email });
+            return res.status(400).json({ message: 'OTP code has expired. Please request a new one.' });
+        }
+
         if (otpRecord.otp !== otp) {
             return res.status(400).json({ message: 'Invalid OTP' });
         }
@@ -115,7 +127,7 @@ router.post('/verify-otp', async (req, res) => {
 });
 
 // Signup
-router.post('/signup', signupLimiter, async (req, res) => {
+router.post('/signup', otpLimiter, async (req, res) => {
     try {
         const { email, password, name, role } = req.body;
 
@@ -152,6 +164,10 @@ router.post('/signup', signupLimiter, async (req, res) => {
             const otpRecord = await Otp.findOne({ email });
             if (!otpRecord) {
                 return res.status(400).json({ message: 'OTP expired or not found. Please request a new one.' });
+            }
+            if (Date.now() - new Date(otpRecord.createdAt).getTime() > 10 * 60 * 1000) {
+                await Otp.deleteOne({ email });
+                return res.status(400).json({ message: 'OTP code has expired. Please request a new one.' });
             }
             if (otpRecord.otp !== req.body.otp) {
                 return res.status(400).json({ message: 'Invalid OTP' });
@@ -700,7 +716,7 @@ router.post('/google/signup', async (req, res) => {
 });
 
 // Forgot Password - Send reset email
-router.post('/forgot-password', authLimiter, async (req, res) => {
+router.post('/forgot-password', otpLimiter, async (req, res) => {
     try {
         const { email } = req.body;
 
@@ -721,9 +737,9 @@ router.post('/forgot-password', authLimiter, async (req, res) => {
         const resetToken = generateOTP();
         const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
 
-        // Save token to user (expires in 1 hour)
+        // Save token to user (expires in 10 minutes)
         user.resetPasswordToken = resetTokenHash;
-        user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+        user.resetPasswordExpires = Date.now() + 600000; // 10 minutes
         await user.save();
 
         // Send email using Resend
@@ -808,7 +824,7 @@ router.post('/reset-password', async (req, res) => {
 });
 
 // Request Delete Account OTP
-router.post('/request-delete-otp', verifyToken, profileOtpLimiter, async (req, res) => {
+router.post('/request-delete-otp', verifyToken, otpLimiter, async (req, res) => {
     try {
         const userId = req.user.id;
         const user = await User.findById(userId);
@@ -857,6 +873,11 @@ router.delete('/delete-account', verifyToken, async (req, res) => {
             return res.status(400).json({ message: 'Invalid or expired code' });
         }
 
+        if (Date.now() - new Date(otpRecord.createdAt).getTime() > 10 * 60 * 1000) {
+            await Otp.deleteOne({ email: user.email });
+            return res.status(400).json({ message: 'Verification code has expired. Please request a new code.' });
+        }
+
         if (otpRecord.otp !== otp) {
             return res.status(400).json({ message: 'Invalid verification code' });
         }
@@ -878,7 +899,7 @@ router.delete('/delete-account', verifyToken, async (req, res) => {
 });
 
 // Request OTP for Change Password
-router.post('/request-change-password-otp', verifyToken, profileOtpLimiter, async (req, res) => {
+router.post('/request-change-password-otp', verifyToken, otpLimiter, async (req, res) => {
     try {
         const userId = req.user.id;
         const { currentPassword } = req.body;
@@ -945,7 +966,16 @@ router.post('/change-password', verifyToken, async (req, res) => {
 
         // Verify OTP
         const otpRecord = await Otp.findOne({ email: user.email });
-        if (!otpRecord || otpRecord.otp !== otp) {
+        if (!otpRecord) {
+            return res.status(400).json({ message: 'Invalid or expired verification code' });
+        }
+
+        if (Date.now() - new Date(otpRecord.createdAt).getTime() > 10 * 60 * 1000) {
+            await Otp.deleteOne({ email: user.email });
+            return res.status(400).json({ message: 'Verification code has expired. Please request a new code.' });
+        }
+
+        if (otpRecord.otp !== otp) {
             return res.status(400).json({ message: 'Invalid or expired verification code' });
         }
 

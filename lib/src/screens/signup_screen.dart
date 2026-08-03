@@ -37,6 +37,8 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Timer? _resendTimer;
   int _resendSeconds = 15;
+  int _resendCount = 0;
+  static const int _maxResends = 5;
 
   @override
   void dispose() {
@@ -84,6 +86,12 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Future<void> _resendOtp() async {
+    if (_resendCount >= _maxResends) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Maximum resend limit reached (5/5). Please try again in 15 minutes.')),
+      );
+      return;
+    }
     setState(() {
       _submitting = true;
       _error = null;
@@ -91,10 +99,11 @@ class _SignupScreenState extends State<SignupScreen> {
     try {
       await widget.appState.sendOtp(_emailController.text.trim());
       _otpController.clear();
+      setState(() => _resendCount++);
       _startResendTimer();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('OTP sent successfully!')),
+          SnackBar(content: Text('OTP sent successfully! (${_resendCount}/$_maxResends)')),
         );
       }
     } catch (e) {
@@ -215,15 +224,17 @@ class _SignupScreenState extends State<SignupScreen> {
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
                           child: TextButton(
-                            onPressed: _resendSeconds == 0 && !_submitting && !_otpSuccess
+                            onPressed: _resendSeconds == 0 && !_submitting && !_otpSuccess && _resendCount < _maxResends
                                 ? _resendOtp
                                 : null,
                             child: Text(
-                              _resendSeconds > 0
-                                  ? 'Resend OTP in ${_resendSeconds}s'
-                                  : 'Resend OTP',
+                              _resendCount >= _maxResends
+                                  ? 'Resend limit reached (5/5)'
+                                  : _resendSeconds > 0
+                                      ? 'Resend OTP in ${_resendSeconds}s'
+                                      : 'Resend OTP',
                               style: TextStyle(
-                                color: _resendSeconds > 0 || _submitting || _otpSuccess
+                                color: _resendSeconds > 0 || _submitting || _otpSuccess || _resendCount >= _maxResends
                                     ? AppTheme.mutedColor(context)
                                     : Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.w600,

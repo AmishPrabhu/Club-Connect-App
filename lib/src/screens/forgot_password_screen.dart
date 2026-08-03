@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_utils.dart';
-import '../theme/app_theme.dart';
 import '../widgets/animated_otp_input.dart';
 import '../widgets/glass_card.dart';
 
@@ -38,6 +37,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   Timer? _resendTimer;
   int _resendSeconds = 15;
+  int _resendCount = 0;
+  static const int _maxResends = 5;
 
   @override
   void initState() {
@@ -89,6 +90,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Future<void> _resendOtp() async {
+    if (_resendCount >= _maxResends) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Maximum resend limit reached (5/5). Please try again in 15 minutes.')),
+      );
+      return;
+    }
     setState(() {
       _isLoading = true;
       _error = null;
@@ -96,10 +103,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     try {
       await widget.appState.requestPasswordReset(_emailController.text.trim());
       _tokenController.clear();
+      setState(() => _resendCount++);
       _startResendTimer();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('OTP sent successfully!')),
+          SnackBar(content: Text('OTP sent successfully! (${_resendCount}/$_maxResends)')),
         );
       }
     } catch (e) {
@@ -396,15 +404,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
                           child: TextButton(
-                            onPressed: _resendSeconds == 0 && !_isLoading && !_otpSuccess
+                            onPressed: _resendSeconds == 0 && !_isLoading && !_otpSuccess && _resendCount < _maxResends
                                 ? _resendOtp
                                 : null,
                             child: Text(
-                              _resendSeconds > 0
-                                  ? 'Resend OTP in ${_resendSeconds}s'
-                                  : 'Resend OTP',
+                              _resendCount >= _maxResends
+                                  ? 'Resend limit reached (5/5)'
+                                  : _resendSeconds > 0
+                                      ? 'Resend OTP in ${_resendSeconds}s'
+                                      : 'Resend OTP',
                               style: TextStyle(
-                                color: _resendSeconds > 0 || _isLoading || _otpSuccess
+                                color: _resendSeconds > 0 || _isLoading || _otpSuccess || _resendCount >= _maxResends
                                     ? AppTheme.mutedColor(context)
                                     : Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.w600,
