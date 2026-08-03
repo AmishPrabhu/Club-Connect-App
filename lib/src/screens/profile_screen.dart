@@ -1190,7 +1190,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   }
 
   void _startResendTimer() {
-    setState(() => _resendSeconds = 5); // Testing mode: 5 seconds cooldown
+    setState(() => _resendSeconds = 15);
     _resendTimer?.cancel();
     _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
@@ -1728,7 +1728,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
   }
 
   void _startResendTimer() {
-    setState(() => _resendSeconds = 30);
+    setState(() => _resendSeconds = 15);
     _resendTimer?.cancel();
     _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {

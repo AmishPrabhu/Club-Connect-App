@@ -70,7 +70,7 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   void _startResendTimer() {
-    setState(() => _resendSeconds = 30);
+    setState(() => _resendSeconds = 15);
     _resendTimer?.cancel();
     _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
