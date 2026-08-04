@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -94,6 +95,10 @@ class AppState extends ChangeNotifier {
   List<PostItem> posts = const [];
   List<NotificationItem> notifications = const [];
   Set<String> interestedEventIds = {};
+
+  // Controller for targeted refresh events (e.g., club members updated)
+  final StreamController<String> _refreshEventController = StreamController<String>.broadcast();
+  Stream<String> get refreshEvents => _refreshEventController.stream;
 
   Future<void> bootstrap() async {
     isBootstrapping = true;
@@ -318,6 +323,11 @@ class AppState extends ChangeNotifier {
       clubs = updated;
     }
     notifyListeners();
+  }
+
+  /// Triggers a re-fetch for screens currently displaying the members of this club.
+  void applyClubMembersUpdated(String clubId) {
+    _refreshEventController.add('members_$clubId');
   }
 
   Future<UserSession> login({

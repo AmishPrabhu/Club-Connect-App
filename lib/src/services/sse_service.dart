@@ -227,6 +227,16 @@ class SSEService {
         }
         break;
 
+      case 'club_members_updated':
+        final clubId = data['clubId']?.toString();
+        if (clubId != null) {
+          state.applyClubMembersUpdated(clubId);
+        } else {
+          // If no clubId is provided, fallback to refreshing all clubs or doing nothing.
+          // In a larger app, you might trigger a global members refresh.
+        }
+        break;
+
       case 'certificate_ready':
         // Refresh notifications so the cert notification appears in inbox
         state.refreshNotifications();

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/club.dart';
@@ -31,6 +32,7 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
   String _currentActiveTerm = '';
   List<String> _availableTerms = [];
   List<Map<String, dynamic>> _rawMembers = [];
+  late StreamSubscription<String> _refreshSub;
 
   static const _boardOrder = ['main', 'executive', 'member'];
   static const _boardLabels = {
@@ -43,6 +45,17 @@ class _MemberBoardDetailScreenState extends State<MemberBoardDetailScreen> {
   void initState() {
     super.initState();
     _loadData();
+    _refreshSub = widget.appState.refreshEvents.listen((event) {
+      if (event == 'members_${widget.club.id}') {
+        _fetchMembersForTerm(_selectedTermYear.isEmpty ? _currentActiveTerm : _selectedTermYear);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshSub.cancel();
+    super.dispose();
   }
 
   void _loadData() {

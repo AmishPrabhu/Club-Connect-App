@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="18" uniqueCount="17"><si><t>Name</t></si><si><t>Email</t></si><si><t>Role</t></si><si><t>Board Type</t></si><si><t>Academic Year</t></si><si><t>Year Joined</t></si><si><t>John Doe</t></si><si><t>john@example.com</t></si><si><t>member</t></si><si><t>SY</t></si><si><t>2023</t></si><si><t>Jane Smith</t></si><si><t>jane@example.com</t></si><si><t>club-secretary</t></si><si><t>core</t></si><si><t>TY</t></si><si><t>2022</t></si></sst>

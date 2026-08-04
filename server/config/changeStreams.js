@@ -29,6 +29,7 @@ export function startChangeStreams() {
     watchPosts();
     watchNotifications();
     watchClubs();
+    watchMembers();
     watchRsvps();
     console.log('[ChangeStreams] All MongoDB change stream watchers started.');
 }
@@ -168,6 +169,57 @@ function watchClubs() {
 
         stream.on('close', () => {
             console.warn('[ChangeStreams] Club stream closed, reconnecting in 5s...');
+            setTimeout(open, 5000);
+        });
+    }
+
+    open();
+}
+
+// ─── CLUB MEMBERS ───────────────────────────────────────────────────────────
+
+function watchMembers() {
+    const ClubMember = mongoose.model('ClubMember');
+    const pipeline = [
+        { $match: { operationType: { $in: ['insert', 'update', 'replace', 'delete'] } } }
+    ];
+
+    function open() {
+        const stream = ClubMember.watch(pipeline, { fullDocument: 'updateLookup' });
+
+        stream.on('change', async (change) => {
+            try {
+                // Determine the clubId. For delete, fullDocument is not available unless configured, 
+                // but we can try to extract it, or we broadcast globally.
+                // It is safer to extract clubId from fullDocument if available.
+                let clubId;
+                if (change.fullDocument && change.fullDocument.clubId) {
+                    clubId = change.fullDocument.clubId.toString();
+                } else if (change.documentKey && change.documentKey._id) {
+                    // Fallback for delete: we might not know the clubId, so we can't efficiently route it.
+                    // If we must, we could query it, but change.fullDocument is usually null on delete.
+                    // For now, we broadcast to all if we can't find it, or broadcast with null.
+                    // A better approach for deletes is broadcasting to all since it's just a refresh trigger.
+                }
+
+                if (clubId) {
+                    broadcast('club_members_updated', { clubId });
+                } else {
+                    broadcast('club_members_updated', { }); // tell everyone a member changed somewhere
+                }
+            } catch (err) {
+                console.error('[ChangeStreams] ClubMember change error:', err);
+            }
+        });
+
+        stream.on('error', (err) => {
+            console.error('[ChangeStreams] ClubMember stream error, reconnecting in 5s:', err.message);
+            stream.close();
+            setTimeout(open, 5000);
+        });
+
+        stream.on('close', () => {
+            console.warn('[ChangeStreams] ClubMember stream closed, reconnecting in 5s...');
             setTimeout(open, 5000);
         });
     }

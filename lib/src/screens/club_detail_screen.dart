@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -31,6 +32,7 @@ class ClubDetailScreen extends StatefulWidget {
 class _ClubDetailScreenState extends State<ClubDetailScreen> {
   late Future<List<Map<String, dynamic>>> _membersFuture;
   late Club _club;
+  late StreamSubscription<String> _refreshSub;
 
   @override
   void initState() {
@@ -38,10 +40,16 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
     _club = widget.club;
     widget.appState.addListener(_onAppStateChanged);
     _refreshMembers();
+    _refreshSub = widget.appState.refreshEvents.listen((event) {
+      if (event == 'members_${_club.id}') {
+        _refreshMembers();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _refreshSub.cancel();
     widget.appState.removeListener(_onAppStateChanged);
     super.dispose();
   }
