@@ -72,7 +72,10 @@ class AppState extends ChangeNotifier {
   );
 
   final ApiClient _apiClient;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
+  late final GoogleSignIn _googleSignIn = GoogleSignIn(
+    clientId: (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS)
+        ? _googleServerClientId
+        : null,
     serverClientId: _googleServerClientId,
     scopes: ['email', 'profile'],
   );
