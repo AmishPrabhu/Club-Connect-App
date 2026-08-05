@@ -251,6 +251,11 @@ router.put('/:id', verifyClubOfficer, async (req, res) => {
                         }
 
                         await user.save();
+                        broadcastToUser(user._id.toString(), 'user_updated', {
+                            action: 'officer_demoted',
+                            clubId: req.params.id,
+                            role: user.role
+                        });
                         console.log(`[Club Update] User ${oldEmail} role updated to ${user.role}, roles: ${user.roles.join(', ')}`);
                     }
                 } catch (err) {
@@ -334,6 +339,11 @@ router.put('/:id', verifyClubOfficer, async (req, res) => {
                         existingUser.clubName = updatedClub.name;
 
                         await existingUser.save();
+                        broadcastToUser(existingUser._id.toString(), 'user_updated', {
+                            action: 'officer_promoted',
+                            clubId: req.params.id,
+                            role: existingUser.role
+                        });
                         console.log(`[Club Update] Synced global role for ${email} to ${targetRole}, roles: ${existingUser.roles.join(', ')}`);
                     }
                 }

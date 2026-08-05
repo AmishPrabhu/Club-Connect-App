@@ -5,6 +5,7 @@ import ClubMember from '../models/ClubMember.js';
 import User from '../models/User.js';
 import { verifyToken } from '../middleware/auth.js';
 import { sendClubInvitationEmail } from '../services/emailService.js';
+import { broadcastToUser } from '../services/sseService.js';
 
 const router = express.Router();
 
@@ -191,6 +192,11 @@ router.post('/:clubId/members/bulk-import', verifyToken, upload.single('file'), 
                     if (existingUser && existingUser.role === 'user') {
                         existingUser.role = 'club-member';
                         await existingUser.save();
+                        broadcastToUser(existingUser._id.toString(), 'user_updated', {
+                            action: 'bulk_import_assigned',
+                            clubId,
+                            role: existingUser.role
+                        });
                     }
 
                     results.added++;
