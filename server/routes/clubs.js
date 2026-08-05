@@ -545,6 +545,11 @@ router.post('/:id/handover', verifyMemberManagementOfficer, async (req, res) => 
                     existingUser.clubId = clubId;
                     existingUser.clubName = updatedClub.name;
                     await existingUser.save();
+                    broadcastToUser(existingUser._id.toString(), 'user_updated', {
+                        action: 'handover_promoted',
+                        clubId,
+                        role: existingUser.role
+                    });
                 }
             }
         }
@@ -584,6 +589,10 @@ router.post('/:id/handover', verifyMemberManagementOfficer, async (req, res) => 
                     existingUser.clubName = null;
 
                     await existingUser.save();
+                    broadcastToUser(existingUser._id.toString(), 'user_updated', {
+                        action: 'handover_demoted',
+                        role: existingUser.role
+                    });
                 } else {
                     // They DO have active memberships in other clubs.
                     // Check if they are still an officer anywhere.
@@ -617,6 +626,10 @@ router.post('/:id/handover', verifyMemberManagementOfficer, async (req, res) => 
                     }
                     
                     await existingUser.save();
+                    broadcastToUser(existingUser._id.toString(), 'user_updated', {
+                        action: 'handover_updated',
+                        role: existingUser.role
+                    });
                 }
             }
         }
@@ -1045,10 +1058,20 @@ router.delete('/:id/members/:memberId', verifyMemberManagementOfficer, async (re
             if (user.role !== newRole) {
                 user.role = newRole;
                 await user.save();
+                broadcastToUser(user._id.toString(), 'user_updated', {
+                    action: 'member_removed',
+                    clubId: req.params.id,
+                    role: user.role
+                });
                 console.log(`[Club Delete] Synced global role for ${memberEmail} to ${newRole}, roles array: ${user.roles.join(', ')}`);
             } else if (JSON.stringify(user.roles.sort()) !== JSON.stringify(newRoles.sort())) {
                 // Update if roles array changed even if primary role didn't
                 await user.save();
+                broadcastToUser(user._id.toString(), 'user_updated', {
+                    action: 'member_removed',
+                    clubId: req.params.id,
+                    role: user.role
+                });
                 console.log(`[Club Delete] Updated roles array for ${memberEmail}: ${user.roles.join(', ')}`);
             }
         }
