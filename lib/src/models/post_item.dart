@@ -187,7 +187,7 @@ class PostItem {
       content: json['content']?.toString() ?? '',
       type: json['type']?.toString() ?? 'announcement',
       date: json['date'] != null
-          ? DateTime.tryParse(json['date'].toString())
+          ? DateTime.tryParse(json['date'].toString())?.toLocal()
           : null,
       time: json['time']?.toString(),
       timeFrom: json['timeFrom']?.toString(),
@@ -210,7 +210,7 @@ class PostItem {
       reportUrl: json['reportUrl']?.toString(),
       reportSubmittedByName: json['reportSubmittedByName']?.toString(),
       reportSubmittedAt: json['reportSubmittedAt'] != null
-          ? DateTime.tryParse(json['reportSubmittedAt'].toString())
+          ? DateTime.tryParse(json['reportSubmittedAt'].toString())?.toLocal()
           : null,
       totalSessions: (json['totalSessions'] as num?)?.toInt() ?? 1,
       certificateTemplate: json['certificateTemplate'] as Map<String, dynamic>?,

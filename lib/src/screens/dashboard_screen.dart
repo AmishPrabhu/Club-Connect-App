@@ -5,7 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:open_filex/open_filex.dart';
+import 'package:intl/intl.dart';
 import '../services/cloudinary_service.dart';
 import 'dart:io';
 
@@ -5096,9 +5096,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     child: ListTile(
                       leading: CircleAvatar(
-                        child: Text((m['name']?.toString() ?? 'U')[0].toUpperCase()),
+                        child: Text((_resolveMemberDisplayName(m))[0].toUpperCase()),
                       ),
-                      title: Text(m['name']?.toString() ?? 'Member', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      title: Text(_resolveMemberDisplayName(m), style: const TextStyle(fontWeight: FontWeight.bold)),
                       subtitle: Text('${m['role'] ?? 'Member'} · ${m['email'] ?? ''}'),
                       trailing: canEdit
                           ? Row(
@@ -5725,6 +5725,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           const SizedBox(height: 4),
                           Text(t['description']?.toString() ?? ''),
+                          if (t['deadline'] != null || t['dueDate'] != null) ...[
+                            const SizedBox(height: 4),
+                            Builder(builder: (_) {
+                              final rawDate = t['deadline'] ?? t['dueDate'];
+                              final dt = DateTime.tryParse(rawDate.toString())?.toLocal();
+                              final formatted = dt != null
+                                  ? DateFormat('dd MMM yyyy, hh:mm a').format(dt)
+                                  : rawDate.toString();
+                              return Text(
+                                'Due: $formatted',
+                                style: TextStyle(fontSize: 11, color: AppTheme.blue, fontWeight: FontWeight.w600),
+                              );
+                            }),
+                          ],
                           const SizedBox(height: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -5904,7 +5918,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildNotificationsView(UserSession session) {
     final activeRole = widget.initialRole ?? session.role;
     final canEdit = activeRole == 'admin' || (_selectedClub != null && session.isClubOfficerOf(_selectedClub!.id, club: _selectedClub));
-    final notifications = widget.appState.notifications;
+    final notifications = widget.appState.notifications.where((n) {
+      if (_selectedClub == null) return true;
+      return n.clubId == _selectedClub!.id;
+    }).toList();
 
     return Column(
       children: [
@@ -6291,7 +6308,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       isExpanded: true,
                       items: [
                         const DropdownMenuItem(value: '', child: Text('No Related Event')),
-                        ...posts.where((post) => post.isEvent).map(
+                        ...posts.where((post) => post.isEvent && post.clubId == club.id).map(
                               (post) => DropdownMenuItem(value: post.id, child: Text(post.title, overflow: TextOverflow.ellipsis)),
                             ),
                       ],
@@ -6351,7 +6368,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               itemCount: filteredMembers.length,
                               itemBuilder: (context, index) {
                                 final member = filteredMembers[index];
-                                final name = member['name']?.toString() ?? 'Member';
+                                final name = _resolveMemberDisplayName(member);
                                 final role = member['role']?.toString() ?? '';
                                 return CheckboxListTile(
                                   dense: true,
@@ -7067,7 +7084,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
   }
 
   Widget _buildRelatedEventPicker(bool isDark) {
-    final events = widget.appState.posts.where((p) => p.isEvent).toList();
+    final events = widget.appState.posts.where((p) => p.isEvent && p.clubId == widget.club.id).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -8618,5 +8635,28 @@ String _stripMarkdown(String markdown) {
   // 4. Bullet lists: - item -> item
   text = text.replaceAll(RegExp(r'^\s*-\s+', multiLine: true), '');
   return text.trim();
+}
+
+String _resolveMemberDisplayName(Map<String, dynamic> member) {
+  String name = member['name']?.toString().trim() ?? '';
+  final role = member['role']?.toString().trim() ?? '';
+  final email = member['email']?.toString().trim() ?? '';
+
+  final rolesList = ['president', 'secretary', 'treasurer', 'advisor', 'member', 'club-member', 'club-secretary', 'user', 'unknown', ''];
+  final isRolePlaceholder = rolesList.contains(name.toLowerCase()) || name.toLowerCase() == role.toLowerCase();
+
+  if (isRolePlaceholder || name.isEmpty) {
+    if (email.isNotEmpty) {
+      final handle = email.split('@')[0].replaceAll('.', ' ').replaceAll('_', ' ');
+      final words = handle.split(' ').where((w) => w.isNotEmpty);
+      if (words.isNotEmpty) {
+        return words.map((w) => '${w[0].toUpperCase()}${w.substring(1)}').join(' ');
+      }
+      return email;
+    }
+    return 'Unregistered Member';
+  }
+
+  return name;
 }
 

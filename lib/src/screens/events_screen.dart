@@ -35,9 +35,7 @@ class _EventsScreenState extends State<EventsScreen> {
         final allEvents = widget.appState.posts
             .where((post) => post.isEvent)
             .toList();
-        final allClubs =
-            widget.appState.clubs.map((club) => club.name).toSet().toList()
-              ..sort();
+        final clubs = widget.appState.clubs;
 
         // Apply filters safely
         final queryLower = _query.toLowerCase();
@@ -46,7 +44,7 @@ class _EventsScreenState extends State<EventsScreen> {
               _status == 'all' ||
               (_status == 'upcoming' && event.isUpcoming) ||
               (_status == 'completed' && !event.isUpcoming);
-          final clubMatch = _club == 'all' || event.clubName == _club || event.clubId == _club;
+          final clubMatch = _club == 'all' || event.clubId == _club || event.clubName == _club;
           final titleLower = (event.title ?? '').toLowerCase();
           final clubLower = (event.clubName ?? '').toLowerCase();
           final queryMatch = queryLower.isEmpty ||
@@ -64,7 +62,7 @@ class _EventsScreenState extends State<EventsScreen> {
               : dateB.compareTo(dateA);
         });
 
-        final selectedClub = allClubs.contains(_club) ? _club : 'all';
+        final selectedClub = clubs.any((c) => c.id == _club || c.name == _club) ? _club : 'all';
 
         return RefreshIndicator(
           onRefresh: widget.appState.refreshAll,
@@ -138,11 +136,11 @@ class _EventsScreenState extends State<EventsScreen> {
                                   value: 'all',
                                   child: Text('All Clubs'),
                                 ),
-                                ...allClubs.map(
-                                  (club) => DropdownMenuItem(
-                                      value: club,
+                                ...clubs.map(
+                                  (c) => DropdownMenuItem(
+                                      value: c.id,
                                       child: Text(
-                                        club,
+                                        c.shortName,
                                         overflow: TextOverflow.ellipsis,
                                       )),
                                 ),

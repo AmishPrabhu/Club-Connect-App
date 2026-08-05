@@ -40,7 +40,7 @@ class NotificationItem {
     final type = json['type']?.toString() ?? 'system';
     final rawCreatedAt = json['createdAt']?.toString();
     final createdAt = rawCreatedAt != null
-        ? (DateTime.tryParse(rawCreatedAt) ?? DateTime.now())
+        ? (DateTime.tryParse(rawCreatedAt)?.toLocal() ?? DateTime.now())
         : DateTime.now();
     return NotificationItem(
       id: (json['id'] ?? json['_id'])?.toString() ?? '',

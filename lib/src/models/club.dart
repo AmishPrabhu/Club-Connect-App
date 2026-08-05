@@ -41,6 +41,22 @@ class Club {
   final String advisorEmail;
   final String advisorName;
 
+  /// Returns a concise short name or acronym for the club (e.g. "MLSC", "GDG")
+  String get shortName {
+    if (name.length <= 12) return name;
+    final words = name.trim().split(RegExp(r'\s+'));
+    if (words.length > 1) {
+      final acronym = words
+          .where((w) => w.isNotEmpty && RegExp(r'[A-Za-z]').hasMatch(w[0]))
+          .map((w) => w[0].toUpperCase())
+          .join();
+      if (acronym.length >= 2 && acronym.length <= 8) {
+        return acronym;
+      }
+    }
+    return name;
+  }
+
   factory Club.fromJson(Map<String, dynamic> json) {
     final category = json['category']?.toString() ?? 'technical';
     final colors = _colorsForCategory(category);

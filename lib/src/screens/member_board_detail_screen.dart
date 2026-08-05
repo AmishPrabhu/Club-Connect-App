@@ -420,14 +420,26 @@ class _MemberCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String name = member['name']?.toString() ?? 'Unknown';
-    final role = member['role']?.toString() ?? 'Member';
-    final email = member['email']?.toString() ?? '';
+    String name = member['name']?.toString().trim() ?? '';
+    final role = member['role']?.toString().trim() ?? 'Member';
+    final email = member['email']?.toString().trim() ?? '';
     final academicYear = member['academicYear']?.toString() ?? '';
-    
-    if (['President', 'Secretary', 'Treasurer', 'Advisor', 'Member'].contains(name) && email.isNotEmpty) {
-      name = email.split('@')[0].replaceAll('.', ' ');
-      name = name.split(' ').map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '').join(' ');
+
+    final rolesList = ['president', 'secretary', 'treasurer', 'advisor', 'member', 'club-member', 'club-secretary', 'user', 'unknown', ''];
+    final isRolePlaceholder = rolesList.contains(name.toLowerCase()) || name.toLowerCase() == role.toLowerCase();
+
+    if (isRolePlaceholder || name.isEmpty) {
+      if (email.isNotEmpty) {
+        final handle = email.split('@')[0].replaceAll('.', ' ').replaceAll('_', ' ');
+        final words = handle.split(' ').where((w) => w.isNotEmpty);
+        if (words.isNotEmpty) {
+          name = words.map((w) => '${w[0].toUpperCase()}${w.substring(1)}').join(' ');
+        } else {
+          name = email;
+        }
+      } else {
+        name = 'Unregistered Member';
+      }
     }
 
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
