@@ -88,8 +88,42 @@ router.post('/', verifyClubOfficer, async (req, res) => {
 });
 
 // Update a task
-router.put('/:id', verifyClubOfficer, async (req, res) => {
+router.put('/:id', verifyToken, async (req, res) => {
     try {
+        const oldTask = await Task.findById(req.params.id);
+        if (!oldTask) {
+            return res.status(404).json({ message: 'Task not found' });
+        }
+
+        // Authorization check: User must be an officer, super admin, OR an assigned member of this task
+        const ClubMember = (await import('../models/ClubMember.js')).default;
+        const isOfficer = req.user.role === 'admin' || await ClubMember.findOne({
+            clubId: oldTask.clubId,
+            $and: [
+                {
+                    $or: [
+                        { userId: req.user.id },
+                        { email: { $regex: new RegExp(`^${req.user.email}$`, 'i') } }
+                    ]
+                },
+                {
+                    $or: [
+                        { role: { $in: ['Secretary', 'President', 'Treasurer', 'Advisor', 'secretary', 'president', 'treasurer', 'advisor'] } },
+                        { boardType: { $in: ['main', 'executive'] } }
+                    ]
+                }
+            ]
+        });
+
+        const userEmailLower = req.user.email?.toLowerCase();
+        const userName = req.user.name;
+        const isAssigned = (oldTask.assignedToEmails && oldTask.assignedToEmails.some(e => e.toLowerCase() === userEmailLower)) ||
+                           (oldTask.assignedTo && userName && oldTask.assignedTo.includes(userName));
+
+        if (!isOfficer && !isAssigned) {
+            return res.status(403).json({ message: 'Access denied. You are not authorized to update this task.' });
+        }
+
         const {
             title,
             description,
@@ -101,27 +135,21 @@ router.put('/:id', verifyClubOfficer, async (req, res) => {
             relatedEventTitle
         } = req.body;
 
-        const oldTask = await Task.findById(req.params.id);
+        const updateFields = { updatedAt: Date.now() };
+        if (title !== undefined) updateFields.title = title;
+        if (description !== undefined) updateFields.description = description;
+        if (assignedTo !== undefined) updateFields.assignedTo = assignedTo;
+        if (assignedToEmails !== undefined) updateFields.assignedToEmails = assignedToEmails;
+        if (status !== undefined) updateFields.status = status;
+        if (deadline !== undefined) updateFields.deadline = deadline;
+        if (relatedEventId !== undefined) updateFields.relatedEventId = relatedEventId;
+        if (relatedEventTitle !== undefined) updateFields.relatedEventTitle = relatedEventTitle;
 
         const updatedTask = await Task.findByIdAndUpdate(
             req.params.id,
-            {
-                title,
-                description,
-                assignedTo,
-                assignedToEmails,
-                status,
-                deadline,
-                relatedEventId,
-                relatedEventTitle,
-                updatedAt: Date.now()
-            },
+            updateFields,
             { new: true }
         );
-
-        if (!updatedTask) {
-            return res.status(404).json({ message: 'Task not found' });
-        }
 
         // Fire-and-forget email notifications for NEW assignees
         (async () => {

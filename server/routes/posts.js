@@ -40,7 +40,12 @@ router.get('/', verifyTokenOptional, async (req, res) => {
         
         let userMemberships = [];
         if (req.user) {
-            userMemberships = await ClubMember.find({ userId: req.user.id });
+            userMemberships = await ClubMember.find({
+                $or: [
+                    { userId: req.user.id },
+                    { email: { $regex: new RegExp(`^${req.user.email}$`, 'i') } }
+                ]
+            });
         }
 
         const filteredPosts = posts.reduce((acc, post) => {
