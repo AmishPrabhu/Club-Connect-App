@@ -1,19 +1,27 @@
 
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import User from './models/User.js';
+import dotenv from 'dotenv';
+import User from '../models/User.js';
 
-const MONGODB_URI = 'mongodb://localhost:27017/club-connect'; // Hardcoded backup
+dotenv.config();
+
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/club-connect';
 
 const resetAdmin = async () => {
     try {
+        const email = process.argv[2];
+        const password = process.argv[3] || 'admin';
+
+        if (!email) {
+            console.error("Usage: node reset_admin_robust.js <email> [password]");
+            process.exit(1);
+        }
+
         console.log('Connecting to:', MONGODB_URI);
         await mongoose.connect(MONGODB_URI);
         console.log('Connected to MongoDB');
 
-        const email = 'admin@wce.ac.in';
-        // Force a simple password
-        const password = 'admin';
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const updates = {

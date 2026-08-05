@@ -2,12 +2,20 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
-import User from './models/User.js';
+import User from '../models/User.js';
 
 dotenv.config(); // Will pick up .env in same dir if run from server dir
 
 const createAdmin = async () => {
     try {
+        const email = process.argv[2];
+        const password = process.argv[3] || 'admin';
+
+        if (!email) {
+            console.error("Usage: node create_admin.js <email> [password]");
+            process.exit(1);
+        }
+
         if (!process.env.MONGODB_URI) {
             console.error("error: MONGODB_URI missing");
             process.exit(1);
@@ -15,8 +23,6 @@ const createAdmin = async () => {
         await mongoose.connect(process.env.MONGODB_URI);
         console.log('Connected to MongoDB');
 
-        const email = 'admin@wce.ac.in';
-        const password = 'admin';
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Update if exists, or upsert (create)
