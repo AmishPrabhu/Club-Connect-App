@@ -131,7 +131,19 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   bool _isClubOfficer(UserSession session) {
     // Use memberships to check if user is an officer of any club,
     // matching backend verifyClubOfficer middleware logic.
-    return session.isAnyClubOfficer;
+    if (session.isAnyClubOfficer) return true;
+    
+    // Fallback: Check if user is an officer in any loaded club via email matching
+    final email = session.email.toLowerCase();
+    for (final club in widget.appState.clubs) {
+      if (club.presidentEmail.toLowerCase() == email ||
+          club.secretaryEmail.toLowerCase() == email ||
+          club.treasurerEmail.toLowerCase() == email ||
+          club.advisorEmail.toLowerCase() == email) {
+        return true;
+      }
+    }
+    return false;
   }
 
   String _getUserRoleInClub(UserSession session, Club club) {

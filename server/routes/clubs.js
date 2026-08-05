@@ -85,7 +85,7 @@ router.post('/', verifySuperAdmin, async (req, res) => {
                 if (!existing) {
                     await ClubMember.create({
                         clubId: savedClub._id.toString(),
-                        name: officer.name || officer.role,
+                        name: existingUser?.name || officer.name || officer.role,
                         email: officer.email,
                         role: officer.role,
                         boardType: 'main',
@@ -292,7 +292,7 @@ router.put('/:id', verifyClubOfficer, async (req, res) => {
                 if (!existing) {
                     await ClubMember.create({
                         clubId: req.params.id,
-                        name: mapping.role,
+                        name: existingUser?.name || mapping.role,
                         email: email,
                         role: mapping.role,
                         boardType: 'main',
@@ -428,22 +428,32 @@ router.get('/:id/members', async (req, res) => {
 
         const members = await ClubMember.find(query).sort({ name: 1 }).lean();
 
-        // Fetch latest profile info from User collection to ensure avatar is up to date
+        // Fetch latest profile info from User collection to ensure avatar and name are up to date
         const enhancedMembers = await Promise.all(members.map(async (member) => {
             let user = null;
 
             if (member.userId) {
-                user = await User.findById(member.userId).select('profileImage');
+                user = await User.findById(member.userId).select('profileImage name');
             }
 
             if (!user && member.email) {
                 user = await User.findOne({
                     email: { $regex: new RegExp(`^${escapeRegExp(member.email)}$`, 'i') }
-                }).select('profileImage');
+                }).select('profileImage name');
+            }
+
+            // If the stored name is just the role or 'Member', and we found the user, use the real name.
+            let displayName = member.name;
+            if (user && user.name && user.name.trim() !== '') {
+                displayName = user.name;
+            } else if (!displayName || ['President', 'Secretary', 'Treasurer', 'Advisor', 'Member'].includes(displayName)) {
+                // If we don't have a user record but the name is clearly a role placeholder, 
+                // we can optionally try to extract a name from email if needed, but for now we leave it or fallback.
             }
 
             return {
                 ...member,
+                name: displayName,
                 profileImage: user?.profileImage || member.profileImage || ''
             };
         }));

@@ -25,7 +25,7 @@ class UserMembership {
 
   /// Standard officer role names that the backend recognizes.
   static const _officerRoles = [
-    'secretary', 'president', 'treasurer', 'advisor',
+    'secretary', 'president', 'treasurer', 'advisor', 'vice-president', 'vice president',
   ];
 
   /// Whether this membership grants officer-level access.
@@ -34,7 +34,16 @@ class UserMembership {
   bool get isOfficer {
     if (!isCurrent) return false;
     if (boardType == 'main' || boardType == 'executive') return true;
-    if (_officerRoles.contains(role.toLowerCase())) return true;
+    final r = role.toLowerCase().trim();
+    if (_officerRoles.contains(r)) return true;
+    // Fallback for custom roles containing officer keywords
+    if (r.contains('president') || 
+        r.contains('secretary') || 
+        r.contains('treasurer') || 
+        r.contains('advisor') || 
+        r.contains('coordinator')) {
+      return true;
+    }
     return false;
   }
 

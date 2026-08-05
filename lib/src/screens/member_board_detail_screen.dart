@@ -420,10 +420,16 @@ class _MemberCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = member['name']?.toString() ?? 'Unknown';
+    String name = member['name']?.toString() ?? 'Unknown';
     final role = member['role']?.toString() ?? 'Member';
     final email = member['email']?.toString() ?? '';
     final academicYear = member['academicYear']?.toString() ?? '';
+    
+    if (['President', 'Secretary', 'Treasurer', 'Advisor', 'Member'].contains(name) && email.isNotEmpty) {
+      name = email.split('@')[0].replaceAll('.', ' ');
+      name = name.split(' ').map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '').join(' ');
+    }
+
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
     final profileImage = member['profileImage']?.toString();
 

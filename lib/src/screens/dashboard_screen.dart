@@ -1604,7 +1604,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildLeadershipRoleRow(Club club, String roleLabel, Map<String, dynamic>? member, String roleKey) {
     if (member != null) {
       final email = member['email']?.toString() ?? '';
-      final name = member['name']?.toString() ?? email;
+      String name = member['name']?.toString() ?? email;
+      
+      // If the backend returned a role as the name (e.g. for unregistered users), parse from email
+      if (['President', 'Secretary', 'Treasurer', 'Advisor', 'Member'].contains(name) && email.isNotEmpty) {
+        name = email.split('@')[0].replaceAll('.', ' ');
+        name = name.split(' ').map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '').join(' ');
+      }
+
       final display = name.split('@')[0];
 
       return Row(

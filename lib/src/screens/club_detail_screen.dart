@@ -932,9 +932,14 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                                         (member['name']?.toString() ?? 'U')[0],
                                       ),
                                     ),
-                                    title: Text(
-                                      member['name']?.toString() ?? 'Member',
-                                    ),
+                                    title: Text(() {
+                                      String n = member['name']?.toString() ?? 'Member';
+                                      if (['President', 'Secretary', 'Treasurer', 'Advisor', 'Member'].contains(n) && member['email'] != null) {
+                                        n = member['email'].toString().split('@')[0].replaceAll('.', ' ');
+                                        n = n.split(' ').map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '').join(' ');
+                                      }
+                                      return n;
+                                    }()),
                                     subtitle: Text(
                                       member['role']?.toString() ?? 'Member',
                                     ),
