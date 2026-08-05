@@ -8,6 +8,7 @@ import ClubMessage from '../models/ClubMessage.js';
 import { verifyToken, verifySuperAdmin, verifyClubOfficer, verifyClubMember, verifyMemberManagementOfficer } from '../middleware/auth.js';
 import { sendClubInvitationEmail } from '../services/emailService.js';
 import { sendPushToClubMembers } from '../services/pushService.js';
+import { broadcastToUser, broadcastToClub } from '../services/sseService.js';
 
 const router = express.Router();
 
@@ -679,6 +680,13 @@ router.post('/:id/members/promote', verifyMemberManagementOfficer, async (req, r
         const count = await ClubMember.countDocuments({ clubId, isCurrent: true });
         await Club.findByIdAndUpdate(clubId, { members: count });
 
+        broadcastToClub(clubId, 'club_members_updated', { clubId });
+        for (const resItem of results) {
+            if (resItem.userId) {
+                broadcastToUser(resItem.userId.toString(), 'user_updated', { action: 'member_promoted', clubId });
+            }
+        }
+
         res.json({ success: true, count: results.length, members: results });
     } catch (error) {
         console.error('Promote members error:', error);
@@ -803,6 +811,15 @@ router.post('/:id/members', verifyMemberManagementOfficer, async (req, res) => {
         const count = await ClubMember.countDocuments({ clubId });
         await Club.findByIdAndUpdate(clubId, { members: count });
 
+        if (existingUser) {
+            broadcastToUser(existingUser._id.toString(), 'user_updated', {
+                action: 'member_added',
+                clubId,
+                role: existingUser.role
+            });
+        }
+        broadcastToClub(clubId, 'club_members_updated', { clubId });
+
         res.status(201).json(newMember);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -875,8 +892,15 @@ router.put('/:id/members/:memberId', verifyMemberManagementOfficer, async (req, 
             }
 
             await existingUser.save();
+            broadcastToUser(existingUser._id.toString(), 'user_updated', {
+                action: 'member_updated',
+                clubId: req.params.id,
+                role: existingUser.role
+            });
         }
         // -----------------------
+
+        broadcastToClub(req.params.id, 'club_members_updated', { clubId: req.params.id });
 
         res.json(updatedMember);
     } catch (error) {

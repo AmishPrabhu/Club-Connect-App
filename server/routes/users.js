@@ -4,6 +4,7 @@ import Club from '../models/Club.js';
 import ClubMember from '../models/ClubMember.js';
 import { verifyToken } from '../middleware/auth.js';
 import { sendTeacherInvitationEmail } from '../services/emailService.js';
+import { broadcastToUser } from '../services/sseService.js';
 
 const router = express.Router();
 
@@ -170,6 +171,12 @@ router.post('/remove-teacher', verifyToken, async (req, res) => {
 
         await user.save();
 
+        broadcastToUser(user._id.toString(), 'user_updated', {
+            action: 'remove-teacher',
+            role: user.role,
+            roles: user.roles
+        });
+
         res.json({ message: 'Teacher role removed successfully' });
     } catch (error) {
         console.error('Error removing teacher role:', error);
@@ -237,6 +244,12 @@ router.post('/assign-teacher', verifyToken, async (req, res) => {
             }
 
             await existingUser.save();
+
+            broadcastToUser(existingUser._id.toString(), 'user_updated', {
+                action: 'assign-teacher',
+                role: existingUser.role,
+                roles: existingUser.roles
+            });
 
             return res.json({
                 success: true,

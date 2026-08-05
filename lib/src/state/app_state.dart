@@ -216,6 +216,16 @@ class AppState extends ChangeNotifier {
     } catch (_) {}
   }
 
+  /// Refreshes the active user session and profile live (called when roles or memberships change via SSE).
+  Future<void> refreshSessionAndUser() async {
+    try {
+      final updatedUser = await _fetchCurrentUser();
+      session = updatedUser;
+      await refreshAll();
+      notifyListeners();
+    } catch (_) {}
+  }
+
   // ─── Targeted In-Place Update Methods (called by SSEService) ────────────────
 
   /// Instantly prepends a newly created post without any HTTP call.

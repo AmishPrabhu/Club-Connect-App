@@ -237,6 +237,11 @@ class SSEService {
         }
         break;
 
+      case 'user_updated':
+        // User role or profile changed — auto refresh session and profile live
+        state.refreshSessionAndUser();
+        break;
+
       case 'certificate_ready':
         // Refresh notifications so the cert notification appears in inbox
         state.refreshNotifications();
