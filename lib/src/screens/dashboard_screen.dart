@@ -70,6 +70,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // Controllers for Messages/Chat
   final _chatController = TextEditingController();
   final _chatScrollController = ScrollController();
+  bool _isSendingChat = false;
 
   @override
   void initState() {
@@ -165,8 +166,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _selectedClub = _resolveManagedClub(session);
       } else if (session.isAnyClubOfficer && activeRole != 'admin' && activeRole != 'teacher') {
         _selectedClub = _resolveManagedClub(session);
-      } else if (activeRole == 'admin' && widget.appState.clubs.isNotEmpty) {
-        _selectedClub = widget.appState.clubs.first;
+      } else if (widget.appState.clubs.isNotEmpty) {
+        final userClubs = widget.appState.clubs.where((c) => session.isClubMemberOf(c.id)).toList();
+        if (userClubs.isNotEmpty) {
+          _selectedClub = userClubs.first;
+        } else {
+          _selectedClub = widget.appState.clubs.first;
+        }
       }
 
       if (widget.initialSection != null && widget.initialSection!.isNotEmpty) {
@@ -247,8 +253,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // otherwise fall back to checking if they're an officer of any club.
     final isOfficer = !isAdmin && !isTeacher && (
         (_selectedClub != null && session.isClubOfficerOf(_selectedClub!.id, club: _selectedClub)) ||
-        (widget.initialClub != null && session.isClubOfficerOf(widget.initialClub!.id, club: widget.initialClub)) ||
-        session.isAnyClubOfficer
+        (widget.initialClub != null && session.isClubOfficerOf(widget.initialClub!.id, club: widget.initialClub))
     );
 
     final targetClub = _selectedClub ?? widget.initialClub;
@@ -456,11 +461,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   List<String> _getSectionsForRole(String activeRole) {
-    if (activeRole == 'advisor') {
+    final r = activeRole.toLowerCase().trim();
+    if (r == 'advisor') {
       return ['Events', 'Reports', 'Budgets', 'Team'];
-    } else if (activeRole == 'treasurer') {
+    } else if (r == 'treasurer') {
       return ['Overview', 'Members', 'Tasks', 'Messages', 'Budgets'];
-    } else if (activeRole == 'president' || activeRole == 'club-secretary') {
+    } else if (r == 'president' || r.contains('secretary')) {
       return ['Overview', 'Members', 'Drafts & Posts', 'Events', 'Services', 'Tasks', 'Messages', 'Notifications', 'Budget'];
     }
     return ['Overview', 'Tasks', 'Messages'];
@@ -5724,22 +5730,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: 4),
-                          Text(t['description']?.toString() ?? ''),
+                          if ((t['description']?.toString() ?? '').isNotEmpty)
+                            Text(t['description'].toString(), style: const TextStyle(fontSize: 13)),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 4,
+                            children: [
+                              if (t['createdBy'] != null && t['createdBy'].toString().isNotEmpty)
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.person_outline_rounded, size: 13, color: Colors.grey),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'By: ${t['createdBy']}',
+                                      style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500),
+                                    ),
+                                  ],
+                                ),
+                              if (t['assignedTo'] != null && (t['assignedTo'] is List ? (t['assignedTo'] as List).isNotEmpty : t['assignedTo'].toString().isNotEmpty))
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.assignment_ind_outlined, size: 13, color: Colors.grey),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'To: ${t['assignedTo'] is List ? (t['assignedTo'] as List).join(', ') : t['assignedTo']}',
+                                      style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500),
+                                    ),
+                                  ],
+                                ),
+                            ],
+                          ),
                           if (t['deadline'] != null || t['dueDate'] != null) ...[
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 6),
                             Builder(builder: (_) {
                               final rawDate = t['deadline'] ?? t['dueDate'];
                               final dt = DateTime.tryParse(rawDate.toString())?.toLocal();
                               final formatted = dt != null
                                   ? DateFormat('dd MMM yyyy, hh:mm a').format(dt)
                                   : rawDate.toString();
-                              return Text(
-                                'Due: $formatted',
-                                style: TextStyle(fontSize: 11, color: AppTheme.blue, fontWeight: FontWeight.w600),
+                              return Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.calendar_today_rounded, size: 12, color: AppTheme.blue),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Deadline: $formatted',
+                                    style: const TextStyle(fontSize: 11, color: AppTheme.blue, fontWeight: FontWeight.w600),
+                                  ),
+                                ],
                               );
                             }),
                           ],
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
@@ -5886,24 +5931,71 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(width: 8),
                 CircleAvatar(
-                  backgroundColor: AppTheme.blue,
+                  backgroundColor: _isSendingChat ? Colors.grey : AppTheme.blue,
                   child: IconButton(
-                    icon: const Icon(Icons.send, color: Colors.white),
-                    onPressed: () async {
-                      final text = _chatController.text.trim();
-                      if (text.isEmpty) return;
-                      try {
-                        await widget.appState.sendClubMessage(
-                          clubId: _selectedClub!.id,
-                          title: 'Board Message',
-                          body: text,
-                        );
-                        _chatController.clear();
-                        _reloadSectionData();
-                      } catch (e) {
-                        _showErrorSnackBar('Failed to send message: $e');
-                      }
-                    },
+                    icon: _isSendingChat
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.send, color: Colors.white),
+                    onPressed: _isSendingChat
+                        ? null
+                        : () async {
+                            final text = _chatController.text.trim();
+                            if (text.isEmpty || _selectedClub == null) return;
+
+                            setState(() {
+                              _isSendingChat = true;
+                            });
+                            _chatController.clear();
+
+                            // Optimistic message object
+                            final optimisticMsg = <String, dynamic>{
+                              'id': 'temp_${DateTime.now().millisecondsSinceEpoch}',
+                              'senderId': session.id,
+                              'senderName': session.name,
+                              'senderRole': session.role,
+                              'title': 'Board Message',
+                              'body': text,
+                              'createdAt': DateTime.now().toIso8601String(),
+                            };
+
+                            List<Map<String, dynamic>> currentList = [];
+                            try {
+                              currentList = await (_messagesFuture ?? Future.value(<Map<String, dynamic>>[]));
+                            } catch (_) {}
+
+                            final updatedList = List<Map<String, dynamic>>.from(currentList)..add(optimisticMsg);
+                            setState(() {
+                              _messagesFuture = Future.value(updatedList);
+                            });
+
+                            try {
+                              await widget.appState.sendClubMessage(
+                                clubId: _selectedClub!.id,
+                                title: 'Board Message',
+                                body: text,
+                              );
+                              // Refresh messages in background without rebuilding the full screen
+                              final serverMsgs = await widget.appState.fetchClubMessages(_selectedClub!.id);
+                              if (mounted) {
+                                setState(() {
+                                  _messagesFuture = Future.value(serverMsgs);
+                                });
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                _showErrorSnackBar('Failed to send message: $e');
+                                setState(() {
+                                  _messagesFuture = Future.value(currentList);
+                                });
+                              }
+                            } finally {
+                              if (mounted) {
+                                setState(() {
+                                  _isSendingChat = false;
+                                });
+                              }
+                            }
+                          },
                   ),
                 ),
               ],

@@ -311,9 +311,8 @@ class _ProfileBodyState extends State<_ProfileBody> {
   }
 
 
-  void _showEditProfileDialog(String currentName, String? currentBio) {
+  void _showEditProfileDialog(String currentName) {
     final nameController = TextEditingController(text: currentName);
-    final bioController = TextEditingController(text: currentBio ?? '');
     showDialog(
       context: context,
       builder: (dialogContext) {
@@ -329,16 +328,6 @@ class _ProfileBodyState extends State<_ProfileBody> {
                   hintText: 'Enter your name',
                 ),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: bioController,
-                decoration: const InputDecoration(
-                  labelText: 'Biography',
-                  hintText: 'Enter a short bio (max 150 chars)',
-                ),
-                maxLines: 3,
-                maxLength: 150,
-              ),
             ],
           ),
           actions: [
@@ -349,7 +338,6 @@ class _ProfileBodyState extends State<_ProfileBody> {
             FilledButton(
               onPressed: () async {
                 final newName = nameController.text.trim();
-                final newBio = bioController.text.trim();
                 if (newName.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Name cannot be empty.')),
@@ -360,7 +348,6 @@ class _ProfileBodyState extends State<_ProfileBody> {
                   await widget.appState.updateProfile(
                     name: newName,
                     profileImage: widget.appState.session!.profileImage,
-                    bio: newBio,
                   );
                   if (mounted) {
                     Navigator.of(dialogContext).pop();
@@ -456,21 +443,6 @@ class _ProfileBodyState extends State<_ProfileBody> {
                 ),
               ],
             ),
-            if (session.bio != null && session.bio!.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  session.bio!,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontStyle: FontStyle.italic,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
             const SizedBox(height: 32),
             _buildProfileLinkTile(
               title: 'Edit Profile',
@@ -478,7 +450,7 @@ class _ProfileBodyState extends State<_ProfileBody> {
               icon: Icons.person_outline_rounded,
               iconColor: const Color(0xFF7C3AED),
               bgColor: const Color(0xFFF5F3FF),
-              onTap: () => _showEditProfileDialog(session.name, session.bio),
+              onTap: () => _showEditProfileDialog(session.name),
             ),
             const SizedBox(height: 16),
             _buildProfileLinkTile(

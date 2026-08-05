@@ -1069,7 +1069,6 @@ class AppState extends ChangeNotifier {
   Future<void> updateProfile({
     required String name,
     String? profileImage,
-    String? bio,
   }) async {
     final current = session;
     if (current == null || current.id == null) {
@@ -1078,9 +1077,6 @@ class AppState extends ChangeNotifier {
     final body = <String, dynamic>{'name': name};
     if (profileImage != null) {
       body['profileImage'] = profileImage;
-    }
-    if (bio != null) {
-      body['bio'] = bio;
     }
     await _apiClient.put('/users/${current.id}', body: body);
     session = await _fetchCurrentUser();
@@ -1095,7 +1091,6 @@ class AppState extends ChangeNotifier {
     await updateProfile(
       name: current.name,
       profileImage: '',
-      bio: current.bio,
     );
   }
 
