@@ -40,7 +40,7 @@ router.get('/memberships', verifyToken, async (req, res) => {
             isCurrent: true,
             $or: [
                 { userId: req.user.id },
-                { email: req.user.email }
+                { email: { $regex: new RegExp(`^${req.user.email}$`, 'i') } }
             ]
         });
 

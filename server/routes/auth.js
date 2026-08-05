@@ -56,7 +56,7 @@ function generateOTP() {
 // Send OTP
 router.post('/send-otp-signup', otpLimiter, async (req, res) => {
     try {
-        const { email } = req.body;
+        const email = (req.body.email || '').toLowerCase().trim();
 
         if (!email) {
             return res.status(400).json({ message: 'Email is required' });
@@ -67,7 +67,7 @@ router.post('/send-otp-signup', otpLimiter, async (req, res) => {
         }
 
         // Check if user exists
-        const existingUser = await User.findOne({ email });
+        const existingUser = await User.findOne({ email: { $regex: new RegExp(`^${escapeRegExp(email)}$`, 'i') } });
         if (existingUser) {
             return res.status(400).json({ message: 'User already exists' });
         }
@@ -75,8 +75,6 @@ router.post('/send-otp-signup', otpLimiter, async (req, res) => {
         const otp = generateOTP();
 
         // Save OTP to DB
-        // Determine if we should update an existing OTP or create a new one
-        // upsert: true will create if not exists
         await Otp.findOneAndUpdate(
             { email },
             { otp, createdAt: Date.now() },
@@ -96,13 +94,14 @@ router.post('/send-otp-signup', otpLimiter, async (req, res) => {
 // Verify OTP (Check only)
 router.post('/verify-otp', async (req, res) => {
     try {
-        const { email, otp } = req.body;
+        const email = (req.body.email || '').toLowerCase().trim();
+        const { otp } = req.body;
 
         if (!email || !otp) {
             return res.status(400).json({ message: 'Email and OTP are required' });
         }
 
-        const otpRecord = await Otp.findOne({ email });
+        const otpRecord = await Otp.findOne({ email: { $regex: new RegExp(`^${escapeRegExp(email)}$`, 'i') } });
 
         if (!otpRecord) {
             return res.status(400).json({ message: 'OTP expired or not found. Please request a new one.' });
@@ -111,7 +110,7 @@ router.post('/verify-otp', async (req, res) => {
         // Strict 10-minute validity check
         const TEN_MINUTES_MS = 10 * 60 * 1000;
         if (Date.now() - new Date(otpRecord.createdAt).getTime() > TEN_MINUTES_MS) {
-            await Otp.deleteOne({ email });
+            await Otp.deleteOne({ _id: otpRecord._id });
             return res.status(400).json({ message: 'OTP code has expired. Please request a new one.' });
         }
 
@@ -299,14 +298,15 @@ router.post('/assign-officer', async (req, res) => {
 // Login
 router.post('/login', authLimiter, async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { password } = req.body;
+        const email = (req.body.email || '').toLowerCase().trim();
 
-        if (typeof email !== 'string' || typeof password !== 'string') {
+        if (!email || typeof password !== 'string') {
             return res.status(400).json({ message: 'Invalid input format' });
         }
 
-        // Find user
-        const user = await User.findOne({ email });
+        // Find user case-insensitively
+        const user = await User.findOne({ email: { $regex: new RegExp(`^${escapeRegExp(email)}$`, 'i') } });
         if (!user) {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
