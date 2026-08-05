@@ -537,10 +537,18 @@ class AppState extends ChangeNotifier {
   Future<List<Map<String, dynamic>>> fetchClubMembers(
     String clubId, {
     String? termYear,
+    int? page,
+    int? limit,
   }) async {
-    final path = termYear != null && termYear.isNotEmpty
-        ? '/clubs/$clubId/members?termYear=${Uri.encodeComponent(termYear)}'
-        : '/clubs/$clubId/members';
+    final queryParams = <String>[];
+    if (termYear != null && termYear.isNotEmpty) {
+      queryParams.add('termYear=${Uri.encodeComponent(termYear)}');
+    }
+    if (page != null) queryParams.add('page=$page');
+    if (limit != null) queryParams.add('limit=$limit');
+
+    final queryString = queryParams.isNotEmpty ? '?${queryParams.join('&')}' : '';
+    final path = '/clubs/$clubId/members$queryString';
     final response = await _apiClient.get(path) as List<dynamic>;
     return response.cast<Map<String, dynamic>>();
   }

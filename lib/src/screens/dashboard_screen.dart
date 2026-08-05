@@ -251,7 +251,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         session.isAnyClubOfficer
     );
 
-    if (!isAdmin && !isTeacher && !isOfficer) {
+    final targetClub = _selectedClub ?? widget.initialClub;
+    final isMember = !isAdmin && !isTeacher && targetClub != null && session.isClubMemberOf(targetClub.id);
+
+    if (!isAdmin && !isTeacher && !isOfficer && !isMember) {
       return Scaffold(
         appBar: AppBar(title: const Text('Access Denied')),
         body: const Center(
@@ -373,11 +376,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           child: SingleChildScrollView(
                             physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                            child: isTeacher && _selectedSection == 'Overview'
-                                ? _buildTeacherClubDetailsView(session)
-                                : (isOfficer
-                                    ? _buildOfficerClubDetailsView(session)
-                                    : _buildActiveSectionView(session)),
+                             child: isTeacher && _selectedSection == 'Overview'
+                                 ? _buildTeacherClubDetailsView(session)
+                                 : ((isOfficer || isMember)
+                                     ? _buildOfficerClubDetailsView(session)
+                                     : _buildActiveSectionView(session)),
                           ),
                         ),
                       ),
@@ -460,7 +463,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } else if (activeRole == 'president' || activeRole == 'club-secretary') {
       return ['Overview', 'Members', 'Drafts & Posts', 'Events', 'Services', 'Tasks', 'Messages', 'Notifications', 'Budget'];
     }
-    return ['Overview'];
+    return ['Overview', 'Tasks', 'Messages'];
   }
 
   void _showOfficerTabSelector(String activeRole) {
@@ -2720,7 +2723,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 bgColor: const Color(0xFFFEF2F2),
                 onTap: () => setState(() => _selectedSection = 'Budgets'),
               ),
-            ] else ...[
+            ] else if (isOfficer) ...[
               _QuickActionTile(
                 title: 'Members',
                 subtitle: 'View and manage club members',
@@ -2791,6 +2794,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 iconColor: const Color(0xFFEF4444),
                 bgColor: const Color(0xFFFEF2F2),
                 onTap: () => setState(() => _selectedSection = 'Budgets'),
+              ),
+            ] else ...[
+              _QuickActionTile(
+                title: 'Tasks',
+                subtitle: 'View your assigned club tasks',
+                icon: Icons.playlist_add_check_rounded,
+                iconColor: const Color(0xFFF59E0B),
+                bgColor: const Color(0xFFFFFBEB),
+                onTap: () => setState(() => _selectedSection = 'Tasks'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Messages',
+                subtitle: 'Chat with club members',
+                icon: Icons.chat_bubble_outline_rounded,
+                iconColor: const Color(0xFF06B6D4),
+                bgColor: const Color(0xFFECFEFF),
+                onTap: () => setState(() => _selectedSection = 'Live Chat'),
               ),
             ],
             const SizedBox(height: 24),
@@ -5387,6 +5408,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Future<void> _confirmDeletePost(PostItem post) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete ${post.isEvent ? "Event" : post.isService ? "Service" : "Post"}'),
+        content: Text('Are you sure you want to delete "${post.title}"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await widget.appState.deletePost(post.id);
+        _showSuccessSnackBar('${post.isEvent ? "Event" : post.isService ? "Service" : "Post"} deleted successfully!');
+        _reloadSectionData();
+      } catch (e) {
+        _showErrorSnackBar('Failed to delete: $e');
+      }
+    }
+  }
+
   Widget _buildEventsList(List<PostItem> events, bool canEdit) {
     if (events.isEmpty) {
       return const Center(child: Text('No events found.'));
@@ -5402,7 +5451,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
             leading: const CircleAvatar(child: Icon(Icons.event_available)),
             title: Text(e.title, style: const TextStyle(fontWeight: FontWeight.bold)),
             subtitle: Text(e.date != null ? '${e.date!.day}/${e.date!.month}/${e.date!.year} · ${e.time ?? "All Day"}' : 'No date'),
-            trailing: e.rsvps != null ? Chip(label: Text('${e.rsvps} Registrations')) : null,
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (e.rsvps != null && e.rsvps! > 0)
+                  Chip(
+                    visualDensity: VisualDensity.compact,
+                    label: Text('${e.rsvps} RSVPs', style: const TextStyle(fontSize: 11)),
+                  ),
+                if (canEdit)
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert_rounded),
+                    onSelected: (value) async {
+                      if (value == 'delete') {
+                        _confirmDeletePost(e);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline_rounded, color: Colors.red, size: 18),
+                            SizedBox(width: 8),
+                            Text('Delete Event', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => PostDetailScreen(appState: widget.appState, initialPost: e),
@@ -5509,7 +5588,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ],
             ),
-            trailing: e.rsvps != null ? Chip(label: Text('${e.rsvps} Members')) : null,
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (e.rsvps != null && e.rsvps! > 0)
+                  Chip(
+                    visualDensity: VisualDensity.compact,
+                    label: Text('${e.rsvps} Members', style: const TextStyle(fontSize: 11)),
+                  ),
+                if (canEdit)
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert_rounded),
+                    onSelected: (value) async {
+                      if (value == 'delete') {
+                        _confirmDeletePost(e);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline_rounded, color: Colors.red, size: 18),
+                            SizedBox(width: 8),
+                            Text('Delete Service', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => PostDetailScreen(appState: widget.appState, initialPost: e),
@@ -6135,6 +6244,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
     }
 
+    String searchQuery = '';
+    final searchController = TextEditingController();
+
     await showDialog<void>(
       context: context,
       builder: (context) {
@@ -6143,9 +6255,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           title: const Text('Create Task'),
           content: StatefulBuilder(
             builder: (context, setStateDialog) {
+              final filteredMembers = members.where((m) {
+                if (searchQuery.isEmpty) return true;
+                final name = (m['name']?.toString() ?? '').toLowerCase();
+                final role = (m['role']?.toString() ?? '').toLowerCase();
+                final query = searchQuery.toLowerCase();
+                return name.contains(query) || role.contains(query);
+              }).toList();
+
               return SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     TextField(
                       controller: titleController,
@@ -6176,24 +6297,80 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                       onChanged: (value) => setStateDialog(() => relatedEventId = value ?? ''),
                     ),
-                    const SizedBox(height: 12),
-                    ...members.map((member) {
-                      final name = member['name']?.toString() ?? 'Member';
-                      return CheckboxListTile(
-                        value: selectedNames.contains(name),
-                        title: Text(name),
-                        subtitle: Text(member['role']?.toString() ?? ''),
-                        onChanged: (checked) {
-                          setStateDialog(() {
-                            if (checked == true) {
-                              selectedNames.add(name);
-                            } else {
-                              selectedNames.remove(name);
-                            }
-                          });
-                        },
-                      );
-                    }),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Assign to Members',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        if (selectedNames.isNotEmpty)
+                          Text(
+                            '${selectedNames.length} selected',
+                            style: TextStyle(fontSize: 12, color: AppTheme.blue, fontWeight: FontWeight.bold),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: searchController,
+                      onChanged: (val) => setStateDialog(() => searchQuery = val.trim()),
+                      decoration: InputDecoration(
+                        hintText: 'Search member by name or role...',
+                        prefixIcon: const Icon(Icons.search, size: 18),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                        suffixIcon: searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, size: 16),
+                                onPressed: () {
+                                  searchController.clear();
+                                  setStateDialog(() => searchQuery = '');
+                                },
+                              )
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 180,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Theme.of(context).dividerColor),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: filteredMembers.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'No members match search',
+                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                              ),
+                            )
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: filteredMembers.length,
+                              itemBuilder: (context, index) {
+                                final member = filteredMembers[index];
+                                final name = member['name']?.toString() ?? 'Member';
+                                final role = member['role']?.toString() ?? '';
+                                return CheckboxListTile(
+                                  dense: true,
+                                  value: selectedNames.contains(name),
+                                  title: Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                  subtitle: role.isNotEmpty ? Text(role, style: const TextStyle(fontSize: 11)) : null,
+                                  onChanged: (checked) {
+                                    setStateDialog(() {
+                                      if (checked == true) {
+                                        selectedNames.add(name);
+                                      } else {
+                                        selectedNames.remove(name);
+                                      }
+                                    });
+                                  },
+                                );
+                              },
+                            ),
+                    ),
                   ],
                 ),
               );

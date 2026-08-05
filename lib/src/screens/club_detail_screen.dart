@@ -1024,7 +1024,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              post.content,
+                              _stripMarkdown(post.content),
                               style: Theme.of(context).textTheme.bodyMedium,
                               maxLines: 3,
                               overflow: TextOverflow.ellipsis,
@@ -1222,4 +1222,12 @@ class DashedBorderPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant DashedBorderPainter oldDelegate) =>
       oldDelegate.color != color || oldDelegate.strokeWidth != strokeWidth || oldDelegate.gap != gap;
+}
+
+String _stripMarkdown(String markdown) {
+  var text = markdown.replaceAllMapped(RegExp(r'\[([^\]]+)\]\([^)]+\)'), (match) => match[1] ?? '');
+  text = text.replaceAll(RegExp(r'\*\*|__|\*|_'), '');
+  text = text.replaceAll(RegExp(r'^#+\s+', multiLine: true), '');
+  text = text.replaceAll(RegExp(r'^\s*-\s+', multiLine: true), '');
+  return text.trim();
 }

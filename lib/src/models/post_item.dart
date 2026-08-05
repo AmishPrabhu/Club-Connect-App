@@ -195,7 +195,11 @@ class PostItem {
       location: json['location']?.toString(),
       locationType: json['locationType']?.toString(),
       locationUrl: json['locationUrl']?.toString(),
-      coverAsset: json['coverImage']?.toString(),
+      coverAsset: (json['coverImage'] != null && json['coverImage'].toString().isNotEmpty)
+          ? json['coverImage'].toString()
+          : (json['image'] != null && json['image'].toString().isNotEmpty)
+              ? json['image'].toString()
+              : null,
       attachments: attachments,
       descriptionImages: (json['descriptionImages'] as List<dynamic>? ?? [])
           .map((e) => e.toString())

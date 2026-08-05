@@ -426,7 +426,17 @@ router.get('/:id/members', async (req, res) => {
             }
         }
 
-        const members = await ClubMember.find(query).sort({ name: 1 }).lean();
+        const page = parseInt(req.query.page, 10);
+        const limit = parseInt(req.query.limit, 10);
+
+        let membersQuery = ClubMember.find(query).sort({ name: 1 });
+
+        if (!isNaN(page) && !isNaN(limit) && page > 0 && limit > 0) {
+            const skip = (page - 1) * limit;
+            membersQuery = membersQuery.skip(skip).limit(limit);
+        }
+
+        const members = await membersQuery.lean();
 
         // Fetch latest profile info from User collection to ensure avatar and name are up to date
         const enhancedMembers = await Promise.all(members.map(async (member) => {

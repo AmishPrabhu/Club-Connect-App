@@ -134,6 +134,42 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                  }
                                },
                              ),
+                             if (post.descriptionImages.isNotEmpty) ...[
+                               const SizedBox(height: 16),
+                               Text(
+                                 'Description Media',
+                                 style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                               ),
+                               const SizedBox(height: 8),
+                               SizedBox(
+                                 height: 130,
+                                 child: ListView.builder(
+                                   scrollDirection: Axis.horizontal,
+                                   itemCount: post.descriptionImages.length,
+                                   itemBuilder: (context, index) {
+                                     final imgUrl = post.descriptionImages[index];
+                                     return Padding(
+                                       padding: const EdgeInsets.only(right: 10),
+                                       child: ClipRRect(
+                                         borderRadius: BorderRadius.circular(12),
+                                         child: Image.network(
+                                           imgUrl,
+                                           width: 170,
+                                           height: 130,
+                                           fit: BoxFit.cover,
+                                           errorBuilder: (_, _, _) => Container(
+                                             width: 170,
+                                             height: 130,
+                                             color: Colors.grey.shade300,
+                                             child: const Icon(Icons.broken_image, color: Colors.grey),
+                                           ),
+                                         ),
+                                       ),
+                                     );
+                                   },
+                                 ),
+                               ),
+                             ],
                             if (post.date != null) ...[
                               const SizedBox(height: 20),
                               _MetaRow(

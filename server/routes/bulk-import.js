@@ -19,12 +19,16 @@ const upload = multer({
         const allowedTypes = [
             'application/vnd.ms-excel',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'text/csv'
+            'text/csv',
+            'application/csv',
+            'application/x-csv',
+            'application/octet-stream'
         ];
-        if (allowedTypes.includes(file.mimetype)) {
+        const ext = file.originalname?.split('.').pop()?.toLowerCase();
+        if (allowedTypes.includes(file.mimetype) || ['xlsx', 'xls', 'csv'].includes(ext)) {
             cb(null, true);
         } else {
-            cb(new Error('Invalid file type. Only Excel and CSV files are allowed.'));
+            cb(new Error('Invalid file type. Only Excel (.xlsx, .xls) and CSV files are allowed.'));
         }
     }
 });
@@ -33,15 +37,26 @@ const upload = multer({
 router.post('/:clubId/members/bulk-import', verifyToken, upload.single('file'), async (req, res) => {
     try {
         const { clubId } = req.params;
-        const { id: userId, role } = req.user;
+        const { id: userId, role, email } = req.user;
 
-        // Check authorization - only club secretary, president, treasurer, or admin
+        // Check authorization - only club secretary, president, treasurer, advisor, or admin
         if (role !== 'admin') {
-            // Verify user is an officer of THIS specific club
             const officer = await ClubMember.findOne({
                 clubId,
-                userId,
-                role: { $in: ['Secretary', 'President', 'Treasurer', 'Advisor'] }
+                $and: [
+                    {
+                        $or: [
+                            { userId },
+                            { email: { $regex: new RegExp(`^${email}$`, 'i') } }
+                        ]
+                    },
+                    {
+                        $or: [
+                            { role: { $in: ['Secretary', 'President', 'Treasurer', 'Advisor', 'secretary', 'president', 'treasurer', 'advisor', 'club-secretary'] } },
+                            { boardType: { $in: ['main', 'executive'] } }
+                        ]
+                    }
+                ]
             });
             if (!officer) {
                 return res.status(403).json({ message: 'Unauthorized to import members for this club' });
@@ -159,11 +174,23 @@ router.post('/:clubId/members/bulk-import', verifyToken, upload.single('file'), 
                 // Check if member already exists in this club
                 const existingMember = await ClubMember.findOne({ clubId, email });
 
+                const officerRoles = ['president', 'secretary', 'treasurer', 'advisor', 'assistant secretary', 'assistant treasurer'];
+
                 if (existingMember) {
                     // Update existing member
                     existingMember.name = name;
-                    existingMember.role = memberRole;
-                    if (row['Board Type']) existingMember.boardType = row['Board Type'];
+
+                    // Preserve existing officer role if bulk import row provides a generic 'member' or 'user' role
+                    const isCurrentOfficer = officerRoles.includes((existingMember.role || '').toLowerCase()) || existingMember.boardType === 'main';
+                    const isImportGenericMember = ['member', 'club-member', 'user', ''].includes(memberRole.toLowerCase());
+
+                    if (!isCurrentOfficer || !isImportGenericMember) {
+                        existingMember.role = memberRole;
+                    }
+
+                    if (row['Board Type'] && (!isCurrentOfficer || row['Board Type'] !== 'member')) {
+                        existingMember.boardType = row['Board Type'];
+                    }
                     if (row['Academic Year']) existingMember.academicYear = row['Academic Year'];
                     if (row['Year Joined']) existingMember.joinedAt = new Date(row['Year Joined']);
                     await existingMember.save();
@@ -172,7 +199,7 @@ router.post('/:clubId/members/bulk-import', verifyToken, upload.single('file'), 
                     results.details.updated.push({
                         name,
                         email,
-                        role: memberRole
+                        role: existingMember.role
                     });
                 } else {
                     // Add new member
@@ -190,13 +217,16 @@ router.post('/:clubId/members/bulk-import', verifyToken, upload.single('file'), 
 
                     // Auto-assign club-member role if user exists and has 'user' role
                     if (existingUser && existingUser.role === 'user') {
-                        existingUser.role = 'club-member';
-                        await existingUser.save();
-                        broadcastToUser(existingUser._id.toString(), 'user_updated', {
-                            action: 'bulk_import_assigned',
-                            clubId,
-                            role: existingUser.role
-                        });
+                        const isUserOfficer = officerRoles.includes((existingUser.role || '').toLowerCase());
+                        if (!isUserOfficer) {
+                            existingUser.role = 'club-member';
+                            await existingUser.save();
+                            broadcastToUser(existingUser._id.toString(), 'user_updated', {
+                                action: 'bulk_import_assigned',
+                                clubId,
+                                role: existingUser.role
+                            });
+                        }
                     }
 
                     results.added++;
@@ -275,8 +305,20 @@ router.get('/:clubId/members/export', verifyToken, async (req, res) => {
         if (role !== 'admin') {
             const officer = await ClubMember.findOne({
                 clubId,
-                userId,
-                role: { $in: ['Secretary', 'President', 'Treasurer', 'Advisor'] }
+                $and: [
+                    {
+                        $or: [
+                            { userId },
+                            { email: { $regex: new RegExp(`^${req.user.email}$`, 'i') } }
+                        ]
+                    },
+                    {
+                        $or: [
+                            { role: { $in: ['Secretary', 'President', 'Treasurer', 'Advisor', 'secretary', 'president', 'treasurer', 'advisor', 'club-secretary'] } },
+                            { boardType: { $in: ['main', 'executive'] } }
+                        ]
+                    }
+                ]
             });
             if (!officer) {
                 return res.status(403).json({ message: 'Unauthorized to export members for this club' });

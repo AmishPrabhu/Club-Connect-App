@@ -50,6 +50,12 @@ class UserSession {
     return false;
   }
 
+  /// Check if this user is a member of a specific club.
+  bool isClubMemberOf(String clubId) {
+    if (role == 'admin') return true;
+    return memberships.any((m) => m.clubId == clubId);
+  }
+
   /// Check if the user can submit reports for a specific club.
   bool canSubmitReportFor(String clubId, {Club? club}) {
     if (role == 'admin') return true;
