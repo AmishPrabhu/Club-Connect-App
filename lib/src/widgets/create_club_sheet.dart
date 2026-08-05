@@ -338,6 +338,7 @@ class _CreateClubSheetState extends State<CreateClubSheet> {
 
     return Container(
       height: mq.size.height * 0.85,
+      padding: EdgeInsets.only(bottom: mq.viewInsets.bottom),
       decoration: BoxDecoration(
         color: isDark ? AppTheme.darkBackground : const Color(0xFFF6F8FB),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),

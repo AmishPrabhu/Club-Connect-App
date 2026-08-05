@@ -33,6 +33,7 @@ class PostItem {
     this.eventWhatsappLink,
     this.relatedEventId,
     this.relatedEventTitle,
+    this.visibility,
   });
 
   final String id;
@@ -92,9 +93,12 @@ class PostItem {
   final String? relatedEventId;
   final String? relatedEventTitle;
 
+  final String? visibility;
+
   bool get isEvent => type.toLowerCase() == 'event';
+  bool get isService => type.toLowerCase() == 'service';
   bool get isUpcoming =>
-      isEvent && date != null && date!.isAfter(DateTime.now());
+      (isEvent || isService) && date != null && date!.isAfter(DateTime.now());
 
   /// Parse a date string "YYYY-MM-DD" and optional time string "HH:MM AM/PM"
   /// into a DateTime. Returns null if the date string is null/empty.
@@ -215,6 +219,7 @@ class PostItem {
       eventWhatsappLink: json['eventWhatsappLink']?.toString(),
       relatedEventId: json['relatedEventId']?.toString(),
       relatedEventTitle: json['relatedEventTitle']?.toString(),
+      visibility: json['visibility']?.toString(),
     );
   }
 }

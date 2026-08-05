@@ -766,6 +766,7 @@ class AppState extends ChangeNotifier {
     String? relatedEventId,
     String? relatedEventTitle,
     int? totalSessions,
+    String? visibility,
   }) async {
     final body = <String, dynamic>{
       'clubId': clubId,
@@ -775,6 +776,7 @@ class AppState extends ChangeNotifier {
       'type': type,
       'status': status,
     };
+    if (visibility != null) body['visibility'] = visibility;
     if (date != null) body['date'] = date;
     if (time != null) body['time'] = time;
     if (timeFrom != null) body['timeFrom'] = timeFrom;

@@ -26,8 +26,13 @@ const postSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['event', 'announcement', 'post'],
+        enum: ['event', 'announcement', 'post', 'service'],
         default: 'post',
+    },
+    visibility: {
+        type: String,
+        enum: ['public', 'private'],
+        default: 'public',
     },
     status: {
         type: String,

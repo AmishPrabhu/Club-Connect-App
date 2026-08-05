@@ -423,6 +423,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           return _buildAdvisorEventsTab(clubEvents);
         }
         return _buildEventsView(session);
+      case 'Services':
+        return _buildServicesView(session);
       case 'Tasks':
         return _buildTasksView(session);
       case 'Live Chat':
@@ -456,7 +458,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } else if (activeRole == 'treasurer') {
       return ['Overview', 'Members', 'Tasks', 'Messages', 'Budgets'];
     } else if (activeRole == 'president' || activeRole == 'club-secretary') {
-      return ['Overview', 'Members', 'Drafts & Posts', 'Events', 'Tasks', 'Messages', 'Notifications', 'Budget'];
+      return ['Overview', 'Members', 'Drafts & Posts', 'Events', 'Services', 'Tasks', 'Messages', 'Notifications', 'Budget'];
     }
     return ['Overview'];
   }
@@ -481,6 +483,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               icon = Icons.edit_note_rounded;
             } else if (sec == 'Events') {
               icon = Icons.calendar_month_outlined;
+            } else if (sec == 'Services') {
+              icon = Icons.volunteer_activism_rounded;
             } else if (sec == 'Tasks') {
               icon = Icons.checklist_rtl_rounded;
             } else if (sec == 'Messages' || sec == 'Live Chat') {
@@ -2742,6 +2746,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 iconColor: const Color(0xFF10B981),
                 bgColor: const Color(0xFFE6FDF5),
                 onTap: () => setState(() => _selectedSection = 'Events'),
+              ),
+              const SizedBox(height: 10),
+              _QuickActionTile(
+                title: 'Club Services',
+                subtitle: 'Manage service activities for members',
+                icon: Icons.volunteer_activism_rounded,
+                iconColor: const Color(0xFF0D9488),
+                bgColor: const Color(0xFFCCFBF1),
+                onTap: () => setState(() => _selectedSection = 'Services'),
               ),
               const SizedBox(height: 10),
               _QuickActionTile(
@@ -5401,6 +5414,131 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // ─── SERVICES TAB ──────────────────────────────────────────────────────────
+  Widget _buildServicesView(UserSession session) {
+    final activeRole = widget.initialRole ?? session.role;
+    final canEdit = activeRole == 'admin' || (_selectedClub != null && session.isClubOfficerOf(_selectedClub!.id, club: _selectedClub));
+    final clubServices = widget.appState.posts.where((p) => p.clubId == _selectedClub!.id && p.isService).toList();
+    final now = DateTime.now();
+    final upcoming = clubServices.where((e) => e.date != null && e.date!.isAfter(now)).toList();
+    final past = clubServices.where((e) => e.date != null && !e.date!.isAfter(now)).toList();
+
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Expanded(
+                child: Text(
+                  'Club Services',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (canEdit)
+                FilledButton.icon(
+                  onPressed: () => _showCreateServiceDialog(_selectedClub!),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Create Service'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TabBar(
+            tabs: const [
+              Tab(text: 'Upcoming'),
+              Tab(text: 'Past'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 400,
+            child: TabBarView(
+              children: [
+                _buildServicesList(upcoming, canEdit),
+                _buildServicesList(past, canEdit),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildServicesList(List<PostItem> services, bool canEdit) {
+    if (services.isEmpty) {
+      return const Center(child: Text('No services found.'));
+    }
+
+    return ListView.builder(
+      itemCount: services.length,
+      itemBuilder: (context, index) {
+        final e = services[index];
+        final isPrivate = e.visibility == 'private';
+        return Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: isPrivate ? Colors.orange.shade100 : Colors.teal.shade100,
+              child: Icon(
+                isPrivate ? Icons.lock_rounded : Icons.volunteer_activism_rounded,
+                color: isPrivate ? Colors.orange.shade700 : Colors.teal.shade700,
+              ),
+            ),
+            title: Text(e.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Row(
+              children: [
+                Text(e.date != null ? '${e.date!.day}/${e.date!.month}/${e.date!.year}' : 'No date'),
+                if (isPrivate) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.orange.shade200),
+                    ),
+                    child: Text('Private', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange.shade700)),
+                  ),
+                ],
+              ],
+            ),
+            trailing: e.rsvps != null ? Chip(label: Text('${e.rsvps} Members')) : null,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => PostDetailScreen(appState: widget.appState, initialPost: e),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showCreateServiceDialog(Club club) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _CreateServiceSheet(
+        appState: widget.appState,
+        club: club,
+        onSuccess: (String message) {
+          _showSuccessSnackBar(message);
+          _reloadSectionData();
+        },
+      ),
+    );
+  }
+
   // ─── TASKS TAB ─────────────────────────────────────────────────────────────
   Widget _buildTasksView(UserSession session) {
     final activeRole = widget.initialRole ?? session.role;
@@ -6426,6 +6564,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
     final mq = MediaQuery.of(context);
     return Container(
       height: mq.size.height * 0.92,
+      padding: EdgeInsets.only(bottom: mq.viewInsets.bottom),
       decoration: BoxDecoration(
         color: isDark ? AppTheme.darkBackground : const Color(0xFFF6F8FB),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
@@ -7310,6 +7449,784 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
       ),
     );
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ─── CREATE SERVICE SHEET ────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _CreateServiceSheet extends StatefulWidget {
+  const _CreateServiceSheet({
+    required this.appState,
+    required this.club,
+    required this.onSuccess,
+  });
+
+  final AppState appState;
+  final Club club;
+  final void Function(String message) onSuccess;
+
+  @override
+  State<_CreateServiceSheet> createState() => _CreateServiceSheetState();
+}
+
+class _CreateServiceSheetState extends State<_CreateServiceSheet> {
+  // ── Navigation
+  int _step = 0;
+  final PageController _pageController = PageController();
+
+  // ── Step 1: Content
+  String? coverImageUrl;
+  bool isUploadingCover = false;
+  final titleController = TextEditingController();
+  final contentController = TextEditingController();
+  String? _titleError;
+
+  // ── Step 2: Details
+  DateTime? serviceDate;
+  String timeFromHour = '9';
+  String timeFromMin = '00';
+  String timeFromPeriod = 'AM';
+  String timeToHour = '5';
+  String timeToMin = '00';
+  String timeToPeriod = 'PM';
+  int totalSessions = 1;
+  String locationType = 'campus';
+  final locationController = TextEditingController();
+  final locationUrlController = TextEditingController();
+
+  // Visibility
+  String _visibility = 'public';
+
+  bool _isSubmitting = false;
+
+  static const int _totalSteps = 2;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    titleController.dispose();
+    contentController.dispose();
+    locationController.dispose();
+    locationUrlController.dispose();
+    super.dispose();
+  }
+
+  String _formatDate(DateTime d) =>
+      '${d.day} ${_monthName(d.month)} ${d.year}';
+
+  String _monthName(int m) => const [
+        '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ][m];
+
+  String _dateToApi(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  String _timeStr(String h, String m, String p) => '$h:$m $p';
+
+  Future<void> _pickDate(void Function(DateTime) onPicked) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+    );
+    if (picked != null) onPicked(picked);
+  }
+
+  Future<void> _pickCoverImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
+    setState(() => isUploadingCover = true);
+    final url = await CloudinaryService.uploadImage(File(picked.path));
+    if (mounted) setState(() { coverImageUrl = url; isUploadingCover = false; });
+  }
+
+  bool _validateStep1() {
+    if (titleController.text.trim().isEmpty) {
+      setState(() => _titleError = 'Title is required');
+      return false;
+    }
+    setState(() => _titleError = null);
+    return true;
+  }
+
+  void _nextStep() {
+    if (_step == 0 && !_validateStep1()) return;
+    if (_step < _totalSteps - 1) {
+      setState(() => _step++);
+      _pageController.animateToPage(_step,
+          duration: const Duration(milliseconds: 350), curve: Curves.easeInOutCubic);
+    }
+  }
+
+  void _prevStep() {
+    if (_step > 0) {
+      setState(() => _step--);
+      _pageController.animateToPage(_step,
+          duration: const Duration(milliseconds: 350), curve: Curves.easeInOutCubic);
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> _submit() async {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
+    try {
+      await widget.appState.createPost(
+        clubId: widget.club.id,
+        clubName: widget.club.name,
+        title: titleController.text.trim(),
+        content: contentController.text.trim(),
+        type: 'service',
+        status: 'published',
+        visibility: _visibility,
+        coverImage: coverImageUrl,
+        date: serviceDate != null ? _dateToApi(serviceDate!) : null,
+        timeFrom: _timeStr(timeFromHour, timeFromMin, timeFromPeriod),
+        timeTo: _timeStr(timeToHour, timeToMin, timeToPeriod),
+        location: locationController.text.trim().isNotEmpty ? locationController.text.trim() : null,
+        locationType: locationType,
+        locationUrl: locationUrlController.text.trim().isNotEmpty ? locationUrlController.text.trim() : null,
+        totalSessions: totalSessions,
+      );
+      if (mounted) {
+        Navigator.of(context).pop();
+        widget.onSuccess('Club Service created! All members have been auto-registered.');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed: $e'), behavior: SnackBarBehavior.floating, backgroundColor: Colors.red.shade700),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = AppTheme.isDark(context);
+    final mq = MediaQuery.of(context);
+    return Container(
+      height: mq.size.height * 0.92,
+      padding: EdgeInsets.only(bottom: mq.viewInsets.bottom),
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.darkBackground : const Color(0xFFF6F8FB),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: Column(
+        children: [
+          _buildHeader(isDark),
+          Expanded(
+            child: PageView(
+              controller: _pageController,
+              physics: const NeverScrollableScrollPhysics(),
+              children: [
+                _buildStepContent(isDark),
+                _buildStepDetails(isDark),
+              ],
+            ),
+          ),
+          _buildStickyFooter(isDark, mq),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(bool isDark) {
+    final labels = ['Content', 'Details'];
+    final titleColor = AppTheme.textColor(context);
+    final subtitleColor = isDark ? AppTheme.darkMuted : AppTheme.mutedColor(context);
+    final headerBg = isDark ? AppTheme.darkSurface : Colors.white;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: headerBg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.blueGrey.withValues(alpha: 0.08),
+          ),
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 10),
+            width: 40, height: 4,
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Create Club Service',
+                        style: TextStyle(
+                          color: titleColor,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Step ${_step + 1} of $_totalSteps  \u00b7  ${labels[_step]}',
+                        style: TextStyle(color: subtitleColor, fontSize: 13, fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: Icon(Icons.close_rounded, color: isDark ? Colors.white : AppTheme.text),
+                  style: IconButton.styleFrom(
+                    backgroundColor: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.05),
+                    padding: const EdgeInsets.all(6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0, end: (_step + 1) / _totalSteps),
+              duration: const Duration(milliseconds: 300),
+              builder: (_, v, _) => ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: v, minHeight: 4,
+                  backgroundColor: Colors.white.withValues(alpha: 0.2),
+                  valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.cyan),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+        ],
+      ),
+    );
+  }
+
+  // ── Step 1: Content ───────────────────────────────────────────────────────
+
+  Widget _buildStepContent(bool isDark) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildCoverHero(isDark),
+          const SizedBox(height: 20),
+          _fieldLabel('Title', required: true),
+          const SizedBox(height: 8),
+          TextField(
+            controller: titleController,
+            onChanged: (_) { if (_titleError != null) setState(() => _titleError = null); },
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            decoration: InputDecoration(
+              hintText: 'e.g., Campus Cleanup Drive',
+              errorText: _titleError,
+            ),
+          ),
+          const SizedBox(height: 20),
+          _fieldLabel('Description', required: true),
+          const SizedBox(height: 8),
+          TextField(
+            controller: contentController,
+            maxLines: 6,
+            decoration: const InputDecoration(
+              hintText: 'Describe the service activity...',
+              alignLabelWithHint: true,
+              contentPadding: EdgeInsets.fromLTRB(14, 12, 14, 8),
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Visibility Toggle
+          _fieldLabel('Visibility', required: true),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppTheme.darkSurface : Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.blueGrey.withValues(alpha: 0.12),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _visibility = 'public'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        color: _visibility == 'public'
+                            ? Colors.teal.withValues(alpha: 0.12)
+                            : Colors.transparent,
+                        borderRadius: const BorderRadius.horizontal(left: Radius.circular(14)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.public_rounded,
+                            size: 18,
+                            color: _visibility == 'public' ? Colors.teal : AppTheme.mutedColor(context),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Public',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                              color: _visibility == 'public' ? Colors.teal : AppTheme.mutedColor(context),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 30,
+                  color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.blueGrey.withValues(alpha: 0.12),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _visibility = 'private'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        color: _visibility == 'private'
+                            ? Colors.orange.withValues(alpha: 0.12)
+                            : Colors.transparent,
+                        borderRadius: const BorderRadius.horizontal(right: Radius.circular(14)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.lock_rounded,
+                            size: 18,
+                            color: _visibility == 'private' ? Colors.orange : AppTheme.mutedColor(context),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Private',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                              color: _visibility == 'private' ? Colors.orange : AppTheme.mutedColor(context),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              _visibility == 'public'
+                  ? 'Visible to everyone viewing this club.'
+                  : 'Only visible to club members.',
+              style: TextStyle(fontSize: 11, color: AppTheme.mutedColor(context)),
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCoverHero(bool isDark) {
+    return GestureDetector(
+      onTap: isUploadingCover ? null : _pickCoverImage,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        child: coverImageUrl != null
+            ? Stack(key: const ValueKey('filled'), children: [
+                ClipRRect(borderRadius: BorderRadius.circular(16),
+                    child: Image.network(coverImageUrl!, height: 180, width: double.infinity, fit: BoxFit.cover)),
+                Positioned(bottom: 10, right: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.55), borderRadius: BorderRadius.circular(20)),
+                      child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.edit_rounded, color: Colors.white, size: 13),
+                        SizedBox(width: 4),
+                        Text('Change', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                      ]),
+                    )),
+              ])
+            : Container(
+                key: const ValueKey('empty'),
+                height: 180, width: double.infinity,
+                decoration: BoxDecoration(
+                  color: isDark ? AppTheme.darkSurface : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.blueGrey.withValues(alpha: 0.2),
+                    width: 1.5,
+                  ),
+                ),
+                child: isUploadingCover
+                    ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        const CircularProgressIndicator(strokeWidth: 2),
+                        const SizedBox(height: 10),
+                        Text('Uploading...', style: TextStyle(color: AppTheme.mutedColor(context), fontSize: 13)),
+                      ]))
+                    : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppTheme.darkElevated : const Color(0xFFE2E8F0),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.add_photo_alternate_outlined,
+                            color: AppTheme.textColor(context),
+                            size: 28,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text('Tap to add Cover Photo',
+                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textColor(context))),
+                        const SizedBox(height: 4),
+                        Text('Optional', style: TextStyle(fontSize: 12, color: AppTheme.mutedColor(context))),
+                      ]),
+              ),
+      ),
+    );
+  }
+
+  // ── Step 2: Details ───────────────────────────────────────────────────────
+
+  Widget _buildStepDetails(bool isDark) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _fieldLabel('Date', required: true),
+          const SizedBox(height: 8),
+          _dateTile(isDark: isDark, date: serviceDate, hint: 'Select service date', icon: Icons.calendar_today_rounded,
+              onTap: () => _pickDate((d) => setState(() => serviceDate = d))),
+          const SizedBox(height: 20),
+          _fieldLabel('Time', required: false),
+          const SizedBox(height: 8),
+          _timeFromTo(isDark),
+          const SizedBox(height: 20),
+          _buildSessions(isDark),
+          const SizedBox(height: 20),
+          _fieldLabel('Location', required: false),
+          const SizedBox(height: 8),
+          _buildLocation(isDark),
+          const SizedBox(height: 20),
+          // Info box about auto-registration
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE3F2FD),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFF90CAF9)),
+            ),
+            child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Icon(Icons.info_outline_rounded, size: 15, color: Color(0xFF1565C0)),
+              SizedBox(width: 8),
+              Expanded(child: Text(
+                'All club members will be automatically registered for attendance tracking when this service is created.',
+                style: TextStyle(fontSize: 12, color: Color(0xFF0D47A1), height: 1.4),
+              )),
+            ]),
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _dateTile({required bool isDark, required DateTime? date, required String hint, required IconData icon, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isDark ? AppTheme.darkSurface : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.blueGrey.withValues(alpha: 0.12)),
+        ),
+        child: Row(children: [
+          Icon(icon, color: AppTheme.blue, size: 20),
+          const SizedBox(width: 12),
+          Text(date != null ? _formatDate(date) : hint,
+              style: TextStyle(fontSize: 15, fontWeight: date != null ? FontWeight.w600 : FontWeight.normal,
+                  color: date != null ? null : AppTheme.mutedColor(context))),
+          const Spacer(),
+          Icon(Icons.chevron_right_rounded, color: AppTheme.mutedColor(context), size: 18),
+        ]),
+      ),
+    );
+  }
+
+  Widget _timeFromTo(bool isDark) {
+    final hours = List.generate(12, (i) => '${i + 1}');
+    final mins = ['00', '15', '30', '45'];
+    final periods = ['AM', 'PM'];
+
+    Widget pill(String v, List<String> items, void Function(String?) cb) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.darkBackground : AppTheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.blueGrey.withValues(alpha: 0.12)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: v, isDense: true,
+          items: items.map((x) => DropdownMenuItem(value: x, child: Text(x, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)))).toList(),
+          onChanged: cb,
+        ),
+      ),
+    );
+
+    Widget row(String lbl, String h, String m, String p, void Function(String?) onH, void Function(String?) onM, void Function(String?) onP) => Row(
+      children: [
+        SizedBox(width: 40, child: Text(lbl, style: TextStyle(fontSize: 13, color: AppTheme.mutedColor(context), fontWeight: FontWeight.w600))),
+        const SizedBox(width: 4),
+        pill(h, hours, onH),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: Text(':', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? AppTheme.darkText : AppTheme.text)),
+        ),
+        pill(m, mins, onM),
+        const SizedBox(width: 8),
+        pill(p, periods, onP),
+      ],
+    );
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.darkSurface : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.blueGrey.withValues(alpha: 0.12)),
+      ),
+      child: Column(children: [
+        row('From', timeFromHour, timeFromMin, timeFromPeriod,
+            (v) => setState(() => timeFromHour = v!),
+            (v) => setState(() => timeFromMin = v!),
+            (v) => setState(() => timeFromPeriod = v!)),
+        Divider(height: 1, color: isDark ? Colors.white.withValues(alpha: 0.07) : Colors.blueGrey.withValues(alpha: 0.1)),
+        const SizedBox(height: 12),
+        row('To', timeToHour, timeToMin, timeToPeriod,
+            (v) => setState(() => timeToHour = v!),
+            (v) => setState(() => timeToMin = v!),
+            (v) => setState(() => timeToPeriod = v!)),
+      ]),
+    );
+  }
+
+  Widget _buildSessions(bool isDark) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _fieldLabel('Number of Sessions', required: false),
+      const SizedBox(height: 8),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isDark ? AppTheme.darkSurface : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.blueGrey.withValues(alpha: 0.12)),
+        ),
+        child: Row(children: [
+          Icon(Icons.event_repeat_rounded, size: 18, color: AppTheme.blue),
+          const SizedBox(width: 12),
+          Text('$totalSessions session${totalSessions > 1 ? 's' : ''}',
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+          const Spacer(),
+          IconButton(
+            onPressed: totalSessions > 1 ? () => setState(() => totalSessions--) : null,
+            icon: const Icon(Icons.remove_circle_outline_rounded, size: 22),
+            visualDensity: VisualDensity.compact,
+          ),
+          IconButton(
+            onPressed: totalSessions < 10 ? () => setState(() => totalSessions++) : null,
+            icon: const Icon(Icons.add_circle_outline_rounded, size: 22),
+            visualDensity: VisualDensity.compact,
+          ),
+        ]),
+      ),
+    ]);
+  }
+
+  Widget _buildLocation(bool isDark) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        _locationChip('Campus', 'campus', isDark),
+        const SizedBox(width: 8),
+        _locationChip('External', 'external', isDark),
+      ]),
+      const SizedBox(height: 10),
+      TextField(
+        controller: locationController,
+        decoration: InputDecoration(
+          prefixIcon: const Icon(Icons.location_on_outlined, size: 18),
+          hintText: locationType == 'campus' ? 'e.g., Main Auditorium' : 'e.g., Community Center',
+          hintStyle: const TextStyle(fontSize: 13),
+        ),
+      ),
+      if (locationType == 'external') ...[
+        const SizedBox(height: 10),
+        TextField(
+          controller: locationUrlController,
+          keyboardType: TextInputType.url,
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.link_rounded, size: 18),
+            hintText: 'Google Maps link (optional)',
+            hintStyle: TextStyle(fontSize: 13),
+          ),
+        ),
+      ],
+    ]);
+  }
+
+  Widget _locationChip(String label, String value, bool isDark) {
+    final isSelected = locationType == value;
+    return GestureDetector(
+      onTap: () => setState(() => locationType = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.blue.withValues(alpha: 0.1)
+              : isDark ? AppTheme.darkSurface : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppTheme.blue : (isDark ? Colors.white.withValues(alpha: 0.1) : Colors.blueGrey.withValues(alpha: 0.15)),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: isSelected ? AppTheme.blue : AppTheme.mutedColor(context),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Footer ────────────────────────────────────────────────────────────────
+
+  Widget _buildStickyFooter(bool isDark, MediaQueryData mq) {
+    final isLast = _step == _totalSteps - 1;
+    final footerBg = isDark ? AppTheme.darkSurface : Colors.white;
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(20, 12, 20, 12 + mq.padding.bottom),
+      decoration: BoxDecoration(
+        color: footerBg,
+        border: Border(
+          top: BorderSide(
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.blueGrey.withValues(alpha: 0.08),
+          ),
+        ),
+      ),
+      child: Row(children: [
+        SizedBox(
+          height: 48,
+          child: OutlinedButton(
+            onPressed: _prevStep,
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.blueGrey.withValues(alpha: 0.2)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              if (_step > 0) const Icon(Icons.arrow_back_rounded, size: 16),
+              if (_step > 0) const SizedBox(width: 6),
+              Text(_step == 0 ? 'Cancel' : 'Back', style: const TextStyle(fontWeight: FontWeight.w600)),
+            ]),
+          ),
+        ),
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(_totalSteps, (i) {
+              final active = i == _step;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: active ? 24 : 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: active ? AppTheme.blue : AppTheme.mutedColor(context).withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              );
+            }),
+          ),
+        ),
+        SizedBox(
+          height: 48,
+          child: isLast
+              ? FilledButton(
+                  onPressed: _isSubmitting ? null : _submit,
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                  ),
+                  child: _isSubmitting
+                      ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: isDark ? Colors.black : Colors.white))
+                      : const Text(
+                          'Create Service',
+                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                        ),
+                )
+              : FilledButton(
+                  onPressed: _nextStep,
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                  ),
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text('Next', style: TextStyle(fontWeight: FontWeight.w700)),
+                    SizedBox(width: 6),
+                    Icon(Icons.arrow_forward_rounded, size: 16),
+                  ]),
+                ),
+        ),
+      ]),
+    );
+  }
+
+  // ── Shared helpers ────────────────────────────────────────────────────────
+
+  Widget _fieldLabel(String label, {bool required = false}) => Row(mainAxisSize: MainAxisSize.min, children: [
+    Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.textColor(context))),
+    if (required) ...[const SizedBox(width: 4), const Text('*', style: TextStyle(color: Colors.red, fontSize: 14, fontWeight: FontWeight.bold))],
+  ]);
 }
 
 class DashedBorderPainter extends CustomPainter {

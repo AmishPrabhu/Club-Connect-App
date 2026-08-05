@@ -43,16 +43,19 @@ router.get('/', verifyTokenOptional, async (req, res) => {
             userMemberships = await ClubMember.find({ userId: req.user.id });
         }
 
-        const filteredPosts = posts.map(post => {
+        const filteredPosts = posts.reduce((acc, post) => {
             const postObj = post.toObject();
             let canViewSensitive = false;
+            let isMember = false;
             
             if (req.user) {
                 if (req.user.role === 'admin' || req.user.role === 'teacher') {
                     canViewSensitive = true;
+                    isMember = true;
                 } else {
                     const membership = userMemberships.find(m => m.clubId.toString() === postObj.clubId.toString());
                     if (membership) {
+                        isMember = true;
                         const roleLower = (membership.role || '').toLowerCase();
                         if (
                            ['president', 'secretary', 'treasurer', 'assistant secretary', 'assistant treasurer'].includes(roleLower) ||
@@ -76,8 +79,14 @@ router.get('/', verifyTokenOptional, async (req, res) => {
                 delete postObj.reportFilename;
             }
             
-            return postObj;
-        });
+            
+            if (postObj.type === 'service' && postObj.visibility === 'private' && !isMember) {
+                return acc;
+            }
+            
+            acc.push(postObj);
+            return acc;
+        }, []);
 
         res.json(filteredPosts);
     } catch (error) {
@@ -97,12 +106,15 @@ router.get('/:id', verifyTokenOptional, async (req, res) => {
         postObj.rsvps = rsvpCount;
 
         let canViewSensitive = false;
+        let isMember = false;
         if (req.user) {
             if (req.user.role === 'admin' || req.user.role === 'teacher') {
                 canViewSensitive = true;
+                isMember = true;
             } else {
                 const membership = await ClubMember.findOne({ userId: req.user.id, clubId: postObj.clubId });
                 if (membership) {
+                    isMember = true;
                     const roleLower = (membership.role || '').toLowerCase();
                     if (
                        ['president', 'secretary', 'treasurer', 'assistant secretary', 'assistant treasurer'].includes(roleLower) ||
@@ -113,6 +125,10 @@ router.get('/:id', verifyTokenOptional, async (req, res) => {
                     }
                 }
             }
+        }
+        
+        if (postObj.type === 'service' && postObj.visibility === 'private' && !isMember) {
+            return res.status(403).json({ message: 'This service is private to club members.' });
         }
         
         if (!canViewSensitive) {
@@ -426,7 +442,7 @@ router.post('/', verifyEventOfficer, async (req, res) => {
     try {
         // Whitelist allowed fields to prevent arbitrary data injection
         const allowedFields = [
-            'title', 'content', 'image', 'coverImage', 'type', 'status',
+            'title', 'content', 'image', 'coverImage', 'type', 'status', 'visibility',
             'clubId', 'clubName', 'clubImage', // These are validated by verifyClubOfficer implicitly but nice to be explicit
             'date', 'time', 'timeFrom', 'timeTo', 'location', 'locationType', 'locationUrl',
             'registrationStart', 'registrationStartTime', 'registrationEnd', 'registrationEndTime',
@@ -480,6 +496,33 @@ router.post('/', verifyEventOfficer, async (req, res) => {
             ).catch(err => console.error("FCM post creation error:", err));
         } catch (notifError) {
             console.error("Failed to create notification for new post:", notifError);
+        }
+
+        // Auto-register members if it's a club service
+        if (savedPost.type === 'service') {
+            try {
+                const clubMembers = await ClubMember.find({ clubId: savedPost.clubId });
+                for (const member of clubMembers) {
+                    const sessionAttendance = new Map();
+                    for (let i = 1; i <= (savedPost.totalSessions || 1); i++) {
+                        sessionAttendance.set(String(i), 'pending');
+                    }
+                    const newRSVP = new EventRSVP({
+                        eventId: savedPost._id,
+                        name: member.name,
+                        email: member.email,
+                        userId: member.userId || null,
+                        source: 'auto-service',
+                        sessionAttendance,
+                    });
+                    await newRSVP.save();
+                }
+                const rsvpCount = await EventRSVP.countDocuments({ eventId: savedPost._id });
+                savedPost.rsvps = rsvpCount;
+                await savedPost.save();
+            } catch (rsvpErr) {
+                console.error("Failed to auto-register members for service:", rsvpErr);
+            }
         }
 
         res.status(201).json(savedPost);
@@ -595,7 +638,7 @@ router.put('/:id', verifyToken, async (req, res) => {
 
         // Whitelist allowed updates
         const allowedUpdates = [
-            'title', 'content', 'image', 'coverImage', 'type', 'status',
+            'title', 'content', 'image', 'coverImage', 'type', 'status', 'visibility',
             // 'clubId', 'clubName' - prevented from changing club ownership
             'date', 'time', 'timeFrom', 'timeTo', 'location', 'locationType', 'locationUrl',
             'registrationStart', 'registrationStartTime', 'registrationEnd', 'registrationEndTime',
