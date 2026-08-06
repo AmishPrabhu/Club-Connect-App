@@ -423,8 +423,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return activeRole == 'admin' ? _buildAdminTeachersSection() : const SizedBox.shrink();
       case 'Members':
         return _buildMembersView(session);
-      case 'Drafts & Posts':
-      case 'Posts & Announcements':
+      case 'Announcements':
         return _buildPostsView(session);
       case 'Events':
         if (activeRole == 'advisor') {
@@ -469,7 +468,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } else if (r == 'treasurer') {
       return ['Overview', 'Members', 'Tasks', 'Messages', 'Budgets'];
     } else if (r == 'president' || r.contains('secretary')) {
-      return ['Overview', 'Members', 'Drafts & Posts', 'Events', 'Services', 'Tasks', 'Messages', 'Notifications', 'Budget'];
+      return ['Overview', 'Members', 'Announcements', 'Events', 'Services', 'Tasks', 'Messages', 'Notifications', 'Budget'];
     }
     return ['Overview', 'Tasks', 'Messages'];
   }
@@ -490,7 +489,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               icon = Icons.trending_up_rounded;
             } else if (sec == 'Members') {
               icon = Icons.people_outline_rounded;
-            } else if (sec == 'Drafts & Posts' || sec == 'Posts & Announcements') {
+            } else if (sec == 'Announcements') {
               icon = Icons.edit_note_rounded;
             } else if (sec == 'Events') {
               icon = Icons.calendar_month_outlined;
@@ -1896,7 +1895,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'All Posts & Announcements',
+          'All Announcements',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -2112,15 +2111,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final typeLabel = n.type.toUpperCase();
 
     return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => NotificationDetailScreen(
-              appState: widget.appState,
-              notification: n,
-            ),
-          ),
-        ).then((_) => setState(() {}));
+      onTap: () async {
+        await handleNotificationTap(context, widget.appState, n);
+        if (mounted) setState(() {});
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -2742,12 +2735,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 10),
               _QuickActionTile(
-                title: 'Drafts & Posts',
+                title: 'Announcements',
                 subtitle: 'Manage and create announcements',
                 icon: Icons.edit_note_rounded,
                 iconColor: const Color(0xFFEC4899),
                 bgColor: const Color(0xFFFDF2F8),
-                onTap: () => setState(() => _selectedSection = 'Posts & Announcements'),
+                onTap: () => setState(() => _selectedSection = 'Announcements'),
               ),
               const SizedBox(height: 10),
               _QuickActionTile(
@@ -2980,6 +2973,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             _buildProfilePictureCard(canEdit),
             _buildWhatsAppCard(canEdit),
             _buildInstagramCard(canEdit),
+            _buildLinkedinCard(canEdit),
+            _buildWebsiteCard(canEdit),
           ],
         );
       },
@@ -4994,6 +4989,192 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _buildLinkedinCard(bool isOfficer) {
+    if (_selectedClub == null) return const SizedBox.shrink();
+    final hasLink = _selectedClub!.linkedinUrl.isNotEmpty;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).dividerColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.work_outline_rounded, color: Colors.blueAccent, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'LinkedIn Page',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              if (hasLink && isOfficer) ...[
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  onPressed: () => _showLinkDialog(
+                    title: 'Edit LinkedIn Page Link',
+                    fieldKey: 'linkedinUrl',
+                    currentValue: _selectedClub!.linkedinUrl,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                  onPressed: () => _updateClubField({'linkedinUrl': ''}),
+                ),
+              ]
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (hasLink)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                _selectedClub!.linkedinUrl,
+                style: TextStyle(color: AppTheme.blue, decoration: TextDecoration.underline),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              trailing: const Icon(Icons.copy_rounded, size: 20),
+              onTap: () => _copyLink('LinkedIn', _selectedClub!.linkedinUrl),
+            )
+          else if (isOfficer)
+            GestureDetector(
+              onTap: () => _showLinkDialog(
+                title: 'Add LinkedIn Page',
+                fieldKey: 'linkedinUrl',
+                currentValue: '',
+              ),
+              child: CustomPaint(
+                painter: DashedBorderPainter(color: Theme.of(context).dividerColor, gap: 6),
+                child: Container(
+                  height: 48,
+                  width: double.infinity,
+                  alignment: Alignment.center,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add, color: Colors.grey, size: 18),
+                      SizedBox(width: 6),
+                      Text('Add LinkedIn Link', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          else
+            const Text(
+              'No LinkedIn link provided by the club.',
+              style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWebsiteCard(bool isOfficer) {
+    if (_selectedClub == null) return const SizedBox.shrink();
+    final hasLink = _selectedClub!.websiteUrl.isNotEmpty;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).dividerColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.language_rounded, color: Colors.teal, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Website',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              if (hasLink && isOfficer) ...[
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  onPressed: () => _showLinkDialog(
+                    title: 'Edit Website Link',
+                    fieldKey: 'websiteUrl',
+                    currentValue: _selectedClub!.websiteUrl,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                  onPressed: () => _updateClubField({'websiteUrl': ''}),
+                ),
+              ]
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (hasLink)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                _selectedClub!.websiteUrl,
+                style: TextStyle(color: AppTheme.blue, decoration: TextDecoration.underline),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              trailing: const Icon(Icons.copy_rounded, size: 20),
+              onTap: () => _copyLink('Website', _selectedClub!.websiteUrl),
+            )
+          else if (isOfficer)
+            GestureDetector(
+              onTap: () => _showLinkDialog(
+                title: 'Add Website',
+                fieldKey: 'websiteUrl',
+                currentValue: '',
+              ),
+              child: CustomPaint(
+                painter: DashedBorderPainter(color: Theme.of(context).dividerColor, gap: 6),
+                child: Container(
+                  height: 48,
+                  width: double.infinity,
+                  alignment: Alignment.center,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add, color: Colors.grey, size: 18),
+                      SizedBox(width: 6),
+                      Text('Add Website Link', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          else
+            const Text(
+              'No website provided by the club.',
+              style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+            ),
+        ],
+      ),
+    );
+  }
+
   // ─── MEMBERS TAB ───────────────────────────────────────────────────────────
   Widget _buildMembersView(UserSession session) {
     final activeRole = widget.initialRole ?? session.role;
@@ -5394,7 +5575,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  // ─── DRAFTS & POSTS TAB ────────────────────────────────────────────────────
+  // ─── ANNOUNCEMENTS TAB ────────────────────────────────────────────────────
   Widget _buildPostsView(UserSession session) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final activeRole = widget.initialRole ?? session.role;
@@ -6207,15 +6388,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => NotificationDetailScreen(
-                          appState: widget.appState,
-                          notification: n,
-                        ),
-                      ),
-                    ).then((_) => setState(() {}));
+                  onTap: () async {
+                    await handleNotificationTap(context, widget.appState, n);
+                    if (mounted) setState(() {});
                   },
                   trailing: !n.isRead
                       ? TextButton(

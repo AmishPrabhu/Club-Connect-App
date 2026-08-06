@@ -36,6 +36,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   String? _rsvpError;
 
   final Map<String, int> _clubTaskCounts = {};
+  DateTime _lastTaskFetchTime = DateTime.now().subtract(const Duration(days: 1));
 
   int _getClubMessagesCount(Club club) {
     return widget.appState.notifications.where((n) {
@@ -99,6 +100,10 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
 
   void _onAppStateChanged() {
     if (mounted) {
+      if (_lastTaskFetchTime.isBefore(widget.appState.lastTaskUpdateTime)) {
+        _lastTaskFetchTime = DateTime.now();
+        _loadTaskCounts();
+      }
       setState(() {});
     }
   }

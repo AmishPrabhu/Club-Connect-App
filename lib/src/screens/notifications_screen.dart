@@ -5,6 +5,8 @@ import '../theme/app_theme.dart';
 import '../state/app_state.dart';
 import '../widgets/glass_card.dart';
 import 'notification_detail_screen.dart';
+import 'post_detail_screen.dart';
+import '../models/notification_item.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key, required this.appState});
@@ -152,18 +154,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   final item = notifications[index];
                   return GestureDetector(
                     onTap: () async {
-                      if (!item.isRead) {
-                        await widget.appState.markNotificationAsRead(item.id);
-                      }
                       if (context.mounted) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => NotificationDetailScreen(
-                              appState: widget.appState,
-                              notification: item,
-                            ),
-                          ),
-                        );
+                        await handleNotificationTap(context, widget.appState, item);
                       }
                     },
                     child: GlassCard(
@@ -252,6 +244,52 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         showCheckmark: false,
         label: Text(label, style: const TextStyle(fontSize: 13)),
         onSelected: (_) => setState(() => _filter = value),
+      ),
+    );
+  }
+}
+
+Future<void> handleNotificationTap(BuildContext context, AppState appState, NotificationItem item) async {
+  if (!item.isRead) {
+    await appState.markNotificationAsRead(item.id);
+  }
+  if (!context.mounted) return;
+
+  if (item.type == 'event' && item.relatedId != null) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final post = await appState.fetchPost(item.relatedId!);
+      if (context.mounted) {
+        Navigator.pop(context); // close dialog
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PostDetailScreen(
+              appState: appState,
+              initialPost: post,
+            ),
+          ),
+        );
+        return;
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // close dialog
+      }
+    }
+  }
+
+  // Fallback to regular notification detail screen
+  if (context.mounted) {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => NotificationDetailScreen(
+          appState: appState,
+          notification: item,
+        ),
       ),
     );
   }

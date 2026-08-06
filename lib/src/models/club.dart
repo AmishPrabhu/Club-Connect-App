@@ -15,6 +15,8 @@ class Club {
     this.fullForm = '',
     this.whatsappUrl = '',
     this.instagramUrl = '',
+    this.linkedinUrl = '',
+    this.websiteUrl = '',
     this.presidentEmail = '',
     this.secretaryEmail = '',
     this.treasurerEmail = '',
@@ -35,6 +37,8 @@ class Club {
   final String fullForm;
   final String whatsappUrl;
   final String instagramUrl;
+  final String linkedinUrl;
+  final String websiteUrl;
   final String presidentEmail;
   final String secretaryEmail;
   final String treasurerEmail;
@@ -74,6 +78,8 @@ class Club {
       fullForm: json['fullForm']?.toString() ?? '',
       whatsappUrl: json['whatsappUrl']?.toString() ?? '',
       instagramUrl: json['instagramUrl']?.toString() ?? '',
+      linkedinUrl: json['linkedinUrl']?.toString() ?? '',
+      websiteUrl: json['websiteUrl']?.toString() ?? '',
       presidentEmail: json['presidentEmail']?.toString() ?? '',
       secretaryEmail: json['secretaryEmail']?.toString() ?? '',
       treasurerEmail: json['treasurerEmail']?.toString() ?? '',

@@ -645,6 +645,8 @@ class AppState extends ChangeNotifier {
     await refreshAll();
   }
 
+  DateTime lastTaskUpdateTime = DateTime.now();
+
   Future<void> promoteClubMembers({
     required String clubId,
     required List<Map<String, dynamic>> members,
@@ -795,6 +797,24 @@ class AppState extends ChangeNotifier {
         'relatedEventTitle': relatedEventTitle,
       },
     );
+
+    // Send notifications to assigned members
+    if (assignedTo.isNotEmpty) {
+      final club = clubs.where((c) => c.id == clubId).firstOrNull;
+      final clubName = club?.name ?? 'your club';
+      for (final userId in assignedTo) {
+        await createNotification(
+          title: 'New Task Assigned',
+          message: 'You have been assigned a new task: $title in $clubName',
+          type: 'task',
+          clubId: clubId,
+          userId: userId,
+        );
+      }
+    }
+
+    lastTaskUpdateTime = DateTime.now();
+    notifyListeners();
     return response as Map<String, dynamic>;
   }
 
@@ -803,11 +823,15 @@ class AppState extends ChangeNotifier {
     Map<String, dynamic> updates,
   ) async {
     final response = await _apiClient.put('/tasks/$taskId', body: updates);
+    lastTaskUpdateTime = DateTime.now();
+    notifyListeners();
     return response as Map<String, dynamic>;
   }
 
   Future<void> deleteTask(String taskId) async {
     await _apiClient.delete('/tasks/$taskId');
+    lastTaskUpdateTime = DateTime.now();
+    notifyListeners();
   }
 
   Future<PostItem> createPost({
@@ -900,17 +924,18 @@ class AppState extends ChangeNotifier {
     required String message,
     required String type,
     String? clubId,
+    String? userId,
   }) async {
-    await _apiClient.post(
-      '/notifications',
-      body: {
-        'title': title,
-        'message': message,
-        'type': type,
-        'clubId': clubId,
-        'read': false,
-      },
-    );
+    final body = {
+      'title': title,
+      'message': message,
+      'type': type,
+      'read': false,
+    };
+    if (clubId != null) body['clubId'] = clubId;
+    if (userId != null) body['userId'] = userId;
+
+    await _apiClient.post('/notifications', body: body);
     await refreshAll();
   }
 
