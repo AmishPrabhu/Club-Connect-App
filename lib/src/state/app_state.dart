@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../models/club.dart';
 import '../models/notification_item.dart';
@@ -99,6 +100,15 @@ class AppState extends ChangeNotifier {
   List<NotificationItem> notifications = const [];
   Set<String> interestedEventIds = {};
 
+  // Notification preference settings
+  bool notificationsEnabled = true;
+  bool eventAlertsEnabled = true;
+  bool clubAnnouncementsEnabled = true;
+  bool taskAlertsEnabled = true;
+
+  // App version state (dynamically retrieved from platform package info)
+  String appVersion = '1.0.7+13';
+
   // Controller for targeted refresh events (e.g., club members updated)
   final StreamController<String> _refreshEventController = StreamController<String>.broadcast();
   Stream<String> get refreshEvents => _refreshEventController.stream;
@@ -107,12 +117,26 @@ class AppState extends ChangeNotifier {
     isBootstrapping = true;
     notifyListeners();
 
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      if (packageInfo.version.isNotEmpty) {
+        final build = packageInfo.buildNumber.isNotEmpty ? '+${packageInfo.buildNumber}' : '';
+        appVersion = '${packageInfo.version}$build';
+      }
+    } catch (_) {}
+
     // Log the API URL so we can confirm it in logcat during debugging
     if (kDebugMode) {
       print('[AppState] API base URL: ${_apiClient.baseUrl}');
+      print('[AppState] App version: $appVersion');
     }
 
     final prefs = await SharedPreferences.getInstance();
+    notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
+    eventAlertsEnabled = prefs.getBool('event_alerts_enabled') ?? true;
+    clubAnnouncementsEnabled = prefs.getBool('club_announcements_enabled') ?? true;
+    taskAlertsEnabled = prefs.getBool('task_alerts_enabled') ?? true;
+
     final token = prefs.getString(_tokenKey);
     if (token != null && token.isNotEmpty) {
       _apiClient.setToken(token);
@@ -257,11 +281,49 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Sets master notifications state and syncs/unregisters FCM token.
+  Future<void> setNotificationsEnabled(bool enabled) async {
+    notificationsEnabled = enabled;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('notifications_enabled', enabled);
+
+    if (enabled) {
+      PushNotificationsManager.instance.syncToken();
+    } else {
+      PushNotificationsManager.instance.unregisterToken();
+    }
+  }
+
+  Future<void> setEventAlertsEnabled(bool enabled) async {
+    eventAlertsEnabled = enabled;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('event_alerts_enabled', enabled);
+  }
+
+  Future<void> setClubAnnouncementsEnabled(bool enabled) async {
+    clubAnnouncementsEnabled = enabled;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('club_announcements_enabled', enabled);
+  }
+
+  Future<void> setTaskAlertsEnabled(bool enabled) async {
+    taskAlertsEnabled = enabled;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('task_alerts_enabled', enabled);
+  }
+
   /// Instantly prepends a new notification without any HTTP call.
   void applyNotificationCreated(NotificationItem notif) {
     if (notifications.any((n) => n.id == notif.id)) return;
     notifications = [notif, ...notifications];
     notifyListeners();
+
+    // Do not show floating banner if user disabled notifications
+    if (!notificationsEnabled) return;
 
     // Show live WhatsApp-style floating alert banner when app is open
     final title = notif.title;

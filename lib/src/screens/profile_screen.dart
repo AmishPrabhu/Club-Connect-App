@@ -372,25 +372,19 @@ class _ProfileBodyState extends State<_ProfileBody> {
   }
 
   void _showNotificationSettingsDialog() {
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (context) {
-        return AlertDialog(
-          title: Text('Notification Settings', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
-          content: const Text(
-            'Notification preferences will be available in a future update.',
-            style: TextStyle(fontSize: 14, height: 1.4),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Done'),
-            ),
-          ],
+        return ListenableBuilder(
+          listenable: widget.appState,
+          builder: (context, _) {
+            return _NotificationSettingsSheet(appState: widget.appState);
+          },
         );
       },
     );
@@ -830,7 +824,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               const SizedBox(height: 16),
               _buildSettingsTile(
                 title: 'App Information',
-                subtitle: 'Version 1.0.0',
+                subtitle: 'Version ${widget.appState.appVersion}',
                 icon: Icons.info_outline_rounded,
                 iconColor: AppTheme.accent(context),
                 bgColor: const Color(0xFFEFF6FF),
@@ -1028,15 +1022,15 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('App Information', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Club Connect Mobile App', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-            SizedBox(height: 4),
-            Text('Version 1.0.0', style: TextStyle(fontSize: 13, color: Colors.grey)),
-            SizedBox(height: 12),
-            Text('WCE Technical Societies Platform • 2026', style: TextStyle(fontSize: 12)),
+            const Text('Club Connect Mobile App', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text('Version ${widget.appState.appVersion}', style: const TextStyle(fontSize: 13, color: Colors.grey)),
+            const SizedBox(height: 12),
+            const Text('WCE Technical Societies Platform • 2026', style: TextStyle(fontSize: 12)),
           ],
         ),
         actions: [
@@ -1867,6 +1861,267 @@ class _GuestCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _NotificationSettingsSheet extends StatefulWidget {
+  const _NotificationSettingsSheet({required this.appState});
+
+  final AppState appState;
+
+  @override
+  State<_NotificationSettingsSheet> createState() => _NotificationSettingsSheetState();
+}
+
+class _NotificationSettingsSheetState extends State<_NotificationSettingsSheet> {
+  @override
+  Widget build(BuildContext context) {
+    final appState = widget.appState;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isEnabled = appState.notificationsEnabled;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF064E3B) : const Color(0xFFECFDF5),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.notifications_active_rounded,
+                    color: Color(0xFF10B981),
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Notification Settings',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Manage push & app alert preferences',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.mutedColor(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Master Enable / Disable Notifications Tile
+            Container(
+              decoration: BoxDecoration(
+                color: isEnabled
+                    ? (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.3) : const Color(0xFFECFDF5))
+                    : (isDark ? AppTheme.darkElevated : const Color(0xFFF8FAFC)),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isEnabled
+                      ? const Color(0xFF10B981).withValues(alpha: 0.5)
+                      : (isDark ? AppTheme.darkBorder : const Color(0xFFE2E8F0)),
+                  width: 1.5,
+                ),
+              ),
+              child: SwitchListTile(
+                value: isEnabled,
+                onChanged: (value) async {
+                  HapticFeedback.selectionClick();
+                  await appState.setNotificationsEnabled(value);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).clearSnackBars();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          value ? 'Notifications Enabled' : 'Notifications Disabled',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        backgroundColor: value ? const Color(0xFF10B981) : const Color(0xFF64748B),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                },
+                activeColor: const Color(0xFF10B981),
+                title: Text(
+                  'Allow Notifications',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                subtitle: Text(
+                  isEnabled
+                      ? 'Push & banner alerts are enabled'
+                      : 'All push & floating alerts are turned off',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.mutedColor(context),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            if (isEnabled) ...[
+              Text(
+                'Notification Categories',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.mutedColor(context),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Event & Activity Alerts
+              _buildCategorySwitch(
+                context: context,
+                title: 'Event & Activity Alerts',
+                subtitle: 'Reminders for upcoming events and RSVPs',
+                icon: Icons.calendar_month_rounded,
+                iconColor: const Color(0xFF2563EB),
+                bgColor: const Color(0xFFEFF6FF),
+                value: appState.eventAlertsEnabled,
+                onChanged: (val) => appState.setEventAlertsEnabled(val),
+              ),
+              const SizedBox(height: 10),
+
+              // Club Announcements
+              _buildCategorySwitch(
+                context: context,
+                title: 'Club Announcements',
+                subtitle: 'News, announcements and club updates',
+                icon: Icons.campaign_rounded,
+                iconColor: const Color(0xFF7C3AED),
+                bgColor: const Color(0xFFF5F3FF),
+                value: appState.clubAnnouncementsEnabled,
+                onChanged: (val) => appState.setClubAnnouncementsEnabled(val),
+              ),
+              const SizedBox(height: 10),
+
+              // Task & Duty Alerts
+              _buildCategorySwitch(
+                context: context,
+                title: 'Task & Duty Alerts',
+                subtitle: 'Updates on assigned club tasks and deadlines',
+                icon: Icons.checklist_rounded,
+                iconColor: const Color(0xFFF59E0B),
+                bgColor: const Color(0xFFFFFBEB),
+                value: appState.taskAlertsEnabled,
+                onChanged: (val) => appState.setTaskAlertsEnabled(val),
+              ),
+            ],
+
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.navyColor(context),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text(
+                  'Done',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategorySwitch({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color iconColor,
+    required Color bgColor,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark ? AppTheme.darkBorder : Theme.of(context).dividerColor,
+          width: 1,
+        ),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        leading: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: isDark ? AppTheme.darkElevated : bgColor,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: isDark ? Colors.white : iconColor, size: 20),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(fontSize: 11, color: AppTheme.mutedColor(context)),
+        ),
+        trailing: Switch(
+          value: value,
+          onChanged: (val) {
+            HapticFeedback.selectionClick();
+            onChanged(val);
+          },
+          activeColor: const Color(0xFF10B981),
+        ),
       ),
     );
   }

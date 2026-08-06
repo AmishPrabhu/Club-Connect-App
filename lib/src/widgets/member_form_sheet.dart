@@ -135,6 +135,22 @@ class _MemberFormSheetState extends State<MemberFormSheet> {
       if (finalRole.isEmpty) finalRole = 'Member';
     }
 
+    // Role Check & Automatic Board Placement Classification
+    final rLower = finalRole.toLowerCase().trim();
+    if (rLower == 'president' ||
+        rLower == 'secretary' ||
+        rLower == 'treasurer' ||
+        rLower == 'advisor' ||
+        rLower.contains('president') ||
+        (rLower.contains('secretary') && !rLower.contains('assistant')) ||
+        (rLower.contains('treasurer') && !rLower.contains('assistant'))) {
+      _boardType = 'main';
+    } else if (rLower == 'assistant secretary' ||
+        rLower == 'assistant treasurer' ||
+        rLower.contains('assistant')) {
+      _boardType = 'executive';
+    }
+
     setState(() {
       _errorMessage = null;
       _isSubmitting = true;

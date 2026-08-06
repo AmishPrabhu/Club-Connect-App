@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import '../services/cloudinary_service.dart';
 import 'dart:io';
+import 'package:open_filex/open_filex.dart';
 
 import '../models/club.dart';
 import '../models/post_item.dart';
@@ -59,6 +60,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _teacherReportYearFilter = 'All Years';
   List<Map<String, dynamic>> _allReports = [];
   bool _startedWithSpecificSection = false;
+  String _memberBoardFilter = '';
 
   // Futures for asynchronous views
   Future<List<Map<String, dynamic>>>? _membersFuture;
@@ -4995,13 +4997,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ─── MEMBERS TAB ───────────────────────────────────────────────────────────
   Widget _buildMembersView(UserSession session) {
     final activeRole = widget.initialRole ?? session.role;
-    final canEdit = activeRole == 'admin' || (_selectedClub != null && session.isClubOfficerOf(_selectedClub!.id, club: _selectedClub));
+    final canEdit = activeRole == 'admin' || (_selectedClub != null && session.canManageMembersOf(_selectedClub!.id, club: _selectedClub));
     final isTreasurer = activeRole == 'treasurer';
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _membersFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
         final members = snapshot.data ?? [];
+
+        const boardOrder = ['main', 'executive', 'member'];
+        const boardLabels = {
+          'main': 'Main Board (TY)',
+          'executive': 'Executive Board (SY)',
+          'member': 'Member Board (FY)',
+        };
+
+        int getRolePriority(String roleName) {
+          final r = roleName.toLowerCase().trim();
+          if (r.contains('president') && !r.contains('vice') && !r.contains('assistant')) return 1;
+          if (r.contains('vice')) return 2;
+          if (r.contains('secretary') && !r.contains('assistant')) return 3;
+          if (r.contains('treasurer') && !r.contains('assistant')) return 4;
+          if (r.contains('advisor')) return 5;
+          if (r.contains('assistant secretary')) return 6;
+          if (r.contains('assistant treasurer')) return 7;
+          if (r.contains('coordinator')) return 8;
+          if (r != 'member') return 9;
+          return 10;
+        }
+
+        final displayBoards = _memberBoardFilter.isEmpty ? boardOrder : [_memberBoardFilter];
+        final Map<String, List<Map<String, dynamic>>> groupedMembers = {};
+        for (final bt in boardOrder) {
+          final list = members.where((m) => (m['boardType']?.toString().toLowerCase() ?? 'member') == bt).toList();
+          list.sort((a, b) {
+            final pA = getRolePriority(a['role']?.toString() ?? '');
+            final pB = getRolePriority(b['role']?.toString() ?? '');
+            if (pA != pB) return pA.compareTo(pB);
+            final nameA = _resolveMemberDisplayName(a);
+            final nameB = _resolveMemberDisplayName(b);
+            return nameA.compareTo(nameB);
+          });
+          groupedMembers[bt] = list;
+        }
+
         return Column(
           children: [
             // ── Start New Academic Year (top, president only) ──
@@ -5019,6 +5058,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 12),
             ],
+
+            // Top Header & Filter Row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -5041,6 +5082,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
               ],
             ),
+            const SizedBox(height: 10),
+
+            // Board Filter Dropdown
+            DropdownButtonFormField<String>(
+              initialValue: _memberBoardFilter,
+              decoration: const InputDecoration(
+                labelText: 'Filter by Board Tier',
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                isDense: true,
+                prefixIcon: Icon(Icons.filter_list_rounded, size: 18),
+              ),
+              items: const [
+                DropdownMenuItem(value: '', child: Text('All Boards')),
+                DropdownMenuItem(value: 'main', child: Text('Main Board (TY)')),
+                DropdownMenuItem(value: 'executive', child: Text('Executive Board (SY)')),
+                DropdownMenuItem(value: 'member', child: Text('Member Board (FY)')),
+              ],
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() => _memberBoardFilter = val);
+                }
+              },
+            ),
+
             if (canEdit || isTreasurer) ...[
               const SizedBox(height: 10),
               Row(
@@ -5049,7 +5114,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Expanded(
                       child: OutlinedButton.icon(
                         icon: const Icon(Icons.download_outlined, size: 12),
-                        label: const Text('Download Template', style: TextStyle(fontSize: 11)),
+                        label: const Text('Template', style: TextStyle(fontSize: 11)),
                         onPressed: () => _downloadTemplate(),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
@@ -5082,73 +5147,152 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
             ],
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
+
             if (members.isEmpty)
               const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('No members found.')))
             else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: members.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  final m = members[index];
-                  final mId = m['_id']?.toString() ?? m['id']?.toString() ?? '';
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Theme.of(context).dividerColor),
-                    ),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        child: Text((_resolveMemberDisplayName(m))[0].toUpperCase()),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: displayBoards.map((bt) {
+                  final boardMembers = groupedMembers[bt] ?? [];
+                  if (boardMembers.isEmpty) return const SizedBox.shrink();
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 4,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                color: AppTheme.accent(context),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              boardLabels[bt] ?? bt,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppTheme.accent(context).withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${boardMembers.length}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.accent(context),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      title: Text(_resolveMemberDisplayName(m), style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text('${m['role'] ?? 'Member'} · ${m['email'] ?? ''}'),
-                      trailing: canEdit
-                          ? Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit_outlined, size: 18),
-                                  onPressed: () => _showAddMemberDialog(member: m),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.person_remove_outlined, color: Colors.red, size: 18),
-                                  onPressed: () async {
-                                    final confirm = await showDialog<bool>(
-                                      context: context,
-                                      builder: (ctx) => AlertDialog(
-                                        title: const Text('Remove Member'),
-                                        content: Text('Are you sure you want to remove ${m['name']}?'),
-                                        actions: [
-                                          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-                                          FilledButton(
-                                            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                                            onPressed: () => Navigator.of(ctx).pop(true),
-                                            child: const Text('Remove'),
-                                          ),
-                                        ],
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: boardMembers.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final m = boardMembers[index];
+                          final mId = m['_id']?.toString() ?? m['id']?.toString() ?? '';
+                          final roleStr = m['role']?.toString() ?? 'Member';
+                          final emailStr = m['email']?.toString() ?? '';
+                          final academicYear = m['academicYear']?.toString() ?? '';
+
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).cardColor,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Theme.of(context).dividerColor),
+                            ),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                child: Text((_resolveMemberDisplayName(m))[0].toUpperCase()),
+                              ),
+                              title: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      _resolveMemberDisplayName(m),
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                  if (academicYear.isNotEmpty)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(6),
                                       ),
-                                    );
-                                    if (confirm == true) {
-                                      try {
-                                        await widget.appState.removeClubMember(_selectedClub!.id, mId);
-                                        _showSuccessSnackBar('Member "${m['name']}" removed successfully!');
-                                        _reloadSectionData();
-                                      } catch (e) {
-                                        _showErrorSnackBar('Failed to remove member: $e');
-                                      }
-                                    }
-                                  },
-                                ),
-                              ],
-                            )
-                          : null,
-                    ),
+                                      child: Text(
+                                        academicYear,
+                                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              subtitle: Text('$roleStr · $emailStr'),
+                              trailing: canEdit
+                                  ? Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.edit_outlined, size: 18),
+                                          onPressed: () => _showAddMemberDialog(member: m),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.person_remove_outlined, color: Colors.red, size: 18),
+                                          onPressed: () async {
+                                            final confirm = await showDialog<bool>(
+                                              context: context,
+                                              builder: (ctx) => AlertDialog(
+                                                title: const Text('Remove Member'),
+                                                content: Text('Are you sure you want to remove ${m['name']}?'),
+                                                actions: [
+                                                  TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+                                                  FilledButton(
+                                                    style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                                                    onPressed: () => Navigator.of(ctx).pop(true),
+                                                    child: const Text('Remove'),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                            if (confirm == true) {
+                                              try {
+                                                await widget.appState.removeClubMember(_selectedClub!.id, mId);
+                                                _showSuccessSnackBar('Member "${m['name']}" removed successfully!');
+                                                _reloadSectionData();
+                                              } catch (e) {
+                                                _showErrorSnackBar('Failed to remove member: $e');
+                                              }
+                                            }
+                                          },
+                                        ),
+                                      ],
+                                    )
+                                  : null,
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                   );
-                },
+                }).toList(),
               ),
           ],
         );
@@ -5254,7 +5398,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildPostsView(UserSession session) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final activeRole = widget.initialRole ?? session.role;
-    final canEdit = activeRole == 'admin' || (_selectedClub != null && session.isClubOfficerOf(_selectedClub!.id, club: _selectedClub));
+    final canEdit = activeRole == 'admin' || (_selectedClub != null && session.canManageEventsOf(_selectedClub!.id, club: _selectedClub));
     final clubPosts = widget.appState.posts.where((p) => p.clubId == _selectedClub!.id).toList();
 
     return Column(
@@ -5360,7 +5504,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ─── EVENTS TAB ────────────────────────────────────────────────────────────
   Widget _buildEventsView(UserSession session) {
     final activeRole = widget.initialRole ?? session.role;
-    final canEdit = activeRole == 'admin' || (_selectedClub != null && session.isClubOfficerOf(_selectedClub!.id, club: _selectedClub));
+    final canEdit = activeRole == 'admin' || (_selectedClub != null && session.canManageEventsOf(_selectedClub!.id, club: _selectedClub));
     final clubEvents = widget.appState.posts.where((p) => p.clubId == _selectedClub!.id && p.isEvent).toList();
     final now = DateTime.now();
     final upcoming = clubEvents.where((e) => e.date != null && e.date!.isAfter(now)).toList();
@@ -5502,7 +5646,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ─── SERVICES TAB ──────────────────────────────────────────────────────────
   Widget _buildServicesView(UserSession session) {
     final activeRole = widget.initialRole ?? session.role;
-    final canEdit = activeRole == 'admin' || (_selectedClub != null && session.isClubOfficerOf(_selectedClub!.id, club: _selectedClub));
+    final canEdit = activeRole == 'admin' || (_selectedClub != null && session.canManageEventsOf(_selectedClub!.id, club: _selectedClub));
     final clubServices = widget.appState.posts.where((p) => p.clubId == _selectedClub!.id && p.isService).toList();
     final now = DateTime.now();
     final upcoming = clubServices.where((e) => e.date != null && e.date!.isAfter(now)).toList();

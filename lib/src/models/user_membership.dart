@@ -64,6 +64,19 @@ class UserMembership {
     return r == 'president' || r == 'vice-president' || r == 'secretary' || r == 'advisor';
   }
 
+  /// Whether this membership grants permission to manage events & posts (create/edit/delete).
+  /// Only President, Vice-President, Secretary, and Assistant Secretary can manage events & posts.
+  bool get canManageEvents {
+    if (!isCurrent) return false;
+    final r = role.toLowerCase().trim();
+    return r == 'president' ||
+        r == 'secretary' ||
+        r == 'vice-president' ||
+        r == 'assistant secretary' ||
+        r.contains('president') ||
+        r.contains('secretary');
+  }
+
   factory UserMembership.fromJson(Map<String, dynamic> json) {
     return UserMembership(
       clubId: json['clubId']?.toString() ?? '',

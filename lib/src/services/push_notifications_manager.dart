@@ -97,7 +97,7 @@ class PushNotificationsManager {
         // in-place without any HTTP call. This FCM listener is a safety net.
         _applyTargetedRefresh(message.data);
 
-        if (message.notification != null) {
+        if (message.notification != null && (_appState?.notificationsEnabled ?? true)) {
           if (kDebugMode) {
             print('Message also contained a notification: ${message.notification?.title}');
           }

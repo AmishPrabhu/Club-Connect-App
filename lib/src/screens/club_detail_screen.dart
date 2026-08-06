@@ -683,6 +683,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
     final isAdmin = session?.role == 'admin';
     final isOfficer = session != null && session.isClubOfficerOf(_club.id);
     final canManageMembers = session != null && session.canManageMembersOf(_club.id, club: _club);
+    final canManageEvents = session != null && session.canManageEventsOf(_club.id, club: _club);
 
     final clubPosts = widget.appState.posts
         .where((post) => post.clubId == _club.id)
@@ -1049,7 +1050,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                                 Expanded(
                                   child: Text(post.location ?? 'Campus'),
                                 ),
-                                if (canManageMembers)
+                                if (canManageEvents)
                                   IconButton(
                                     icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
                                     onPressed: () async {

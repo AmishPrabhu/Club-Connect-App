@@ -91,6 +91,23 @@ class UserSession {
     return false;
   }
 
+  /// Check if the user can manage events & posts (create/edit/delete) for a specific club.
+  /// Matches backend verifyEventOfficer middleware (President, Secretary, Assistant Secretary only).
+  bool canManageEventsOf(String clubId, {Club? club}) {
+    if (role == 'admin') return true;
+    final hasMembershipManager = memberships.any((m) => m.clubId == clubId && m.canManageEvents);
+    if (hasMembershipManager) return true;
+
+    if (club != null) {
+      final emailLower = email.toLowerCase();
+      if ((club.presidentEmail ?? '').toLowerCase() == emailLower ||
+          (club.secretaryEmail ?? '').toLowerCase() == emailLower) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /// Check if the user is an officer of any club (for showing management UI).
   bool get isAnyClubOfficer {
     if (role == 'admin') return true;
