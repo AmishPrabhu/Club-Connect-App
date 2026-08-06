@@ -2542,29 +2542,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                _selectedClub!.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.navyColor(context),
-                                ),
-                              ),
-                            ),
-                            if (canEdit)
-                              IconButton(
-                                padding: const EdgeInsets.all(4),
-                                constraints: const BoxConstraints(),
-                                icon: const Icon(Icons.edit_outlined, color: Colors.grey, size: 18),
-                                tooltip: 'Edit Club Details',
-                                onPressed: () => _showEditClubDialog(_selectedClub!),
-                              ),
-                          ],
+                        Text(
+                          _selectedClub!.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.navyColor(context),
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
