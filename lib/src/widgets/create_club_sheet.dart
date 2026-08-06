@@ -39,11 +39,13 @@ class _CreateClubSheetState extends State<CreateClubSheet> {
 
   static const _departmentsList = [
     'Computer Science(CSE)',
+    'Information Technology(IT)',
+    'Artificial Intelligence and Machine Learning(AIML)',
     'Electronics',
+    'Electrical Engineering',
     'Mechanical',
     'Civil',
-    'Artificial Intelligence and Machine Learning(AIML)',
-    'Information Technology(IT)',
+    'Robotics',
   ];
 
   @override

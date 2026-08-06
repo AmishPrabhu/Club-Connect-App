@@ -49,11 +49,13 @@ const clubSchema = new mongoose.Schema({
         type: [String],
         enum: [
             'Computer Science(CSE)',
+            'Information Technology(IT)',
+            'Artificial Intelligence and Machine Learning(AIML)',
             'Electronics',
+            'Electrical Engineering',
             'Mechanical',
             'Civil',
-            'Artificial Intelligence and Machine Learning(AIML)',
-            'Information Technology(IT)'
+            'Robotics'
         ],
         default: []
     },
