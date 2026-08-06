@@ -74,35 +74,38 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     children: [
                       if (post.coverAsset != null &&
                           post.coverAsset!.isNotEmpty)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(28),
-                          child: post.coverAsset!.startsWith('http')
-                              ? Image.network(
-                                  post.coverAsset!,
-                                  width: double.infinity,
-                                  height: 240,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) => Image.asset(
-                                    'assets/images/club-default.jpg',
+                        GestureDetector(
+                          onTap: () => _showFullScreenImage(context, post.coverAsset!),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(28),
+                            child: post.coverAsset!.startsWith('http')
+                                ? Image.network(
+                                    post.coverAsset!,
                                     width: double.infinity,
                                     height: 240,
                                     fit: BoxFit.cover,
-                                  ),
-                                )
-                              : Image.asset(
-                                  post.coverAsset!.startsWith('/')
-                                      ? 'assets/images${post.coverAsset!}'
-                                      : post.coverAsset!,
-                                  width: double.infinity,
-                                  height: 240,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) => Image.asset(
-                                    'assets/images/club-default.jpg',
+                                    errorBuilder: (_, _, _) => Image.asset(
+                                      'assets/images/club-default.jpg',
+                                      width: double.infinity,
+                                      height: 240,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : Image.asset(
+                                    post.coverAsset!.startsWith('/')
+                                        ? 'assets/images${post.coverAsset!}'
+                                        : post.coverAsset!,
                                     width: double.infinity,
                                     height: 240,
                                     fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) => Image.asset(
+                                      'assets/images/club-default.jpg',
+                                      width: double.infinity,
+                                      height: 240,
+                                      fit: BoxFit.cover,
+                                    ),
                                   ),
-                                ),
+                          ),
                         ),
                       const SizedBox(height: 18),
                       GlassCard(
@@ -150,18 +153,21 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                      final imgUrl = post.descriptionImages[index];
                                      return Padding(
                                        padding: const EdgeInsets.only(right: 10),
-                                       child: ClipRRect(
-                                         borderRadius: BorderRadius.circular(12),
-                                         child: Image.network(
-                                           imgUrl,
-                                           width: 170,
-                                           height: 130,
-                                           fit: BoxFit.cover,
-                                           errorBuilder: (_, _, _) => Container(
+                                       child: GestureDetector(
+                                         onTap: () => _showFullScreenImage(context, imgUrl),
+                                         child: ClipRRect(
+                                           borderRadius: BorderRadius.circular(12),
+                                           child: Image.network(
+                                             imgUrl,
                                              width: 170,
                                              height: 130,
-                                             color: Colors.grey.shade300,
-                                             child: const Icon(Icons.broken_image, color: Colors.grey),
+                                             fit: BoxFit.cover,
+                                             errorBuilder: (_, _, _) => Container(
+                                               width: 170,
+                                               height: 130,
+                                               color: Colors.grey.shade300,
+                                               child: const Icon(Icons.broken_image, color: Colors.grey),
+                                             ),
                                            ),
                                          ),
                                        ),
@@ -265,25 +271,28 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     ),
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final src = post.attachments[index];
-                      return ClipRRect(
-                        borderRadius: BorderRadius.circular(22),
-                        child: src.startsWith('http')
-                            ? Image.network(
-                                src,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) => Image.asset(
-                                  'assets/images/club-default.jpg',
+                      return GestureDetector(
+                        onTap: () => _showFullScreenImage(context, src),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(22),
+                          child: src.startsWith('http')
+                              ? Image.network(
+                                  src,
                                   fit: BoxFit.cover,
-                                ),
-                              )
-                            : Image.asset(
-                                src.startsWith('/') ? 'assets/images$src' : src,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) => Image.asset(
-                                  'assets/images/club-default.jpg',
+                                  errorBuilder: (_, _, _) => Image.asset(
+                                    'assets/images/club-default.jpg',
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : Image.asset(
+                                  src.startsWith('/') ? 'assets/images$src' : src,
                                   fit: BoxFit.cover,
+                                  errorBuilder: (_, _, _) => Image.asset(
+                                    'assets/images/club-default.jpg',
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
-                              ),
+                        ),
                       );
                     }, childCount: post.attachments.length),
                   ),
@@ -666,6 +675,33 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+  void _showFullScreenImage(BuildContext context, String imageUrl) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        pageBuilder: (context, _, __) {
+          return Scaffold(
+            backgroundColor: Colors.black.withOpacity(0.9),
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              iconTheme: const IconThemeData(color: Colors.white),
+              elevation: 0,
+            ),
+            body: Center(
+              child: InteractiveViewer(
+                child: imageUrl.startsWith('http')
+                    ? Image.network(imageUrl, fit: BoxFit.contain)
+                    : Image.asset(
+                        imageUrl.startsWith('/') ? 'assets/images$imageUrl' : imageUrl,
+                        fit: BoxFit.contain,
+                      ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
