@@ -1840,12 +1840,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   return;
                 }
                 try {
-                  await widget.appState.updateClub(club.id, {
+                  final updated = await widget.appState.updateClub(club.id, {
                     'name': name,
                     'fullForm': fullFormController.text.trim(),
                     'description': descriptionController.text.trim(),
                     'category': category,
                   });
+                  if (mounted) {
+                    setState(() {
+                      if (_selectedClub?.id == club.id) {
+                        _selectedClub = updated;
+                      }
+                    });
+                  }
                   _showSuccessSnackBar('Club "$name" updated successfully!');
                   navigator.pop();
                   await widget.appState.refreshAll();
@@ -2535,15 +2542,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          _selectedClub!.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.navyColor(context),
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _selectedClub!.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.navyColor(context),
+                                ),
+                              ),
+                            ),
+                            if (canEdit)
+                              IconButton(
+                                padding: const EdgeInsets.all(4),
+                                constraints: const BoxConstraints(),
+                                icon: const Icon(Icons.edit_outlined, color: Colors.grey, size: 18),
+                                tooltip: 'Edit Club Details',
+                                onPressed: () => _showEditClubDialog(_selectedClub!),
+                              ),
+                          ],
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -2964,12 +2985,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             const SizedBox(height: 24),
 
-            // Secondary: WhatsApp / Instagram Profile and template links
+            // Secondary: Club Info & Configurations
             Text(
-              'Social & Configurations',
+              'Club Details & Configurations',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.navyColor(context)),
             ),
             const SizedBox(height: 10),
+            _buildClubNameCard(canEdit),
+            _buildFullFormCard(canEdit),
+            _buildAboutClubCard(canEdit),
             _buildProfilePictureCard(canEdit),
             _buildWhatsAppCard(canEdit),
             _buildInstagramCard(canEdit),
@@ -4710,6 +4734,222 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Future<void> _showTextDialog({
+    required String title,
+    required String fieldKey,
+    required String currentValue,
+    int maxLines = 1,
+  }) async {
+    final controller = TextEditingController(text: currentValue);
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: controller,
+          maxLines: maxLines,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final text = controller.text.trim();
+      if (fieldKey == 'name' && text.isEmpty) {
+        _showErrorSnackBar('Club name cannot be empty');
+        return;
+      }
+      await _updateClubField({fieldKey: text});
+    }
+  }
+
+  Widget _buildClubNameCard(bool isOfficer) {
+    if (_selectedClub == null) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).dividerColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.badge_outlined, color: Colors.indigo, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Club Name',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              if (isOfficer)
+                TextButton(
+                  onPressed: () => _showTextDialog(
+                    title: 'Edit Club Name',
+                    fieldKey: 'name',
+                    currentValue: _selectedClub!.name,
+                  ),
+                  child: const Text('Edit Name'),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _selectedClub!.name.isNotEmpty ? _selectedClub!.name : 'No name provided.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.textColor(context),
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFullFormCard(bool isOfficer) {
+    if (_selectedClub == null) return const SizedBox.shrink();
+    final hasFullForm = _selectedClub!.fullForm.isNotEmpty;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).dividerColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.edit_note_rounded, color: Colors.blue, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Full Form',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              if (isOfficer)
+                TextButton(
+                  onPressed: () => _showTextDialog(
+                    title: hasFullForm ? 'Edit Full Form' : 'Add Full Form',
+                    fieldKey: 'fullForm',
+                    currentValue: _selectedClub!.fullForm,
+                  ),
+                  child: Text(hasFullForm ? 'Edit Full Form' : 'Add Full Form'),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            hasFullForm ? _selectedClub!.fullForm : 'No full form provided.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: hasFullForm ? Theme.of(context).colorScheme.onSurface : Colors.grey,
+                  fontStyle: hasFullForm ? FontStyle.normal : FontStyle.italic,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAboutClubCard(bool isOfficer) {
+    if (_selectedClub == null) return const SizedBox.shrink();
+    final hasDesc = _selectedClub!.description.isNotEmpty;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).dividerColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, color: AppTheme.accent(context), size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Club Description',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              if (isOfficer)
+                TextButton(
+                  onPressed: () => _showTextDialog(
+                    title: hasDesc ? 'Edit Description' : 'Add Description',
+                    fieldKey: 'description',
+                    currentValue: _selectedClub!.description,
+                    maxLines: 4,
+                  ),
+                  child: Text(hasDesc ? 'Edit Description' : 'Add Description'),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            hasDesc ? _selectedClub!.description : 'No description provided.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: hasDesc ? Theme.of(context).colorScheme.onSurface : Colors.grey,
+                  fontStyle: hasDesc ? FontStyle.normal : FontStyle.italic,
+                  height: 1.4,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildProfilePictureCard(bool isOfficer) {
     if (_selectedClub == null) return const SizedBox.shrink();
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -4803,9 +5043,60 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Future<void> _launchExternalUrl(String rawUrl) async {
+    String url = rawUrl.trim();
+    if (url.isEmpty) return;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://$url';
+    }
+    final uri = Uri.parse(url);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        _showErrorSnackBar('Could not launch URL');
+      }
+    } catch (e) {
+      _showErrorSnackBar('Could not launch URL: $e');
+    }
+  }
+
+  Widget _buildLinkActionButton({
+    required String label,
+    required String url,
+    required IconData icon,
+    required Color color,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        style: FilledButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        onPressed: () => _launchExternalUrl(url),
+        icon: Icon(icon, size: 20),
+        label: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            const Icon(Icons.open_in_new_rounded, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildWhatsAppCard(bool isOfficer) {
     if (_selectedClub == null) return const SizedBox.shrink();
     final hasLink = _selectedClub!.whatsappUrl.isNotEmpty;
+    if (!hasLink && !isOfficer) return const SizedBox.shrink();
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -4851,16 +5142,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 12),
           if (hasLink)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(
-                _selectedClub!.whatsappUrl,
-                style: TextStyle(color: AppTheme.blue, decoration: TextDecoration.underline),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing: const Icon(Icons.copy_rounded, size: 20),
-              onTap: () => _copyLink('WhatsApp', _selectedClub!.whatsappUrl),
+            _buildLinkActionButton(
+              label: 'Open WhatsApp Group',
+              url: _selectedClub!.whatsappUrl,
+              icon: Icons.chat_bubble_outline_rounded,
+              color: const Color(0xFF25D366),
             )
           else if (isOfficer)
             GestureDetector(
@@ -4885,11 +5171,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
               ),
-            )
-          else
-            const Text(
-              'No WhatsApp link provided by the club.',
-              style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
             ),
         ],
       ),
@@ -4899,6 +5180,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildInstagramCard(bool isOfficer) {
     if (_selectedClub == null) return const SizedBox.shrink();
     final hasLink = _selectedClub!.instagramUrl.isNotEmpty;
+    if (!hasLink && !isOfficer) return const SizedBox.shrink();
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -4944,16 +5227,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 12),
           if (hasLink)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(
-                _selectedClub!.instagramUrl,
-                style: TextStyle(color: AppTheme.blue, decoration: TextDecoration.underline),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing: const Icon(Icons.copy_rounded, size: 20),
-              onTap: () => _copyLink('Instagram', _selectedClub!.instagramUrl),
+            _buildLinkActionButton(
+              label: 'Open Instagram Page',
+              url: _selectedClub!.instagramUrl,
+              icon: Icons.camera_alt_outlined,
+              color: const Color(0xFFE1306C),
             )
           else if (isOfficer)
             GestureDetector(
@@ -4978,11 +5256,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
               ),
-            )
-          else
-            const Text(
-              'No Instagram link provided by the club.',
-              style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
             ),
         ],
       ),
@@ -4992,6 +5265,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildLinkedinCard(bool isOfficer) {
     if (_selectedClub == null) return const SizedBox.shrink();
     final hasLink = _selectedClub!.linkedinUrl.isNotEmpty;
+    if (!hasLink && !isOfficer) return const SizedBox.shrink();
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -5037,16 +5312,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 12),
           if (hasLink)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(
-                _selectedClub!.linkedinUrl,
-                style: TextStyle(color: AppTheme.blue, decoration: TextDecoration.underline),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing: const Icon(Icons.copy_rounded, size: 20),
-              onTap: () => _copyLink('LinkedIn', _selectedClub!.linkedinUrl),
+            _buildLinkActionButton(
+              label: 'Open LinkedIn Page',
+              url: _selectedClub!.linkedinUrl,
+              icon: Icons.work_outline_rounded,
+              color: const Color(0xFF0A66C2),
             )
           else if (isOfficer)
             GestureDetector(
@@ -5071,11 +5341,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
               ),
-            )
-          else
-            const Text(
-              'No LinkedIn link provided by the club.',
-              style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
             ),
         ],
       ),
@@ -5085,6 +5350,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildWebsiteCard(bool isOfficer) {
     if (_selectedClub == null) return const SizedBox.shrink();
     final hasLink = _selectedClub!.websiteUrl.isNotEmpty;
+    if (!hasLink && !isOfficer) return const SizedBox.shrink();
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -5130,16 +5397,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 12),
           if (hasLink)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(
-                _selectedClub!.websiteUrl,
-                style: TextStyle(color: AppTheme.blue, decoration: TextDecoration.underline),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing: const Icon(Icons.copy_rounded, size: 20),
-              onTap: () => _copyLink('Website', _selectedClub!.websiteUrl),
+            _buildLinkActionButton(
+              label: 'Visit Website',
+              url: _selectedClub!.websiteUrl,
+              icon: Icons.language_rounded,
+              color: const Color(0xFF2563EB),
             )
           else if (isOfficer)
             GestureDetector(
@@ -5164,11 +5426,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
               ),
-            )
-          else
-            const Text(
-              'No website provided by the club.',
-              style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
             ),
         ],
       ),

@@ -20,6 +20,22 @@ const clubSchema = new mongoose.Schema({
         required: false,
         default: ''
     },
+    whatsappUrl: {
+        type: String,
+        default: '',
+    },
+    instagramUrl: {
+        type: String,
+        default: '',
+    },
+    linkedinUrl: {
+        type: String,
+        default: '',
+    },
+    websiteUrl: {
+        type: String,
+        default: '',
+    },
     image: {
         type: String, // URL
         default: '',

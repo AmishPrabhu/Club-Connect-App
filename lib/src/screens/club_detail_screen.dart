@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/club.dart';
 import '../models/post_item.dart';
@@ -208,7 +209,12 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
     );
 
     if (confirm == true) {
-      await _updateClubField({fieldKey: controller.text.trim()});
+      final text = controller.text.trim();
+      if (fieldKey == 'name' && text.isEmpty) {
+        _showErrorSnackBar('Club name cannot be empty');
+        return;
+      }
+      await _updateClubField({fieldKey: text});
     }
   }
 
@@ -296,8 +302,59 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
     );
   }
 
+  Future<void> _launchExternalUrl(String rawUrl) async {
+    String url = rawUrl.trim();
+    if (url.isEmpty) return;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://$url';
+    }
+    final uri = Uri.parse(url);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        _showErrorSnackBar('Could not launch URL');
+      }
+    } catch (e) {
+      _showErrorSnackBar('Could not launch URL: $e');
+    }
+  }
+
+  Widget _buildLinkActionButton({
+    required String label,
+    required String url,
+    required IconData icon,
+    required Color color,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        style: FilledButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        onPressed: () => _launchExternalUrl(url),
+        icon: Icon(icon, size: 20),
+        label: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            const Icon(Icons.open_in_new_rounded, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildWhatsAppCard(bool isOfficer) {
     final hasLink = _club.whatsappUrl.isNotEmpty;
+    if (!hasLink && !isOfficer) return const SizedBox.shrink();
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -342,21 +399,11 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
           ),
           const SizedBox(height: 12),
           if (hasLink)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.open_in_new_rounded, color: AppTheme.textColor(context), size: 20),
-              title: const Text(
-                'Open WhatsApp Group',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              subtitle: Text(
-                _club.whatsappUrl,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 11),
-              ),
-              trailing: const Icon(Icons.copy_rounded, size: 20),
-              onTap: () => _copyLink('WhatsApp', _club.whatsappUrl),
+            _buildLinkActionButton(
+              label: 'Open WhatsApp Group',
+              url: _club.whatsappUrl,
+              icon: Icons.chat_bubble_outline_rounded,
+              color: const Color(0xFF25D366),
             )
           else if (isOfficer)
             GestureDetector(
@@ -381,11 +428,6 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                   ),
                 ),
               ),
-            )
-          else
-            const Text(
-              'No WhatsApp link provided by the club.',
-              style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
             ),
         ],
       ),
@@ -394,6 +436,8 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
 
   Widget _buildInstagramCard(bool isOfficer) {
     final hasLink = _club.instagramUrl.isNotEmpty;
+    if (!hasLink && !isOfficer) return const SizedBox.shrink();
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -438,21 +482,11 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
           ),
           const SizedBox(height: 12),
           if (hasLink)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.open_in_new_rounded, color: AppTheme.textColor(context), size: 20),
-              title: const Text(
-                'Open Instagram Page',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              subtitle: Text(
-                _club.instagramUrl,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 11),
-              ),
-              trailing: const Icon(Icons.copy_rounded, size: 20),
-              onTap: () => _copyLink('Instagram', _club.instagramUrl),
+            _buildLinkActionButton(
+              label: 'Open Instagram Page',
+              url: _club.instagramUrl,
+              icon: Icons.camera_alt_outlined,
+              color: const Color(0xFFE1306C),
             )
           else if (isOfficer)
             GestureDetector(
@@ -477,11 +511,172 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                   ),
                 ),
               ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLinkedinCard(bool isOfficer) {
+    final hasLink = _club.linkedinUrl.isNotEmpty;
+    if (!hasLink && !isOfficer) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.work_outline_rounded, color: AppTheme.textColor(context), size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'LinkedIn Page',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              if (hasLink && isOfficer) ...[
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  onPressed: () => _showLinkDialog(
+                    title: 'Edit LinkedIn Page Link',
+                    fieldKey: 'linkedinUrl',
+                    currentValue: _club.linkedinUrl,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                  onPressed: () => _updateClubField({'linkedinUrl': ''}),
+                ),
+              ]
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (hasLink)
+            _buildLinkActionButton(
+              label: 'Open LinkedIn Page',
+              url: _club.linkedinUrl,
+              icon: Icons.work_outline_rounded,
+              color: const Color(0xFF0A66C2),
             )
-          else
-            const Text(
-              'No Instagram link provided by the club.',
-              style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+          else if (isOfficer)
+            GestureDetector(
+              onTap: () => _showLinkDialog(
+                title: 'Add LinkedIn Link',
+                fieldKey: 'linkedinUrl',
+                currentValue: '',
+              ),
+              child: CustomPaint(
+                painter: DashedBorderPainter(color: Theme.of(context).dividerColor, gap: 6),
+                child: Container(
+                  height: 48,
+                  width: double.infinity,
+                  alignment: Alignment.center,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add, color: Colors.grey, size: 18),
+                      SizedBox(width: 6),
+                      Text('Add LinkedIn Link', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWebsiteCard(bool isOfficer) {
+    final hasLink = _club.websiteUrl.isNotEmpty;
+    if (!hasLink && !isOfficer) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.language_rounded, color: AppTheme.textColor(context), size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Website',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              if (hasLink && isOfficer) ...[
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  onPressed: () => _showLinkDialog(
+                    title: 'Edit Website Link',
+                    fieldKey: 'websiteUrl',
+                    currentValue: _club.websiteUrl,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                  onPressed: () => _updateClubField({'websiteUrl': ''}),
+                ),
+              ]
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (hasLink)
+            _buildLinkActionButton(
+              label: 'Visit Website',
+              url: _club.websiteUrl,
+              icon: Icons.language_rounded,
+              color: const Color(0xFF2563EB),
+            )
+          else if (isOfficer)
+            GestureDetector(
+              onTap: () => _showLinkDialog(
+                title: 'Add Website Link',
+                fieldKey: 'websiteUrl',
+                currentValue: '',
+              ),
+              child: CustomPaint(
+                painter: DashedBorderPainter(color: Theme.of(context).dividerColor, gap: 6),
+                child: Container(
+                  height: 48,
+                  width: double.infinity,
+                  alignment: Alignment.center,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add, color: Colors.grey, size: 18),
+                      SizedBox(width: 6),
+                      Text('Add Website Link', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ),
             ),
         ],
       ),
@@ -772,13 +967,31 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text(
-                                      _club.name,
-                                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                            fontWeight: FontWeight.w800,
-                                            letterSpacing: -0.5,
-                                          ),
-                                    ),
+                                     Row(
+                                       children: [
+                                         Expanded(
+                                           child: Text(
+                                             _club.name,
+                                             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                                   fontWeight: FontWeight.w800,
+                                                   letterSpacing: -0.5,
+                                                 ),
+                                           ),
+                                         ),
+                                         if (canManageMembers)
+                                           IconButton(
+                                             constraints: const BoxConstraints(),
+                                             padding: const EdgeInsets.symmetric(horizontal: 8),
+                                             icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.grey),
+                                             onPressed: () => _showTextDialog(
+                                               title: 'Edit Club Name',
+                                               fieldKey: 'name',
+                                               currentValue: _club.name,
+                                             ),
+                                             tooltip: 'Edit Club Name',
+                                           ),
+                                       ],
+                                     ),
                                     const SizedBox(height: 4),
                                     Row(
                                       children: [
@@ -847,6 +1060,8 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                       _buildProfilePictureCard(canManageMembers),
                       _buildWhatsAppCard(canManageMembers),
                       _buildInstagramCard(canManageMembers),
+                      _buildLinkedinCard(canManageMembers),
+                      _buildWebsiteCard(canManageMembers),
                       _buildAboutClubCard(canManageMembers),
                       _buildUpcomingEventsCard(clubPosts),
                       const SizedBox(height: 12),

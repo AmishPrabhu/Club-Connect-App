@@ -151,7 +151,7 @@ router.put('/:id', verifyClubOfficer, async (req, res) => {
     try {
         // Allowed fields depend on role
         // For admin, also allow officer email/id updates
-        const baseUpdates = ['name', 'description', 'image', 'category', 'departments', 'fullForm'];
+        const baseUpdates = ['name', 'description', 'image', 'category', 'departments', 'fullForm', 'whatsappUrl', 'instagramUrl', 'linkedinUrl', 'websiteUrl'];
         const adminUpdates = ['secretaryEmail', 'presidentEmail', 'treasurerEmail', 'advisorEmail',
             'secretaryId', 'presidentId', 'treasurerId', 'advisorId', 'advisorName'];
 
