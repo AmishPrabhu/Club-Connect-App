@@ -208,7 +208,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                     final sess = widget.appState.session!;
                                     final clubMatch = widget.appState.clubs.where((c) => c.id == post.clubId).toList();
                                     final club = clubMatch.isNotEmpty ? clubMatch.first : null;
-                                    final isOfficer = sess.isClubOfficerOf(post.clubId, club: club);
+                                    final isOfficer = sess.canManageEventsOf(post.clubId, club: club);
                                     final isSupervisor = sess.role == 'advisor' ||
                                         sess.role == 'teacher' ||
                                         sess.role == 'admin' ||

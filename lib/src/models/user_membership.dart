@@ -31,10 +31,14 @@ class UserMembership {
   /// Whether this membership grants officer-level access.
   /// Matches the backend middleware logic: boardType in [main, executive]
   /// OR role is a standard officer role.
+  /// NOTE: 'Assistant Secretary' is NOT a full officer — they can manage events but not edit club details or members.
   bool get isOfficer {
     if (!isCurrent) return false;
-    if (boardType == 'main' || boardType == 'executive') return true;
     final r = role.toLowerCase().trim();
+    // Assistant-level roles have limited permissions — exclude from full officer status
+    if (r == 'assistant secretary') return false;
+    if (r == 'assistant treasurer') return false;
+    if (boardType == 'main' || boardType == 'executive') return true;
     if (_officerRoles.contains(r)) return true;
     // Fallback for custom roles containing officer keywords
     if (r.contains('president') || 
@@ -58,10 +62,25 @@ class UserMembership {
 
   /// Whether this membership grants permission to manage members.
   /// Only President, Vice-President, Secretary, and Advisor can manage members.
+  /// Assistant Secretary is intentionally excluded.
   bool get canManageMembers {
     if (!isCurrent) return false;
-    final r = role.toLowerCase();
+    final r = role.toLowerCase().trim();
+    // Assistant Secretary cannot add or delete members
+    if (r == 'assistant secretary') return false;
     return r == 'president' || r == 'vice-president' || r == 'secretary' || r == 'advisor';
+  }
+
+  /// Whether this membership grants permission to edit club profile details
+  /// (name, full form, profile picture, links, description, etc.).
+  /// Only full officers can edit club details — Assistant Secretary is excluded.
+  bool get canEditClubDetails {
+    if (!isCurrent) return false;
+    final r = role.toLowerCase().trim();
+    // Assistant Secretary cannot edit club details
+    if (r == 'assistant secretary') return false;
+    if (boardType == 'main') return true;
+    return r == 'president' || r == 'secretary' || r == 'treasurer' || r == 'advisor';
   }
 
   /// Whether this membership grants permission to manage events & posts (create/edit/delete).

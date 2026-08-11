@@ -5,7 +5,7 @@ import User from '../models/User.js';
 import Post from '../models/Post.js';
 import ClubMember from '../models/ClubMember.js';
 import ClubMessage from '../models/ClubMessage.js';
-import { verifyToken, verifySuperAdmin, verifyClubOfficer, verifyClubMember, verifyMemberManagementOfficer } from '../middleware/auth.js';
+import { verifyToken, verifySuperAdmin, verifyClubOfficer, verifyClubDetailsOfficer, verifyClubMember, verifyMemberManagementOfficer } from '../middleware/auth.js';
 import { sendClubInvitationEmail } from '../services/emailService.js';
 import { sendPushToClubMembers } from '../services/pushService.js';
 import { broadcastToUser, broadcastToClub } from '../services/sseService.js';
@@ -146,8 +146,9 @@ router.post('/', verifySuperAdmin, async (req, res) => {
     }
 });
 
-// Update club (Protected - Club Officer or Super Admin)
-router.put('/:id', verifyClubOfficer, async (req, res) => {
+// Update club (Protected - Club Details Officer or Super Admin)
+// Assistant Secretary is excluded — only full officers (President, Secretary, Treasurer, Advisor) can edit club details.
+router.put('/:id', verifyClubDetailsOfficer, async (req, res) => {
     try {
         // Allowed fields depend on role
         // For admin, also allow officer email/id updates
@@ -785,8 +786,9 @@ router.post('/:id/members', verifyMemberManagementOfficer, async (req, res) => {
                 'President': 'president',
                 'Treasurer': 'treasurer',
                 'Advisor': 'advisor',
-                'Assistant Secretary': 'club-secretary',
-                'Assistant Treasurer': 'treasurer',
+                // Assistant Secretary gets 'club-member' — reduced privileges vs full Secretary
+                'Assistant Secretary': 'club-member',
+                'Assistant Treasurer': 'club-member',
             };
             
             const memberRoleStr = role || 'Member';
@@ -909,8 +911,9 @@ router.put('/:id/members/:memberId', verifyMemberManagementOfficer, async (req, 
                 'President': 'president',
                 'Treasurer': 'treasurer',
                 'Advisor': 'advisor',
-                'Assistant Secretary': 'club-secretary',
-                'Assistant Treasurer': 'treasurer',
+                // Assistant Secretary gets 'club-member' — reduced privileges vs full Secretary
+                'Assistant Secretary': 'club-member',
+                'Assistant Treasurer': 'club-member',
             };
             
             const mappedRole = roleMap[updatedMember.role];

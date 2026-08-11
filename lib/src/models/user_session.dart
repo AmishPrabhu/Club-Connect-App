@@ -38,12 +38,13 @@ class UserSession {
     if (hasMembershipOfficer) return true;
 
     // Fallback: check if user's email matches the Club's direct officer email fields
+    // Club email fields are non-nullable String (default ''), so no ?? needed.
     if (club != null) {
       final emailLower = email.toLowerCase();
-      if ((club.presidentEmail ?? '').toLowerCase() == emailLower ||
-          (club.secretaryEmail ?? '').toLowerCase() == emailLower ||
-          (club.treasurerEmail ?? '').toLowerCase() == emailLower ||
-          (club.advisorEmail ?? '').toLowerCase() == emailLower) {
+      if (club.presidentEmail.toLowerCase() == emailLower ||
+          club.secretaryEmail.toLowerCase() == emailLower ||
+          club.treasurerEmail.toLowerCase() == emailLower ||
+          club.advisorEmail.toLowerCase() == emailLower) {
         return true;
       }
     }
@@ -63,10 +64,11 @@ class UserSession {
     if (hasMembershipReport) return true;
 
     // Fallback: President/Secretary can always submit reports
+    // Club email fields are non-nullable String (default ''), so no ?? needed.
     if (club != null) {
       final emailLower = email.toLowerCase();
-      if ((club.presidentEmail ?? '').toLowerCase() == emailLower ||
-          (club.secretaryEmail ?? '').toLowerCase() == emailLower) {
+      if (club.presidentEmail.toLowerCase() == emailLower ||
+          club.secretaryEmail.toLowerCase() == emailLower) {
         return true;
       }
     }
@@ -74,17 +76,42 @@ class UserSession {
   }
 
   /// Check if the user can manage members (add/edit/remove) for a specific club.
+  /// Assistant Secretary is intentionally excluded.
   bool canManageMembersOf(String clubId, {Club? club}) {
     if (role == 'admin') return true;
     final hasMembershipManager = memberships.any((m) => m.clubId == clubId && m.canManageMembers);
     if (hasMembershipManager) return true;
 
     // Fallback: check if user's email matches the Club's direct manager email fields
+    // Club email fields are non-nullable String (default ''), so no ?? needed.
     if (club != null) {
       final emailLower = email.toLowerCase();
-      if ((club.presidentEmail ?? '').toLowerCase() == emailLower ||
-          (club.secretaryEmail ?? '').toLowerCase() == emailLower ||
-          (club.advisorEmail ?? '').toLowerCase() == emailLower) {
+      if (club.presidentEmail.toLowerCase() == emailLower ||
+          club.secretaryEmail.toLowerCase() == emailLower ||
+          club.advisorEmail.toLowerCase() == emailLower) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Check if the user can edit club profile details
+  /// (name, full form, profile picture, links, description, etc.).
+  /// Mirrors the backend `verifyClubDetailsOfficer` middleware.
+  /// Assistant Secretary is explicitly excluded.
+  bool canEditClubDetailsOf(String clubId, {Club? club}) {
+    if (role == 'admin') return true;
+    final hasMembership = memberships.any((m) => m.clubId == clubId && m.canEditClubDetails);
+    if (hasMembership) return true;
+
+    // Fallback: Club-level email fields are always full officers (President, Secretary, Treasurer, Advisor)
+    // Club email fields are non-nullable String (default ''), so no ?? needed.
+    if (club != null) {
+      final emailLower = email.toLowerCase();
+      if (club.presidentEmail.toLowerCase() == emailLower ||
+          club.secretaryEmail.toLowerCase() == emailLower ||
+          club.treasurerEmail.toLowerCase() == emailLower ||
+          club.advisorEmail.toLowerCase() == emailLower) {
         return true;
       }
     }
@@ -98,10 +125,11 @@ class UserSession {
     final hasMembershipManager = memberships.any((m) => m.clubId == clubId && m.canManageEvents);
     if (hasMembershipManager) return true;
 
+    // Club email fields are non-nullable String (default ''), so no ?? needed.
     if (club != null) {
       final emailLower = email.toLowerCase();
-      if ((club.presidentEmail ?? '').toLowerCase() == emailLower ||
-          (club.secretaryEmail ?? '').toLowerCase() == emailLower) {
+      if (club.presidentEmail.toLowerCase() == emailLower ||
+          club.secretaryEmail.toLowerCase() == emailLower) {
         return true;
       }
     }
@@ -136,9 +164,10 @@ class UserSession {
 
       if (club != null && club.id == notificationClubId) {
         final emailLower = email.toLowerCase();
-        if ((club.presidentEmail ?? '').toLowerCase() == emailLower ||
-            (club.secretaryEmail ?? '').toLowerCase() == emailLower ||
-            (club.treasurerEmail ?? '').toLowerCase() == emailLower) {
+        // Club email fields are non-nullable String (default ''), so no ?? needed.
+        if (club.presidentEmail.toLowerCase() == emailLower ||
+            club.secretaryEmail.toLowerCase() == emailLower ||
+            club.treasurerEmail.toLowerCase() == emailLower) {
           return true;
         }
       }

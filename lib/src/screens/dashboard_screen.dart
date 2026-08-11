@@ -6225,7 +6225,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ─── TASKS TAB ─────────────────────────────────────────────────────────────
   Widget _buildTasksView(UserSession session) {
     final activeRole = widget.initialRole ?? session.role;
-    final canEdit = activeRole == 'admin' || (_selectedClub != null && session.isClubOfficerOf(_selectedClub!.id, club: _selectedClub));
+    // Tasks: any officer who can manage events can create/assign tasks (includes Assistant Secretary)
+    final canEdit = activeRole == 'admin' || (_selectedClub != null && session.canManageEventsOf(_selectedClub!.id, club: _selectedClub));
     final clubEvents = widget.appState.posts.where((p) => p.clubId == _selectedClub!.id && p.isEvent).toList();
 
     return FutureBuilder<List<Map<String, dynamic>>>(
@@ -6577,7 +6578,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ─── NOTIFICATIONS TAB ─────────────────────────────────────────────────────
   Widget _buildNotificationsView(UserSession session) {
     final activeRole = widget.initialRole ?? session.role;
-    final canEdit = activeRole == 'admin' || (_selectedClub != null && session.isClubOfficerOf(_selectedClub!.id, club: _selectedClub));
+    // Notifications: any officer who can manage events can send notices (includes Assistant Secretary)
+    final canEdit = activeRole == 'admin' || (_selectedClub != null && session.canManageEventsOf(_selectedClub!.id, club: _selectedClub));
     final notifications = widget.appState.notifications.where((n) {
       if (_selectedClub == null) return true;
       return n.clubId == _selectedClub!.id;

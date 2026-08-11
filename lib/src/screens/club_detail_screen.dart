@@ -876,8 +876,8 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
   Widget build(BuildContext context) {
     final session = widget.appState.session;
     final isAdmin = session?.role == 'admin';
-    final isOfficer = session != null && session.isClubOfficerOf(_club.id);
     final canManageMembers = session != null && session.canManageMembersOf(_club.id, club: _club);
+    final canEditDetails = session != null && session.canEditClubDetailsOf(_club.id, club: _club);
     final canManageEvents = session != null && session.canManageEventsOf(_club.id, club: _club);
 
     final clubPosts = widget.appState.posts
@@ -978,7 +978,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                                                  ),
                                            ),
                                          ),
-                                         if (canManageMembers)
+                                         if (canEditDetails)
                                            IconButton(
                                              constraints: const BoxConstraints(),
                                              padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -1007,7 +1007,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                                                 ),
                                           ),
                                         ),
-                                        if (canManageMembers)
+                                        if (canEditDetails)
                                           IconButton(
                                             constraints: const BoxConstraints(),
                                             padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -1057,12 +1057,12 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                         ],
                       ),
                       const SizedBox(height: 24),
-                      _buildProfilePictureCard(canManageMembers),
-                      _buildWhatsAppCard(canManageMembers),
-                      _buildInstagramCard(canManageMembers),
-                      _buildLinkedinCard(canManageMembers),
-                      _buildWebsiteCard(canManageMembers),
-                      _buildAboutClubCard(canManageMembers),
+                      _buildProfilePictureCard(canEditDetails),
+                      _buildWhatsAppCard(canEditDetails),
+                      _buildInstagramCard(canEditDetails),
+                      _buildLinkedinCard(canEditDetails),
+                      _buildWebsiteCard(canEditDetails),
+                      _buildAboutClubCard(canEditDetails),
                       _buildUpcomingEventsCard(clubPosts),
                       const SizedBox(height: 12),
                       Row(

@@ -78,11 +78,12 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       try {
         final tasks = await widget.appState.fetchClubTasks(clubId);
         final club = widget.appState.clubs.where((c) => c.id == clubId).firstOrNull;
-        final isOfficer = session.isClubOfficerOf(clubId, club: club);
+        // Use canManageEventsOf: Asst. Secretary can manage events so sees all tasks
+        final canManageEvents = session.canManageEventsOf(clubId, club: club);
         final pending = tasks.where((t) {
           final isPending = (t['status']?.toString().toLowerCase() != 'completed' && t['status']?.toString().toLowerCase() != 'done');
           if (!isPending) return false;
-          if (isOfficer) return true;
+          if (canManageEvents) return true;
           final assignedTo = t['assignedTo'];
           if (assignedTo is List) {
             return assignedTo.contains(session.name);
@@ -134,11 +135,11 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   }
 
   bool _isClubOfficer(UserSession session) {
-    // Use memberships to check if user is an officer of any club,
-    // matching backend verifyClubOfficer middleware logic.
-    if (session.isAnyClubOfficer) return true;
+    // Use memberships to check if user can manage events for any club
+    // (includes Assistant Secretary — they have event management access)
+    if (session.memberships.any((m) => m.canManageEvents && m.isCurrent)) return true;
     
-    // Fallback: Check if user is an officer in any loaded club via email matching
+    // Fallback: Check via email against loaded clubs (full officers only)
     final email = session.email.toLowerCase();
     for (final club in widget.appState.clubs) {
       if (club.presidentEmail.toLowerCase() == email ||
@@ -179,9 +180,10 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
     final list = <Map<String, dynamic>>[];
     final addedClubIds = <String>{};
     
-    // 1. Scan memberships for officer-level access (boardType main/executive or officer role)
+    // 1. Scan memberships for event management access
+    // (canManageEvents = true for President, Secretary, Assistant Secretary)
     for (final membership in session.memberships) {
-      if (membership.isOfficer && !addedClubIds.contains(membership.clubId)) {
+      if (membership.canManageEvents && !addedClubIds.contains(membership.clubId)) {
         // Find the matching Club object from the loaded clubs list
         final matchingClubs = widget.appState.clubs.where((c) => c.id == membership.clubId).toList();
         if (matchingClubs.isNotEmpty) {

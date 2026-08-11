@@ -226,7 +226,8 @@ export const verifyClubMember = async (req, res, next) => {
     })
 }
 
-// Check if user is a member management officer (President, Vice-President, Secretary, Advisor)
+// Check if user is a member management officer (President, Secretary, Advisor)
+// NOTE: Assistant Secretary is intentionally excluded — they cannot add/delete members.
 export const verifyMemberManagementOfficer = async (req, res, next) => {
     verifyToken(req, res, async () => {
         try {
@@ -251,6 +252,7 @@ export const verifyMemberManagementOfficer = async (req, res, next) => {
                 }
             }
 
+            // Assistant Secretary is NOT in this list — they cannot manage members.
             const officerFn = await ClubMember.findOne({
                 clubId: clubId,
                 $and: [
@@ -261,7 +263,7 @@ export const verifyMemberManagementOfficer = async (req, res, next) => {
                         ]
                     },
                     {
-                        role: { $in: ['Secretary', 'President', 'Assistant Secretary', 'secretary', 'president', 'assistant secretary'] }
+                        role: { $in: ['Secretary', 'President', 'Advisor', 'secretary', 'president', 'advisor'] }
                     }
                 ]
             });
@@ -270,12 +272,77 @@ export const verifyMemberManagementOfficer = async (req, res, next) => {
                 return next();
             } else {
                 res.status(403).json({
-                    message: 'Access denied. Only specific officers can manage members.',
+                    message: 'Access denied. Only the President, Secretary, or Advisor can manage members.',
                     debugInfo: { clubId, userId: req.user.id, email: req.user.email }
                 });
             }
         } catch (error) {
             console.error('Member Management Auth Error:', error);
+            res.status(500).json({ message: 'Server authorization error' });
+        }
+    })
+};
+
+// Check if user can edit club details (name, image, links, full form, description, etc.)
+// Allows: Admin, President, Secretary, Treasurer, Advisor.
+// Blocks: Assistant Secretary and any other executive-board member without a full-officer role.
+export const verifyClubDetailsOfficer = async (req, res, next) => {
+    verifyToken(req, res, async () => {
+        try {
+            if (req.user.role === 'admin') {
+                return next();
+            }
+
+            const clubId = req.params.id || req.params.clubId || req.body.clubId;
+            if (!clubId) {
+                return res.status(400).json({ message: 'Club ID is required for authorization check.' });
+            }
+
+            const club = await Club.findById(clubId);
+            const emailLower = req.user.email?.toLowerCase();
+            let isDirectOfficer = false;
+
+            // Check Club-level direct email assignments (these are always full officers)
+            if (club) {
+                if (club.presidentEmail?.toLowerCase() === emailLower ||
+                    club.secretaryEmail?.toLowerCase() === emailLower ||
+                    club.treasurerEmail?.toLowerCase() === emailLower ||
+                    club.advisorEmail?.toLowerCase() === emailLower) {
+                    isDirectOfficer = true;
+                }
+            }
+
+            if (isDirectOfficer) {
+                return next();
+            }
+
+            // Check ClubMember record — only full officer roles, NOT Assistant Secretary
+            const officerFn = await ClubMember.findOne({
+                clubId: clubId,
+                $and: [
+                    {
+                        $or: [
+                            { userId: req.user.id },
+                            { email: { $regex: new RegExp(`^${req.user.email}$`, 'i') } }
+                        ]
+                    },
+                    {
+                        // Explicitly list allowed roles — Assistant Secretary is NOT here
+                        role: { $in: ['Secretary', 'President', 'Treasurer', 'Advisor', 'secretary', 'president', 'treasurer', 'advisor'] }
+                    }
+                ]
+            });
+
+            if (officerFn) {
+                return next();
+            } else {
+                res.status(403).json({
+                    message: 'Access denied. Only the President, Secretary, Treasurer, or Advisor can edit club details.',
+                    debugInfo: { clubId, userId: req.user.id, email: req.user.email }
+                });
+            }
+        } catch (error) {
+            console.error('Club Details Officer Auth Error:', error);
             res.status(500).json({ message: 'Server authorization error' });
         }
     })
