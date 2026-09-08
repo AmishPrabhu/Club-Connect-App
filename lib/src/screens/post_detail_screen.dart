@@ -8,6 +8,7 @@ import '../models/post_item.dart';
 import '../state/app_state.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/edit_event_sheet.dart';
+import '../widgets/create_notification_sheet.dart';
 import 'event_participants_screen.dart';
 
 class PostDetailScreen extends StatefulWidget {
@@ -232,6 +233,41 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                 label: post.location!,
                               ),
                             ],
+                            // ── Event Manager Badge ──────────────────────
+                            if (post.isEvent &&
+                                post.eventManagerName != null &&
+                                post.eventManagerName!.isNotEmpty) ...[
+                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFF6B35).withValues(alpha: 0.10),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: const Color(0xFFFF6B35).withValues(alpha: 0.30),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.shield_outlined,
+                                      size: 15,
+                                      color: Color(0xFFFF6B35),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Event Manager: ${post.eventManagerName!}',
+                                      style: const TextStyle(
+                                        color: Color(0xFFFF6B35),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                              if (post.isEvent) ...[
                               _buildReportSection(post),
                               const SizedBox(height: 18),
@@ -248,29 +284,74 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                         sess.role == 'admin' ||
                                         sess.roles.contains('advisor') ||
                                         sess.roles.contains('teacher');
-                                    if (isOfficer || isSupervisor) {
-                                      return Padding(
-                                        padding: const EdgeInsets.only(top: 12.0),
-                                        child: SizedBox(
-                                          width: double.infinity,
-                                          child: OutlinedButton.icon(
-                                            icon: const Icon(Icons.people_outline_rounded),
-                                            label: const Text('Manage Attendance & Certificates'),
-                                            onPressed: () {
-                                              Navigator.of(context).push(
-                                                MaterialPageRoute(
-                                                  builder: (_) => EventParticipantsScreen(
-                                                    appState: widget.appState,
-                                                    event: post,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        ),
-                                      );
+                                    // Is this user the assigned event manager?
+                                    final isEventManager = post.eventManagerEmail != null &&
+                                        post.eventManagerEmail!.isNotEmpty &&
+                                        sess.email.toLowerCase() ==
+                                            post.eventManagerEmail!.toLowerCase();
+
+                                    final canManage = isOfficer || isSupervisor;
+                                    final canAnnounce = isEventManager || canManage;
+
+                                    if (!canManage && !canAnnounce) {
+                                      return const SizedBox.shrink();
                                     }
-                                    return const SizedBox.shrink();
+
+                                    return Column(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        if (canManage)
+                                          Padding(
+                                            padding: const EdgeInsets.only(top: 12.0),
+                                            child: OutlinedButton.icon(
+                                              icon: const Icon(Icons.people_outline_rounded),
+                                              label: const Text('Manage Attendance & Certificates'),
+                                              onPressed: () {
+                                                Navigator.of(context).push(
+                                                  MaterialPageRoute(
+                                                    builder: (_) => EventParticipantsScreen(
+                                                      appState: widget.appState,
+                                                      event: post,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                        if (canAnnounce)
+                                          Padding(
+                                            padding: const EdgeInsets.only(top: 10.0),
+                                            child: FilledButton.icon(
+                                              icon: const Icon(Icons.campaign_rounded),
+                                              label: const Text('Send Event Announcement'),
+                                              style: FilledButton.styleFrom(
+                                                backgroundColor: const Color(0xFFFF6B35),
+                                              ),
+                                              onPressed: () {
+                                                showModalBottomSheet(
+                                                  context: context,
+                                                  isScrollControlled: true,
+                                                  backgroundColor: Colors.transparent,
+                                                  builder: (_) => CreateNotificationSheet(
+                                                    appState: widget.appState,
+                                                    initialType: 'event',
+                                                    clubId: post.clubId,
+                                                    onSuccess: (msg) {
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        SnackBar(
+                                                          content: Text(msg),
+                                                          behavior: SnackBarBehavior.floating,
+                                                          backgroundColor: Colors.green.shade700,
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                      ],
+                                    );
                                   },
                                 ),
                               ],
