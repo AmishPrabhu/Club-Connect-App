@@ -7,6 +7,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import '../models/post_item.dart';
 import '../state/app_state.dart';
 import '../widgets/glass_card.dart';
+import '../widgets/edit_event_sheet.dart';
 import 'event_participants_screen.dart';
 
 class PostDetailScreen extends StatefulWidget {
@@ -58,6 +59,39 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         title: Text(
           widget.initialPost.type == 'event' ? 'Event Detail' : 'Announcement',
         ),
+        actions: [
+          if (widget.initialPost.isEvent && widget.appState.session != null)
+            Builder(
+              builder: (context) {
+                final sess = widget.appState.session!;
+                final clubMatch = widget.appState.clubs.where((c) => c.id == widget.initialPost.clubId).toList();
+                final club = clubMatch.isNotEmpty ? clubMatch.first : null;
+                final isOfficer = sess.canManageEventsOf(widget.initialPost.clubId, club: club);
+                final isAdmin = sess.role == 'admin' || sess.roles.contains('admin');
+                if (isOfficer || isAdmin) {
+                  return IconButton(
+                    icon: const Icon(Icons.edit_outlined),
+                    tooltip: 'Edit Event Details',
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => EditEventSheet(
+                          event: widget.initialPost,
+                          appState: widget.appState,
+                          onSuccess: () {
+                            if (mounted) setState(() {});
+                          },
+                        ),
+                      );
+                    },
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+        ],
       ),
       body: FutureBuilder<PostItem>(
         future: _postFuture,

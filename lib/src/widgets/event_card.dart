@@ -6,6 +6,7 @@ import '../models/post_item.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import 'glass_card.dart';
+import 'edit_event_sheet.dart';
 
 class EventCard extends StatefulWidget {
   const EventCard({super.key, required this.post, required this.appState, this.onTap});
@@ -61,35 +62,75 @@ class _EventCardState extends State<EventCard> {
                 Positioned(
                   top: 16,
                   right: 16,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          month,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: AppTheme.mutedColor(context),
-                          ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (widget.post.isEvent && widget.appState.session != null)
+                        Builder(
+                          builder: (context) {
+                            final sess = widget.appState.session!;
+                            final clubMatch = widget.appState.clubs.where((c) => c.id == widget.post.clubId).toList();
+                            final club = clubMatch.isNotEmpty ? clubMatch.first : null;
+                            final isOfficer = sess.canManageEventsOf(widget.post.clubId, club: club);
+                            final isAdmin = sess.role == 'admin' || sess.roles.contains('admin');
+                            if (isOfficer || isAdmin) {
+                              return Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).cardColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: IconButton(
+                                  icon: const Icon(Icons.edit_outlined, size: 20),
+                                  tooltip: 'Edit Event Details',
+                                  onPressed: () {
+                                    showModalBottomSheet(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      backgroundColor: Colors.transparent,
+                                      builder: (_) => EditEventSheet(
+                                        event: widget.post,
+                                        appState: widget.appState,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
                         ),
-                        Text(
-                          '${date.day}',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: AppTheme.textColor(context),
-                          ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
                         ),
-                      ],
-                    ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              month,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.mutedColor(context),
+                              ),
+                            ),
+                            Text(
+                              '${date.day}',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                color: AppTheme.textColor(context),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
