@@ -1,5 +1,6 @@
 import 'user_membership.dart';
 import 'club.dart';
+import 'post_item.dart';
 
 class UserSession {
   UserSession({
@@ -118,10 +119,16 @@ class UserSession {
     return false;
   }
 
-  /// Check if the user can manage events & posts (create/edit/delete) for a specific club.
-  /// Matches backend verifyEventOfficer middleware (President, Secretary, Assistant Secretary only).
-  bool canManageEventsOf(String clubId, {Club? club}) {
+  /// Check if the user can manage events & posts (create/edit/delete) for a specific club or a specific event.
+  bool canManageEventsOf(String clubId, {Club? club, PostItem? event}) {
     if (role == 'admin') return true;
+    if (event != null) {
+      if ((id != null && id == event.eventManagerId) ||
+          (event.eventManagerEmail != null &&
+              event.eventManagerEmail!.toLowerCase() == email.toLowerCase())) {
+        return true;
+      }
+    }
     final hasMembershipManager = memberships.any((m) => m.clubId == clubId && m.canManageEvents);
     if (hasMembershipManager) return true;
 
