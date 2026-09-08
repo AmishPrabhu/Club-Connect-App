@@ -26,6 +26,7 @@ import '../widgets/create_notification_sheet.dart';
 import '../widgets/assign_teacher_sheet.dart';
 import '../widgets/create_club_sheet.dart';
 import '../widgets/start_new_year_sheet.dart';
+import '../widgets/member_search_picker_sheet.dart';
 import 'notifications_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -7239,6 +7240,11 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
   final sheetUrlController = TextEditingController();
   final whatsappController = TextEditingController();
 
+  // ── Event Manager
+  String? _eventManagerId;
+  String? _eventManagerName;
+  String? _eventManagerEmail;
+
   bool _isSubmitting = false;
 
   int get _totalSteps => widget.isEvent ? 3 : 2;
@@ -7392,6 +7398,9 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
         eventWhatsappLink: widget.isEvent && whatsappController.text.trim().isNotEmpty ? whatsappController.text.trim() : null,
         relatedEventId: !widget.isEvent && relatedEventId.isNotEmpty ? relatedEventId : null,
         relatedEventTitle: relTitle,
+        eventManagerId: widget.isEvent ? _eventManagerId : null,
+        eventManagerName: widget.isEvent ? _eventManagerName : null,
+        eventManagerEmail: widget.isEvent ? _eventManagerEmail : null,
       );
       if (mounted) {
         Navigator.of(context).pop();
@@ -8022,6 +8031,101 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
                     iconColor: const Color(0xFF25D366), hint: 'https://chat.whatsapp.com/...',
                     label: 'WhatsApp Group Link', isDark: isDark),
               ]),
+            ),
+            const SizedBox(height: 16),
+            // ── Event Manager ─────────────────────────────────────────────
+            _sectionCard(
+              isDark: isDark,
+              accentColor: const Color(0xFFFF6B35),
+              icon: Icons.manage_accounts_rounded,
+              title: 'Event Manager',
+              subtitle: 'Optional',
+              child: Builder(builder: (context) {
+                final isDarkLocal = isDark;
+                final titleColor = AppTheme.textColor(context);
+                final subtitleColor = isDarkLocal ? AppTheme.darkMuted : AppTheme.mutedColor(context);
+                final cardBg = isDarkLocal ? AppTheme.darkElevated : const Color(0xFFF8FAFC);
+
+                return GestureDetector(
+                  onTap: () async {
+                    await showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => MemberSearchPickerSheet(
+                        clubId: widget.club.id,
+                        appState: widget.appState,
+                        selectedMemberEmail: _eventManagerEmail,
+                        onMemberSelected: (member) {
+                          setState(() {
+                            if (member == null) {
+                              _eventManagerId = null;
+                              _eventManagerName = null;
+                              _eventManagerEmail = null;
+                            } else {
+                              _eventManagerId = member['id']?.toString() ?? member['userId']?.toString();
+                              _eventManagerName = member['name']?.toString() ?? member['userName']?.toString();
+                              _eventManagerEmail = member['email']?.toString() ?? member['userEmail']?.toString();
+                            }
+                          });
+                        },
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: cardBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _eventManagerEmail != null
+                            ? const Color(0xFFFF6B35).withValues(alpha: 0.5)
+                            : (isDarkLocal ? Colors.white.withValues(alpha: 0.08) : Colors.blueGrey.withValues(alpha: 0.15)),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: _eventManagerEmail != null
+                              ? const Color(0xFFFF6B35).withValues(alpha: 0.15)
+                              : (isDarkLocal ? Colors.white.withValues(alpha: 0.08) : Colors.blueGrey.withValues(alpha: 0.1)),
+                          child: Icon(
+                            _eventManagerEmail != null ? Icons.person_rounded : Icons.person_add_alt_1_rounded,
+                            color: _eventManagerEmail != null ? const Color(0xFFFF6B35) : subtitleColor,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _eventManagerName != null
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _eventManagerName!,
+                                      style: TextStyle(color: titleColor, fontWeight: FontWeight.w600, fontSize: 14),
+                                    ),
+                                    Text(
+                                      _eventManagerEmail!,
+                                      style: TextStyle(color: subtitleColor, fontSize: 12),
+                                    ),
+                                  ],
+                                )
+                              : Text(
+                                  'Tap to assign an event manager',
+                                  style: TextStyle(color: subtitleColor, fontSize: 14),
+                                ),
+                        ),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: subtitleColor,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
             ),
             const SizedBox(height: 24),
           ],
