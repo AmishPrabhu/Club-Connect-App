@@ -861,6 +861,9 @@ class AppState extends ChangeNotifier {
     String? relatedEventTitle,
     int? totalSessions,
     String? visibility,
+    String? eventManagerId,
+    String? eventManagerName,
+    String? eventManagerEmail,
   }) async {
     final body = <String, dynamic>{
       'clubId': clubId,
@@ -890,6 +893,9 @@ class AppState extends ChangeNotifier {
     if (relatedEventId != null) body['relatedEventId'] = relatedEventId;
     if (relatedEventTitle != null) body['relatedEventTitle'] = relatedEventTitle;
     if (totalSessions != null) body['totalSessions'] = totalSessions;
+    if (eventManagerId != null) body['eventManagerId'] = eventManagerId;
+    if (eventManagerName != null) body['eventManagerName'] = eventManagerName;
+    if (eventManagerEmail != null) body['eventManagerEmail'] = eventManagerEmail;
 
     final response = await _apiClient.post('/posts', body: body) as Map<String, dynamic>;
     final created = PostItem.fromJson(response);

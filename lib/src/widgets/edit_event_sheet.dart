@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../models/post_item.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import 'member_search_picker_sheet.dart';
 
 class EditEventSheet extends StatefulWidget {
   const EditEventSheet({
@@ -46,6 +47,11 @@ class _EditEventSheetState extends State<EditEventSheet> {
   DateTime? _regEndDate;
   TimeOfDay? _regEndTime;
 
+  // Event Manager state
+  String? _eventManagerId;
+  String? _eventManagerName;
+  String? _eventManagerEmail;
+
   bool _isSubmitting = false;
   String? _errorMessage;
 
@@ -80,6 +86,10 @@ class _EditEventSheetState extends State<EditEventSheet> {
       _regEndDate = DateTime.tryParse(event.registrationEnd!);
     }
     _regEndTime = _parseTimeString(event.registrationEndTime);
+
+    _eventManagerId = event.eventManagerId;
+    _eventManagerName = event.eventManagerName;
+    _eventManagerEmail = event.eventManagerEmail;
   }
 
   TimeOfDay? _parseTimeString(String? timeStr) {
@@ -169,6 +179,9 @@ class _EditEventSheetState extends State<EditEventSheet> {
       'registrationLink': _registrationLinkController.text.trim(),
       'responseSpreadsheetUrl': _responseSpreadsheetUrlController.text.trim(),
       'eventWhatsappLink': _eventWhatsappLinkController.text.trim(),
+      'eventManagerId': _eventManagerId ?? '',
+      'eventManagerName': _eventManagerName ?? '',
+      'eventManagerEmail': _eventManagerEmail ?? '',
     };
 
     if (_eventDate != null) {
@@ -371,6 +384,57 @@ class _EditEventSheetState extends State<EditEventSheet> {
                           labelText: 'Total Sessions Count',
                           hintText: 'e.g. 1, 2, 3...',
                           prefixIcon: Icon(Icons.format_list_numbered_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Event Manager Assignment Field
+                      InkWell(
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => MemberSearchPickerSheet(
+                              clubId: widget.event.clubId,
+                              appState: widget.appState,
+                              selectedMemberEmail: _eventManagerEmail,
+                              onMemberSelected: (m) {
+                                setState(() {
+                                  if (m != null) {
+                                    _eventManagerId = (m['_id'] ?? m['id'] ?? m['userId'])?.toString();
+                                    _eventManagerName = (m['name'] ?? m['userName'])?.toString();
+                                    _eventManagerEmail = (m['email'] ?? m['userEmail'])?.toString();
+                                  } else {
+                                    _eventManagerId = null;
+                                    _eventManagerName = null;
+                                    _eventManagerEmail = null;
+                                  }
+                                });
+                              },
+                            ),
+                          );
+                        },
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Assigned Event Manager',
+                            prefixIcon: Icon(Icons.person_pin_rounded),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  _eventManagerName != null && _eventManagerName!.isNotEmpty
+                                      ? '$_eventManagerName (${_eventManagerEmail ?? ""})'
+                                      : 'Tap to search & assign a member',
+                                  style: TextStyle(
+                                    color: _eventManagerName != null ? titleColor : subtitleColor,
+                                    fontWeight: _eventManagerName != null ? FontWeight.w600 : FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                              const Icon(Icons.search_rounded, size: 20),
+                            ],
+                          ),
                         ),
                       ),
 

@@ -34,6 +34,9 @@ class PostItem {
     this.relatedEventId,
     this.relatedEventTitle,
     this.visibility,
+    this.eventManagerId,
+    this.eventManagerName,
+    this.eventManagerEmail,
   });
 
   final String id;
@@ -94,6 +97,11 @@ class PostItem {
   final String? relatedEventTitle;
 
   final String? visibility;
+
+  /// Assigned Event Manager fields
+  final String? eventManagerId;
+  final String? eventManagerName;
+  final String? eventManagerEmail;
 
   bool get isEvent => type.toLowerCase() == 'event';
   bool get isService => type.toLowerCase() == 'service';
@@ -224,6 +232,9 @@ class PostItem {
       relatedEventId: json['relatedEventId']?.toString(),
       relatedEventTitle: json['relatedEventTitle']?.toString(),
       visibility: json['visibility']?.toString(),
+      eventManagerId: json['eventManagerId']?.toString(),
+      eventManagerName: json['eventManagerName']?.toString(),
+      eventManagerEmail: json['eventManagerEmail']?.toString(),
     );
   }
 }
